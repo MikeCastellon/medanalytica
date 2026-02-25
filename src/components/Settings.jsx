@@ -102,19 +102,6 @@ export default function Settings({ user }) {
         <div className="fa"><button className="btn btn-nv" onClick={save}>Save Configuration</button></div>
       </div>
 
-      <div className="fc">
-        <div className="fc-hdr"><div className="fc-title">Environment Setup</div><div className="fc-badge">Info</div></div>
-        <p style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: '1.75', marginBottom: '12px' }}>
-          Configure the following environment variables in your Netlify project settings and local <code>.env</code> file:
-        </p>
-        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', fontFamily: 'monospace', fontSize: '12.5px', color: 'var(--navy)', lineHeight: '2' }}>
-          <div><span style={{ color: 'var(--text3)' }}># Supabase</span></div>
-          <div>VITE_SUPABASE_URL=https://your-project.supabase.co</div>
-          <div>VITE_SUPABASE_ANON_KEY=your-anon-key</div>
-          <div style={{ marginTop: '8px' }}><span style={{ color: 'var(--text3)' }}># Anthropic (Netlify Functions only)</span></div>
-          <div>ANTHROPIC_API_KEY=sk-ant-your-key</div>
-        </div>
-      </div>
     </div>
   );
 }
