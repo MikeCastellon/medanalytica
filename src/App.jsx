@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import CrisLogo from './components/CrisLogo';
 
-const LOGO_KEY = 'medanalytica_custom_logo';
+const LOGO_KEY     = 'medanalytica_custom_logo';
+const PATIENTS_KEY = 'cris_session_patients';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import NewPatient from './components/NewPatient';
@@ -22,11 +23,18 @@ export default function App() {
   const [view, setView]   = useState('dashboard');
   const [pending, setPending] = useState(null); // { form, file }
   const [result, setResult]   = useState(null); // { patient, report }
-  const [sessionPatients, setSessionPatients] = useState([]); // in-memory patients this session
+  const [sessionPatients, setSessionPatients] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem(PATIENTS_KEY) || '[]'); } catch { return []; }
+  }); // persisted to sessionStorage so reports survive refresh
   const [sessionWarn, setSessionWarn] = useState(false); // show 2-min warning
   const [customLogo, setCustomLogo]   = useState(() => localStorage.getItem(LOGO_KEY) || '');
   const timeoutRef  = useRef(null);
   const warnRef     = useRef(null);
+
+  // Persist session patients to sessionStorage whenever they change
+  useEffect(() => {
+    try { sessionStorage.setItem(PATIENTS_KEY, JSON.stringify(sessionPatients)); } catch {}
+  }, [sessionPatients]);
 
   // Listen for logo changes saved in Settings
   useEffect(() => {
@@ -37,8 +45,10 @@ export default function App() {
 
   const doLogout = useCallback(async () => {
     sessionStorage.removeItem('cris_demo_session');
+    sessionStorage.removeItem(PATIENTS_KEY);
     await supabase.auth.signOut();
     setUser(null);
+    setSessionPatients([]);
     setView('dashboard');
     setSessionWarn(false);
   }, []);
@@ -74,24 +84,48 @@ export default function App() {
       try { setUser(JSON.parse(stored)); } catch {}
     }
 
+    // Helper: build user object from Supabase session + doctor_profiles row
+    const buildUser = async (supaUser) => {
+      try {
+        const { data: profile } = await supabase
+          .from('doctor_profiles')
+          .select('full_name, role, initials, clinic_name')
+          .eq('id', supaUser.id)
+          .single();
+        return {
+          id:         supaUser.id,
+          name:       profile?.full_name || supaUser.email,
+          role:       profile?.role      || 'Physician',
+          initials:   profile?.initials  || supaUser.email?.[0]?.toUpperCase() || 'DR',
+          clinicName: profile?.clinic_name || '',
+        };
+      } catch {
+        return { id: supaUser.id, name: supaUser.email, role: 'Physician', initials: 'DR', clinicName: '' };
+      }
+    };
+
     // 2. Check real Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        setUser({ id: session.user.id, name: session.user.email, role: 'Physician', initials: 'DR' });
+        const u = await buildUser(session.user);
+        setUser(u);
       }
     });
 
     // 3. Keep in sync with Supabase auth events
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
         sessionStorage.removeItem('cris_demo_session');
+        sessionStorage.removeItem(PATIENTS_KEY);
         setUser(null);
+        setSessionPatients([]);
       } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
-        setUser(prev =>
-          prev?.id === 'demo'
-            ? prev  // don't overwrite demo session with Supabase INITIAL_SESSION null
-            : { id: session.user.id, name: session.user.email, role: 'Physician', initials: 'DR' }
-        );
+        setUser(prev => {
+          if (prev?.id === 'demo') return prev; // don't overwrite demo session
+          // Kick off async profile load — update once resolved
+          buildUser(session.user).then(u => setUser(u));
+          return prev; // interim: keep whatever we had
+        });
       }
     });
     return () => subscription.unsubscribe();
@@ -101,8 +135,10 @@ export default function App() {
 
   const handleLogout = async () => {
     sessionStorage.removeItem('cris_demo_session');
+    sessionStorage.removeItem(PATIENTS_KEY);
     await supabase.auth.signOut();
     setUser(null);
+    setSessionPatients([]);
     setView('dashboard');
   };
 
@@ -122,8 +158,46 @@ export default function App() {
     setView('patient-report');
   };
 
-  const handleViewPatient = (patient) => {
-    // For existing patients load their latest report
+  const handleViewPatient = async (patient) => {
+    // Session patient — has full report data already (just processed)
+    if (patient.latestReport?.hrvMarkers || patient.latestReport?.therapeuticSelections) {
+      setResult({ patient, report: patient.latestReport });
+      setView('patient-report');
+      return;
+    }
+
+    // Real DB patient — load the full report (raw_extraction) from Supabase
+    if (user.id !== 'demo' && patient.reports?.length > 0) {
+      try {
+        const latestId = [...patient.reports]
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]?.id;
+        if (latestId) {
+          const { data: dbReport } = await supabase
+            .from('reports')
+            .select('*')
+            .eq('id', latestId)
+            .single();
+          if (dbReport) {
+            // raw_extraction holds the full AI JSON; merge top-level DB fields for display
+            const report = {
+              ...(dbReport.raw_extraction || {}),
+              report_type:     dbReport.report_type,
+              collection_date: dbReport.collection_date,
+              file_name:       dbReport.file_name,
+              cri_score:       dbReport.cri_score,
+              crisgoldQuadrant: dbReport.hrq_quadrant ?? dbReport.raw_extraction?.crisgoldQuadrant,
+            };
+            setResult({ patient, report });
+            setView('patient-report');
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load report from DB:', e);
+      }
+    }
+
+    // Fallback (demo patients or no report found)
     setResult({ patient, report: patient.latestReport || null });
     setView('patient-report');
   };

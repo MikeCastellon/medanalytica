@@ -320,8 +320,20 @@ function sanitizeNumber(val, min = 0, max = 99999) {
 }
 
 export const handler = async (event) => {
+  // Allow requests from both the custom domain and the Netlify subdomain
+  const requestOrigin = event.headers['origin'] || '';
+  const allowedOrigins = [
+    'https://kesslercris.com',
+    'https://www.kesslercris.com',
+    'https://medanalytica-cris.netlify.app',
+    ...(process.env.ALLOWED_ORIGIN ? [process.env.ALLOWED_ORIGIN] : []),
+  ];
+  const allowedOrigin = allowedOrigins.includes(requestOrigin)
+    ? requestOrigin
+    : allowedOrigins[0];
+
   const securityHeaders = {
-    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || 'https://medanalytica-cris.netlify.app',
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
