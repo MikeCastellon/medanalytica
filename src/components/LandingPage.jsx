@@ -153,7 +153,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', gap: 32 }}>
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <CrisLogo size={36} showSub={false} />
+            <CrisLogo size={46} showSub={false} />
           </div>
 
           {/* Nav links */}
@@ -436,7 +436,7 @@ export default function LandingPage() {
             {/* Brand col */}
             <div>
               <div style={{ marginBottom: 16 }}>
-                <CrisLogo size={32} showSub={true} />
+                <CrisLogo size={42} showSub={true} />
               </div>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', lineHeight: 1.8, maxWidth: 240 }}>
                 AI-powered CRIS GOLD™ clinical reporting for licensed integrative and functional medicine practitioners.

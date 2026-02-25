@@ -49,7 +49,7 @@ export default function Login({ onLogin }) {
         <div className="ll-bg" /><div className="ll-grid" />
         <div className="ll-content">
           <div className="l-brand">
-            <CrisLogo size={40} showSub={true} />
+            <CrisLogo size={54} showSub={true} />
           </div>
           <div className="l-tagline">Clinical Report<br /><em>Intelligence</em></div>
           <p className="l-desc">

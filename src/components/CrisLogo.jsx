@@ -35,19 +35,19 @@ export default function CrisLogo({
           xmlns="http://www.w3.org/2000/svg"
           style={{ flexShrink: 0 }}
         >
-          {/* Dark background circle */}
-          <circle cx="40" cy="40" r="40" fill="#0a1628" />
+          {/* Gold background circle */}
+          <circle cx="40" cy="40" r="40" fill="#7a5209" />
 
-          {/* Outer teal glow ring */}
-          <circle cx="40" cy="40" r="36" stroke="#0e8a7a" strokeWidth="1" strokeOpacity="0.35" fill="none" />
+          {/* Outer gold glow ring */}
+          <circle cx="40" cy="40" r="36" stroke="#f5c842" strokeWidth="1.2" strokeOpacity="0.45" fill="none" />
 
           {/* Heart shape — outer shell */}
           <path
             d="M40 62 C40 62 12 46 12 28 C12 20 18 14 26 14 C31 14 36 17 40 21 C44 17 49 14 54 14 C62 14 68 20 68 28 C68 46 40 62 40 62Z"
-            fill="#1a3a5c"
-            stroke="#0e8a7a"
+            fill="#3d2800"
+            stroke="#f5c842"
             strokeWidth="1.5"
-            strokeOpacity="0.7"
+            strokeOpacity="0.6"
           />
 
           {/* Central golden spine */}
