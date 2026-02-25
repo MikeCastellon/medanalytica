@@ -202,42 +202,9 @@ export default function LandingPage() {
               Start Generating Reports →
             </button>
           </div>
-          <p className="lp-fade-up lp-delay-3" style={{ fontSize: 12.5, color: C.text3, marginBottom: 60 }}>
+          <p className="lp-fade-up lp-delay-3" style={{ fontSize: 12.5, color: C.text3, marginBottom: 16 }}>
             For licensed practitioners only · HIPAA compliant · No PHI stored in AI
           </p>
-
-          {/* Mockup card */}
-          <div className="lp-fade-up lp-delay-3" style={{
-            background: C.navy, borderRadius: 16, padding: '0 0 20px',
-            boxShadow: '0 24px 80px rgba(15,39,68,.22)',
-            textAlign: 'left', overflow: 'hidden',
-          }}>
-            {/* Browser bar */}
-            <div style={{ background: C.navy2, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#c0392b', opacity: .7 }} />
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b', opacity: .7 }} />
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#0e7a55', opacity: .7 }} />
-              <div style={{ flex: 1, background: 'rgba(255,255,255,.07)', borderRadius: 4, height: 22, marginLeft: 8, display: 'flex', alignItems: 'center', padding: '0 10px' }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>medanalytica-cris.netlify.app/dashboard</span>
-              </div>
-            </div>
-            {/* Mock report content */}
-            <div style={{ padding: '18px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {[
-                { label: '🔮 Rubimed PSE', sub: 'Chavita 4 · Conflict: Mental Overexertion', color: C.teal },
-                { label: '📊 CRIS GOLD™ Quadrant', sub: 'Q1 — Overloaded & Dysregulated', color: C.blue },
-                { label: '🫀 HRV Analysis', sub: 'SDNN 28ms · RMSSD 18ms · Stress ↑', color: '#e67e22' },
-                { label: '💊 Therapeutic Selections', sub: 'Drainage · Cell Membrane · Mito Support', color: C.green },
-                { label: '🧠 Brain Gauge', sub: 'Speed 42 · Focus 38 · Fatigue 24', color: '#8e44ad' },
-                { label: '🔒 HIPAA Protected', sub: 'PHI encrypted · 15-min auto-logout', color: C.text3 },
-              ].map((item, i) => (
-                <div key={i} style={{ background: 'rgba(255,255,255,.05)', borderRadius: 8, padding: '10px 12px', border: '1px solid rgba(255,255,255,.07)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: item.color, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '.06em' }}>{item.label}</div>
-                  <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,.55)', lineHeight: 1.5 }}>{item.sub}</div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 
