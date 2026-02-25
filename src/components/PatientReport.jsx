@@ -67,7 +67,7 @@ const ACUTE_REMEDY_INFO = {
 // ── PSE: Standard Dosage (verbatim from Rubimed Practitioner Guide) ─────────
 const PSE_DOSAGE = '2× daily — 12 drops directly on tongue (adults). Children: 2× daily — 6 drops. Small children: 1 drop per year of age. Acute remedies / Geovita: 2× 12 drops, or 5 drops several times per day for acute symptoms. No known side effects. Does not replace medical or psychotherapeutic care.';
 
-export default function PatientReport({ patient, report, onBack }) {
+export default function PatientReport({ patient, report, saveError, onBack }) {
   const [reportTab, setReportTab] = useState('clinician');
   if (!report) return null;
   const r = report;
@@ -106,6 +106,14 @@ export default function PatientReport({ patient, report, onBack }) {
   return (
     <div className="fade-in">
       <button className="back-btn" onClick={onBack}>← Back to Dashboard</button>
+
+      {/* ── Save Error Banner ── */}
+      {saveError && (
+        <div style={{ background: '#fffbeb', border: '1px solid #f59e0b', borderLeft: '4px solid #f59e0b', borderRadius: '8px', padding: '8px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: '#92400e' }}>
+          <span style={{ fontSize: '14px' }}>⚠️</span>
+          <span><strong>Report generated but not saved to patient records.</strong> {saveError} — Please contact your administrator or try re-submitting.</span>
+        </div>
+      )}
 
       {/* ── HIPAA Compliance Notice ── */}
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderLeft: '4px solid #3b82f6', borderRadius: '8px', padding: '8px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: '#1e40af' }}>
@@ -760,10 +768,13 @@ function TherapeuticCard({ selections, quadrant }) {
     categories.forEach(c => { s[c.key] = [...(selections?.[c.key] || [])]; });
     return s;
   });
-  const [editMode, setEditMode]         = useState(false);
+  const [editCols, setEditCols]         = useState({});        // per-category edit open state
   const [addTab, setAddTab]             = useState({});        // 'browse' | 'custom' per category
   const [customInput, setCustomInput]   = useState({});
   const [searchText, setSearchText]     = useState({});
+
+  const isEditing  = (key) => !!editCols[key];
+  const toggleEdit = (key) => setEditCols(prev => ({ ...prev, [key]: !prev[key] }));
 
   const removeItem = (catKey, idx) =>
     setEditSels(prev => ({ ...prev, [catKey]: prev[catKey].filter((_, i) => i !== idx) }));
@@ -792,22 +803,15 @@ function TherapeuticCard({ selections, quadrant }) {
   const isAdded = (catKey, p) =>
     editSels[catKey]?.some(x => x === `${p.product} — ${p.dose} (${p.brand})`);
 
-  const hasAny = categories.some(c => editSels[c.key]?.length > 0);
-  if (!hasAny && !editMode) return null;
+  const hasAny    = categories.some(c => editSels[c.key]?.length > 0);
+  const anyEditing = categories.some(c => isEditing(c.key));
+  if (!hasAny && !anyEditing) return null;
 
   return (
     <div className="card" style={{ marginBottom: '16px' }}>
       <div className="card-hdr">
         <span className="card-title">💊 Therapeutic Selections</span>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {quadrant && <span className="badge b-bl">{quadrant} Protocol</span>}
-          <button
-            onClick={() => setEditMode(e => !e)}
-            style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: editMode ? 'var(--navy)' : 'var(--bg3)', color: editMode ? '#fff' : 'var(--navy)', cursor: 'pointer', fontWeight: '600' }}
-          >
-            {editMode ? '✓ Done Editing' : '✏️ Edit'}
-          </button>
-        </div>
+        {quadrant && <span className="badge b-bl">{quadrant} Protocol</span>}
       </div>
 
       <div style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
@@ -815,13 +819,23 @@ function TherapeuticCard({ selections, quadrant }) {
           const items      = editSels[key];
           const tab        = addTab[key] || 'browse';
           const masterList = getMasterList(key);
-          if (!items?.length && !editMode) return null;
+          const editing    = isEditing(key);
+          if (!items?.length && !editing) return null;
 
           return (
             <div key={key}>
-              {/* Category header */}
-              <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '8px' }}>
-                {icon} {label}
+              {/* Category header with per-column edit button */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)' }}>
+                  {icon} {label}
+                </div>
+                <button
+                  onClick={() => toggleEdit(key)}
+                  title={editing ? 'Done editing' : 'Edit this category'}
+                  style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '5px', border: `1px solid ${editing ? 'var(--navy)' : 'var(--border)'}`, background: editing ? 'var(--navy)' : 'var(--bg3)', color: editing ? '#fff' : 'var(--text3)', cursor: 'pointer', fontWeight: '600', flexShrink: 0 }}
+                >
+                  {editing ? '✓ Done' : '✏️'}
+                </button>
               </div>
 
               {/* Current items */}
@@ -829,7 +843,7 @@ function TherapeuticCard({ selections, quadrant }) {
                 {items.map((item, i) => (
                   <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '12.5px', color: 'var(--navy)', padding: '4px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <span style={{ flex: 1, lineHeight: '1.5' }}>• {item}</span>
-                    {editMode && (
+                    {editing && (
                       <button
                         onClick={() => removeItem(key, i)}
                         title="Remove"
@@ -841,7 +855,7 @@ function TherapeuticCard({ selections, quadrant }) {
               </ul>
 
               {/* Add panel — edit mode only */}
-              {editMode && (
+              {editing && (
                 <div style={{ marginTop: '10px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
                   {/* Tab switcher */}
                   <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg3)' }}>
@@ -938,9 +952,9 @@ function TherapeuticCard({ selections, quadrant }) {
         })}
       </div>
 
-      {editMode && (
+      {anyEditing && (
         <div style={{ padding: '0 22px 14px', fontSize: '11px', color: 'var(--text3)' }}>
-          ⚠️ Changes are session-only and not saved to the patient record. Click "Done Editing" when finished.
+          ⚠️ Changes are session-only and not saved to the patient record.
         </div>
       )}
     </div>

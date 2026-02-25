@@ -26,6 +26,7 @@ export default function Processing({ user, form, files = [], customRules, onDone
   };
 
   const run = async () => {
+    let saveError = null;
     try {
       advance(1);
       // Convert all screenshots to base64
@@ -49,7 +50,7 @@ export default function Processing({ user, form, files = [], customRules, onDone
       // Create patient record in Supabase
       let patientId = null;
       if (user.id !== 'demo') {
-        const { data: pat } = await supabase.from('patients').insert({
+        const { data: pat, error: patError } = await supabase.from('patients').insert({
           doctor_id:  user.id,
           first_name: form.firstName,
           last_name:  form.lastName,
@@ -59,7 +60,11 @@ export default function Processing({ user, form, files = [], customRules, onDone
           phone:      form.phone || null,
           notes:      form.notes || null,
         }).select().single();
-        patientId = pat?.id;
+        if (patError) {
+          console.error('Patient insert failed:', patError);
+          saveError = `Patient record could not be created: ${patError.message}`;
+        }
+        patientId = pat?.id ?? null;
       }
 
       advance(4);
@@ -77,8 +82,9 @@ export default function Processing({ user, form, files = [], customRules, onDone
             sbp:                  form.sbp ? Number(form.sbp) : null,
             dbp:                  form.dbp ? Number(form.dbp) : null,
             filtrationRejections: form.filtrationRejections ? Number(form.filtrationRejections) : null,
-            questionnaireScore:   form.questionnaireScore !== '' && form.questionnaireScore != null ? Number(form.questionnaireScore) : null,
-            ari:                  form.ari !== '' && form.ari != null ? Number(form.ari) : null,
+            questionnaireScore:       form.questionnaireScore !== '' && form.questionnaireScore != null ? Number(form.questionnaireScore) : null,
+            stressQuestionnaireScore: form.stressQuestionnaireScore != null ? Number(form.stressQuestionnaireScore) : null,
+            ari:                      form.ari !== '' && form.ari != null ? Number(form.ari) : null,
             chavita:              form.chavita ? Number(form.chavita) : null,
             emvita:               form.emvita ? Number(form.emvita) : null,
             ermMethod:            form.ermMethod || null,
@@ -100,23 +106,44 @@ export default function Processing({ user, form, files = [], customRules, onDone
       advance(5);
       // Save report to Supabase
       if (user.id !== 'demo' && patientId) {
-        await supabase.from('reports').insert({
-          patient_id:      patientId,
-          doctor_id:       user.id,
-          report_type:     aiData.reportType || form.reportType,
-          collection_date: form.collectionDate || null,
-          file_path:       filePaths[0] || null,
-          file_name:       files[0]?.name || null,
-          status:          'complete',
-          cri_score:       aiData.criScore,
-          hrq_ari:         aiData.hrqAri,
-          hrq_eli:         aiData.hrqEli,
-          hrq_quadrant:    aiData.hrqQuadrant,
-          cv_quadrant:     aiData.cvQuadrant,
-          ai_summary:      aiData.aiSummary,
-          markers:         aiData.markers,
-          raw_extraction:  aiData,
+        const { error: repError } = await supabase.from('reports').insert({
+          patient_id:               patientId,
+          doctor_id:                user.id,
+          report_type:              aiData.reportType || form.reportType,
+          collection_date:          form.collectionDate || null,
+          file_path:                filePaths[0] || null,
+          file_name:                files[0]?.name || null,
+          status:                   'complete',
+          cri_score:                aiData.criScore,
+          hrq_ari:                  aiData.ari ?? aiData.hrqAri,
+          hrq_eli:                  aiData.eli ?? aiData.hrqEli,
+          hrq_quadrant:             aiData.crisgoldQuadrant ?? aiData.hrqQuadrant,
+          cv_quadrant:              aiData.cvQuadrant,
+          ai_summary:               aiData.aiSummary,
+          markers:                  aiData.hrvMarkers || aiData.markers,
+          // Extended CRIS GOLD™ fields
+          blood_pressure:           aiData.bloodPressure,
+          pulse_pressure:           aiData.pulsePressure,
+          chief_complaints:         aiData.chiefComplaints,
+          polyvagal_rule_of_3:      aiData.polyvagalRuleOf3Met,
+          polyvagal_interpretation: aiData.polyvagalInterpretation,
+          adrenal_urine_drops:      aiData.adrenalUrineDrops,
+          adrenal_summary:          aiData.adrenalSummary,
+          brain_gauge:              aiData.brainGauge,
+          brain_gauge_summary:      aiData.brainGaugeSummary,
+          therapeutic_selections:   aiData.therapeuticSelections,
+          neurovizr_programs:       aiData.neuroVizrPrograms,
+          patient_friendly_summary: aiData.patientFriendlySummary,
+          cri_category:             aiData.criCategory,
+          overall_status:           aiData.overallStatus,
+          raw_extraction:           aiData,
         });
+        if (repError) {
+          console.error('Report save failed:', repError);
+          saveError = saveError || `Report could not be saved: ${repError.message}`;
+        }
+      } else if (user.id !== 'demo' && !patientId) {
+        saveError = saveError || 'Report could not be saved: patient record creation failed.';
       }
 
       advance(6);
@@ -137,19 +164,26 @@ export default function Processing({ user, form, files = [], customRules, onDone
             file_name:   files.length > 0 ? `${files.length} screenshot(s)` : null,
             collection_date: form.collectionDate,
           },
+          saveError: saveError || null,
         });
       }, 800);
 
     } catch (err) {
       console.error('Processing error:', err);
-      // In demo mode or if API not configured, generate mock data
-      advance(6);
-      setTimeout(() => {
-        onDone({
-          patient: { id: 'demo-1', first_name: form.firstName, last_name: form.lastName, dob: form.dob, gender: form.gender, mrn: form.mrn },
-          report: getMockReport(form),
-        });
-      }, 800);
+      // Only fall back to demo mock data in true demo mode or if AI service not configured
+      if (user.id === 'demo' || err.message?.includes('not configured') || err.message?.includes('503')) {
+        advance(6);
+        setTimeout(() => {
+          onDone({
+            patient: { id: 'demo-1', first_name: form.firstName, last_name: form.lastName, dob: form.dob, gender: form.gender, mrn: form.mrn },
+            report: getMockReport(form),
+            saveError: null,
+          });
+        }, 800);
+      } else {
+        // Real error — surface it to the user
+        onError?.(err.message || 'Analysis failed. Please check your connection and try again.');
+      }
     }
   };
 

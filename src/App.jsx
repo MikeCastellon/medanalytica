@@ -92,7 +92,7 @@ export default function App() {
   };
 
   const handleDone = (data) => {
-    setResult(data);
+    setResult(data);   // data may include saveError
     // Add to session patient list so it shows on dashboard immediately
     setSessionPatients(prev => {
       const exists = prev.find(p => p.id === data.patient.id);
@@ -126,12 +126,15 @@ export default function App() {
             form={pending?.form}
             files={pending?.files || []}
             onDone={handleDone}
-            onError={() => setView('dashboard')}
+            onError={(msg) => {
+              alert(`Analysis failed: ${msg}`);
+              setView('dashboard');
+            }}
           />
         );
       case 'patient-report':
         return result
-          ? <PatientReport patient={result.patient} report={result.report} onBack={() => setView('dashboard')} />
+          ? <PatientReport patient={result.patient} report={result.report} saveError={result.saveError || null} onBack={() => setView('dashboard')} />
           : <div style={{ padding: '32px', color: 'var(--text3)' }}>No report loaded.</div>;
       case 'settings':
         return <Settings user={user} />;
