@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import CrisLogo from './CrisLogo';
 
 export default function Login({ onLogin }) {
   const [email, setEmail]   = useState('');
@@ -48,8 +49,7 @@ export default function Login({ onLogin }) {
         <div className="ll-bg" /><div className="ll-grid" />
         <div className="ll-content">
           <div className="l-brand">
-            <div className="l-brand-icon">⚕</div>
-            <span className="l-brand-name">MedAnalytica</span>
+            <CrisLogo size={40} showSub={true} />
           </div>
           <div className="l-tagline">Clinical Report<br /><em>Intelligence</em></div>
           <p className="l-desc">

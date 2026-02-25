@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import CrisLogo from './CrisLogo';
 
 /* ─── Inline style tokens matching index.css variables exactly ──────────── */
 const C = {
@@ -151,9 +152,8 @@ export default function LandingPage() {
       }}>
         <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', gap: 32 }}>
           {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: C.teal, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>⚕</div>
-            <span style={{ fontFamily: serif, fontSize: 18, fontWeight: 700, color: '#fff', letterSpacing: '-.01em' }}>MedAnalytica</span>
+          <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <CrisLogo size={36} showSub={false} />
           </div>
 
           {/* Nav links */}
@@ -435,9 +435,8 @@ export default function LandingPage() {
 
             {/* Brand col */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 7, background: C.teal, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>⚕</div>
-                <span style={{ fontFamily: serif, fontSize: 16, fontWeight: 700, color: '#fff' }}>MedAnalytica</span>
+              <div style={{ marginBottom: 16 }}>
+                <CrisLogo size={32} showSub={true} />
               </div>
               <p style={{ fontSize: 13, color: 'rgba(255,255,255,.4)', lineHeight: 1.8, maxWidth: 240 }}>
                 AI-powered CRIS GOLD™ clinical reporting for licensed integrative and functional medicine practitioners.
