@@ -1,4 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#0f2744"/>
-  <text x="16" y="23" text-anchor="middle" font-size="20">⚕</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none">
+  <!-- Gold background circle -->
+  <circle cx="40" cy="40" r="40" fill="#7a5209"/>
+
+  <!-- Outer gold glow ring -->
+  <circle cx="40" cy="40" r="36" stroke="#f5c842" stroke-width="1.2" stroke-opacity="0.45" fill="none"/>
+
+  <!-- Heart + circuits shifted down 3px to visually center in circle -->
+  <g transform="translate(0, 3)">
+
+    <!-- Heart shape -->
+    <path d="M40 62 C40 62 12 46 12 28 C12 20 18 14 26 14 C31 14 36 17 40 21 C44 17 49 14 54 14 C62 14 68 20 68 28 C68 46 40 62 40 62Z"
+      fill="#3d2800" stroke="#f5c842" stroke-width="1.5" stroke-opacity="0.6"/>
+
+    <!-- Central golden spine -->
+    <line x1="40" y1="20" x2="40" y2="58" stroke="#d4a017" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="40" y1="20" x2="40" y2="58" stroke="#f5c842" stroke-width="0.6" stroke-linecap="round" stroke-opacity="0.6"/>
+
+    <!-- Left circuit branches -->
+    <line x1="40" y1="29" x2="27" y2="29" stroke="#d4a017" stroke-width="1" stroke-opacity="0.8"/>
+    <line x1="27" y1="29" x2="27" y2="35" stroke="#d4a017" stroke-width="1" stroke-opacity="0.8"/>
+    <line x1="27" y1="35" x2="21" y2="35" stroke="#d4a017" stroke-width="1" stroke-opacity="0.8"/>
+    <line x1="40" y1="38" x2="25" y2="38" stroke="#d4a017" stroke-width="1" stroke-opacity="0.8"/>
+    <line x1="25" y1="38" x2="25" y2="44" stroke="#d4a017" stroke-width="1" stroke-opacity="0.8"/>
+    <line x1="40" y1="47" x2="30" y2="47" stroke="#d4a017" stroke-width="1" stroke-opacity="0.6"/>
+    <line x1="30" y1="47" x2="30" y2="51" stroke="#d4a017" stroke-width="1" stroke-opacity="0.6"/>
+
+    <!-- Right circuit branches -->
+    <line x1="40" y1="29" x2="53" y2="29" stroke="#d4a017" stroke-width="1" stroke-opacity="0.8"/>
+    <line x1="53" y1="29" x2="53" y2="35" stroke="#d4a017" stroke-width="1" stroke-opacity="0.8"/>
+    <line x1="53" y1="35" x2="59" y2="35" stroke="#d4a017" stroke-width="1" stroke-opacity="0.8"/>
+    <line x1="40" y1="38" x2="55" y2="38" stroke="#d4a017" stroke-width="1" stroke-opacity="0.8"/>
+    <line x1="55" y1="38" x2="55" y2="44" stroke="#d4a017" stroke-width="1" stroke-opacity="0.8"/>
+    <line x1="40" y1="47" x2="50" y2="47" stroke="#d4a017" stroke-width="1" stroke-opacity="0.6"/>
+    <line x1="50" y1="47" x2="50" y2="51" stroke="#d4a017" stroke-width="1" stroke-opacity="0.6"/>
+
+    <!-- Node dots — left -->
+    <circle cx="21" cy="35" r="1.8" fill="#d4a017" opacity="0.9"/>
+    <circle cx="27" cy="29" r="1.5" fill="#d4a017" opacity="0.7"/>
+    <circle cx="25" cy="44" r="1.5" fill="#d4a017" opacity="0.7"/>
+    <circle cx="30" cy="51" r="1.2" fill="#d4a017" opacity="0.5"/>
+
+    <!-- Node dots — right -->
+    <circle cx="59" cy="35" r="1.8" fill="#d4a017" opacity="0.9"/>
+    <circle cx="53" cy="29" r="1.5" fill="#d4a017" opacity="0.7"/>
+    <circle cx="55" cy="44" r="1.5" fill="#d4a017" opacity="0.7"/>
+    <circle cx="50" cy="51" r="1.2" fill="#d4a017" opacity="0.5"/>
+
+    <!-- Center glow dot -->
+    <circle cx="40" cy="38" r="3" fill="#f5c842" opacity="0.9"/>
+    <circle cx="40" cy="38" r="5" fill="#f5c842" opacity="0.15"/>
+
+    <!-- Top sparkle -->
+    <circle cx="40" cy="20" r="1.5" fill="#f5c842" opacity="0.7"/>
+    <!-- Bottom tip sparkle -->
+    <circle cx="40" cy="58" r="1.2" fill="#f5c842" opacity="0.5"/>
+
+  </g>
 </svg>

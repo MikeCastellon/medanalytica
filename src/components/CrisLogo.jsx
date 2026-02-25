@@ -41,6 +41,9 @@ export default function CrisLogo({
           {/* Outer gold glow ring */}
           <circle cx="40" cy="40" r="36" stroke="#f5c842" strokeWidth="1.2" strokeOpacity="0.45" fill="none" />
 
+          {/* Heart + circuits — shifted down 3px so heart is visually centered in the circle */}
+          <g transform="translate(0, 3)">
+
           {/* Heart shape — outer shell */}
           <path
             d="M40 62 C40 62 12 46 12 28 C12 20 18 14 26 14 C31 14 36 17 40 21 C44 17 49 14 54 14 C62 14 68 20 68 28 C68 46 40 62 40 62Z"
@@ -98,6 +101,8 @@ export default function CrisLogo({
           <circle cx="40" cy="20" r="1.5" fill="#f5c842" opacity="0.7" />
           {/* Bottom tip sparkle */}
           <circle cx="40" cy="58" r="1.2" fill="#f5c842" opacity="0.5" />
+
+          </g>
         </svg>
       )}
 
