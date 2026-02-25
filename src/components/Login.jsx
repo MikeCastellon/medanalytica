@@ -1,0 +1,96 @@
+import { useState } from 'react';
+import { supabase } from '../lib/supabase';
+
+export default function Login({ onLogin }) {
+  const [email, setEmail]   = useState('');
+  const [pass, setPass]     = useState('');
+  const [err, setErr]       = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const go = async () => {
+    setErr('');
+    setLoading(true);
+    try {
+      // Try Supabase auth first
+      if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co') {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (error) { setErr(error.message); return; }
+        // Fetch doctor profile
+        const { data: profile } = await supabase
+          .from('doctor_profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+        onLogin({
+          id: data.user.id,
+          name: profile?.full_name || data.user.email,
+          role: profile?.role || 'Physician',
+          initials: profile?.initials || data.user.email?.[0]?.toUpperCase() || 'DR',
+          clinicName: profile?.clinic_name || '',
+        });
+      } else {
+        // Demo mode fallback
+        if (email === 'doctor@clinic.com' && pass === 'demo1234') {
+          onLogin({ id: 'demo', name: 'Dr. Sarah Chen', role: 'Chief of Medicine', initials: 'SC' });
+        } else {
+          setErr('Invalid credentials. (Demo: doctor@clinic.com / demo1234)');
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="login-wrap">
+      <div className="login-left">
+        <div className="ll-bg" /><div className="ll-grid" />
+        <div className="ll-content">
+          <div className="l-brand">
+            <div className="l-brand-icon">⚕</div>
+            <span className="l-brand-name">MedAnalytica</span>
+          </div>
+          <div className="l-tagline">Clinical Report<br /><em>Intelligence</em></div>
+          <p className="l-desc">
+            AI-powered analysis of patient HRV and lab reports. Extract scores,
+            visualize quadrant placement, and flag anomalies automatically.
+          </p>
+        </div>
+        <div className="l-features">
+          {[
+            'HRV analysis with CRI score & quadrant placement',
+            'Automatic marker extraction from any lab report',
+            'Patient-friendly cardiovascular risk reports',
+            'Secure, HIPAA-ready infrastructure on Supabase',
+          ].map((f, i) => (
+            <div key={i} className="l-feat"><div className="f-dot" />{f}</div>
+          ))}
+        </div>
+      </div>
+      <div className="login-right">
+        <div className="lf-wrap fade-in">
+          <div className="lf-title">Welcome back</div>
+          <p className="lf-sub">Sign in to your clinical dashboard</p>
+          {err && <div className="l-err">⚠ {err}</div>}
+          <div className="fg">
+            <label className="fl">Email Address</label>
+            <input className="fi" type="email" placeholder="doctor@clinic.com"
+              value={email} onChange={e => setEmail(e.target.value)} />
+          </div>
+          <div className="fg">
+            <label className="fl">Password</label>
+            <input className="fi" type="password" placeholder="••••••••"
+              value={pass} onChange={e => setPass(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && go()} />
+          </div>
+          <button className="btn-login" onClick={go} disabled={loading}>
+            {loading ? 'Signing in…' : 'Sign In'}
+          </button>
+          <div className="demo-hint">
+            <strong>Demo mode:</strong> doctor@clinic.com &nbsp;/&nbsp; demo1234
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #f4f6f9;
+  --bg2:    #ffffff;
+  --bg3:    #eef1f5;
+  --border: #dde2ea;
+  --border2:#c8d0dc;
+  --navy:   #0f2744;
+  --navy2:  #1a3a5c;
+  --blue:   #1a6fb5;
+  --blue-lt:#e8f2fc;
+  --teal:   #0e8a7a;
+  --teal-lt:#e4f5f2;
+  --text:   #1a2535;
+  --text2:  #4a5a72;
+  --text3:  #8896aa;
+  --red:    #c0392b;
+  --red-lt: #fdecea;
+  --amber:  #b45309;
+  --amber-lt:#fef3e2;
+  --green:  #0e7a55;
+  --green-lt:#e6f5ef;
+  --shadow: 0 1px 3px rgba(15,39,68,.08), 0 4px 16px rgba(15,39,68,.06);
+  --shadow2:0 2px 8px rgba(15,39,68,.10), 0 8px 32px rgba(15,39,68,.08);
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── Animations ── */
+.fade-in { animation: fadeIn .22s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(1.5); } }
