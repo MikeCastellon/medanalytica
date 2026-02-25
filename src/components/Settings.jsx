@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import CrisLogo from './CrisLogo';
+
+const LOGO_KEY = 'medanalytica_custom_logo';
 
 const DEFAULT_RULES = `# MedAnalytica — Clinical Extraction Rules
 # These rules are injected into the AI prompt during analysis.
@@ -37,6 +40,8 @@ export default function Settings({ user }) {
   const [rules, setRules]     = useState(DEFAULT_RULES);
   const [saved, setSaved]     = useState(false);
   const [profile, setProfile] = useState({ clinicName: '', fullName: '' });
+  const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem(LOGO_KEY) || '');
+  const [logoSaved, setLogoSaved] = useState(false);
 
   useEffect(() => {
     if (user.id === 'demo') return;
@@ -100,6 +105,63 @@ export default function Settings({ user }) {
           </div>
         </div>
         <div className="fa"><button className="btn btn-nv" onClick={save}>Save Configuration</button></div>
+      </div>
+
+      {/* ── LOGO BRANDING ──────────────────────────────────────────────── */}
+      <div className="fc">
+        <div className="fc-hdr">
+          <div className="fc-title">Dashboard Logo</div>
+          <div className="fc-badge">Optional</div>
+        </div>
+        <p style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: '1.75', marginBottom: '16px' }}>
+          Paste the URL of your clinic logo to display it in the sidebar instead of the default CRIS GOLD™ icon.
+          Leave blank to use the built-in logo. The logo only appears inside the dashboard — not on the public landing page.
+        </p>
+
+        {/* Preview */}
+        <div style={{ background: 'var(--navy)', borderRadius: '10px', padding: '18px 20px', marginBottom: '16px', display: 'inline-flex' }}>
+          <CrisLogo size={44} customUrl={logoUrl || null} showSub />
+        </div>
+
+        <div className="fg2">
+          <div className="fg" style={{ gridColumn: '1 / -1' }}>
+            <label className="fl">Logo Image URL</label>
+            <input
+              className="fi"
+              placeholder="https://yoursite.com/logo.png  — or paste a base64 data URL"
+              value={logoUrl}
+              onChange={e => setLogoUrl(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="fa" style={{ marginTop: '14px' }}>
+          {logoSaved && <span className="sv">✓ Logo saved</span>}
+          <button
+            className="btn"
+            style={{ background: 'var(--text3)', color: '#fff', border: 'none', borderRadius: '7px', padding: '8px 18px', fontSize: '13px', cursor: 'pointer', marginRight: 8 }}
+            onClick={() => {
+              setLogoUrl('');
+              localStorage.removeItem(LOGO_KEY);
+              window.dispatchEvent(new Event('medanalytica_logo_change'));
+              setLogoSaved(true);
+              setTimeout(() => setLogoSaved(false), 2500);
+            }}
+          >
+            Reset to Default
+          </button>
+          <button
+            className="btn btn-nv"
+            onClick={() => {
+              localStorage.setItem(LOGO_KEY, logoUrl);
+              window.dispatchEvent(new Event('medanalytica_logo_change'));
+              setLogoSaved(true);
+              setTimeout(() => setLogoSaved(false), 2500);
+            }}
+          >
+            Save Logo
+          </button>
+        </div>
       </div>
 
     </div>

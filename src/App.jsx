@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from './lib/supabase';
+import CrisLogo from './components/CrisLogo';
+
+const LOGO_KEY = 'medanalytica_custom_logo';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import NewPatient from './components/NewPatient';
@@ -21,8 +24,16 @@ export default function App() {
   const [result, setResult]   = useState(null); // { patient, report }
   const [sessionPatients, setSessionPatients] = useState([]); // in-memory patients this session
   const [sessionWarn, setSessionWarn] = useState(false); // show 2-min warning
+  const [customLogo, setCustomLogo]   = useState(() => localStorage.getItem(LOGO_KEY) || '');
   const timeoutRef  = useRef(null);
   const warnRef     = useRef(null);
+
+  // Listen for logo changes saved in Settings
+  useEffect(() => {
+    const handler = () => setCustomLogo(localStorage.getItem(LOGO_KEY) || '');
+    window.addEventListener('medanalytica_logo_change', handler);
+    return () => window.removeEventListener('medanalytica_logo_change', handler);
+  }, []);
 
   const doLogout = useCallback(async () => {
     await supabase.auth.signOut();
@@ -143,10 +154,7 @@ export default function App() {
       )}
       <aside className="sidebar">
         <div className="sb-hdr">
-          <div className="sb-brand">
-            <div className="sb-icon">⚕</div>
-            <span className="sb-name">MedAnalytica</span>
-          </div>
+          <CrisLogo size={40} customUrl={customLogo || null} showSub />
         </div>
         <div className="nav-lbl">Navigation</div>
         {[
