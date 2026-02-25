@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { computeELI, computeQuadrant, CRISGOLD_QUADRANTS } from '../lib/utils';
+import { ELI_QUESTIONS, ELI_SCALE } from '../lib/protocols';
 
 export default function NewPatient({ onBack, onSubmit }) {
   const [form, setForm] = useState({
@@ -22,6 +23,8 @@ export default function NewPatient({ onBack, onSubmit }) {
   });
   const [files, setFiles]     = useState([]); // multiple screenshots
   const [drag, setDrag]       = useState(false);
+  const [eliAnswers, setEliAnswers] = useState(Array(10).fill(null));
+  const [showEli, setShowEli] = useState(false);
 
   const addFiles = (incoming) => {
     const arr = Array.from(incoming).filter(f => f.type.startsWith('image/') || f.name.match(/\.(png|jpg|jpeg|tiff|webp|heic)$/i));
@@ -37,11 +40,19 @@ export default function NewPatient({ onBack, onSubmit }) {
   const num = (k) => (e) => s(k, e.target.value.replace(/[^0-9.]/g, ''));
   const canSubmit = form.firstName && form.lastName;
 
+  // ELI questionnaire computed score (0–40)
+  const eliAnswered = eliAnswers.filter(v => v !== null).length;
+  const eliQScore   = eliAnswered === 10 ? eliAnswers.reduce((a, v) => a + v, 0) : null;
+
+  // Use questionnaire score if available, fall back to manual entry
+  const effectiveQScore = eliQScore !== null ? eliQScore
+    : (form.questionnaireScore !== '' ? Number(form.questionnaireScore) : null);
+
   // Live ELI / quadrant preview
-  const qScore = form.questionnaireScore !== '' ? Number(form.questionnaireScore) : null;
-  const ariVal = form.ari !== '' ? Number(form.ari) : null;
-  const eli    = computeELI(qScore);
-  const quad   = computeQuadrant(qScore, ariVal);
+  const qScore   = effectiveQScore;
+  const ariVal   = form.ari !== '' ? Number(form.ari) : null;
+  const eli      = computeELI(qScore);
+  const quad     = computeQuadrant(qScore, ariVal);
   const quadMeta = quad ? CRISGOLD_QUADRANTS[quad] : null;
 
   return (
@@ -171,6 +182,89 @@ export default function NewPatient({ onBack, onSubmit }) {
           </div>
         )}
 
+        {/* ── ELI Questionnaire ── */}
+        <div
+          style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', marginBottom: '16px' }}
+        >
+          <div
+            onClick={() => setShowEli(v => !v)}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg3)', cursor: 'pointer' }}
+          >
+            <div>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--navy)' }}>
+                📋 Emotional Load Index (ELI) Questionnaire
+              </span>
+              {eliQScore !== null && (
+                <span style={{ marginLeft: '10px', fontSize: '11px', color: 'var(--green)', fontWeight: '600' }}>
+                  ✓ Score: {eliQScore}/40
+                </span>
+              )}
+              {eliAnswered > 0 && eliQScore === null && (
+                <span style={{ marginLeft: '10px', fontSize: '11px', color: 'var(--amber)' }}>
+                  {eliAnswered}/10 answered
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: '12px', color: 'var(--text3)', transform: showEli ? 'rotate(180deg)' : 'rotate(0deg)', display: 'inline-block', transition: 'transform .2s' }}>▾</span>
+          </div>
+
+          {showEli && (
+            <div style={{ padding: '14px 16px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--text3)', margin: '0 0 12px', lineHeight: '1.6' }}>
+                Rate each item 0–4: <strong>0 = Never · 1 = Rarely · 2 = Sometimes · 3 = Often · 4 = Almost Always</strong>
+              </p>
+              {ELI_QUESTIONS.map((q, i) => (
+                <div key={i} style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '12.5px', color: 'var(--navy)', marginBottom: '6px', fontWeight: '500' }}>
+                    {i + 1}. {q}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {ELI_SCALE.map((label, score) => {
+                      const selected = eliAnswers[i] === score;
+                      return (
+                        <button
+                          key={score}
+                          type="button"
+                          onClick={() => setEliAnswers(prev => { const a = [...prev]; a[i] = score; return a; })}
+                          style={{
+                            padding: '4px 10px', fontSize: '11.5px', borderRadius: '20px',
+                            border: `1.5px solid ${selected ? 'var(--blue)' : 'var(--border)'}`,
+                            background: selected ? 'var(--blue)' : 'var(--bg3)',
+                            color: selected ? '#fff' : 'var(--text2)',
+                            cursor: 'pointer', fontWeight: selected ? '700' : '400',
+                            transition: 'all .1s',
+                          }}
+                        >
+                          {score} – {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {eliQScore !== null && (
+                <div style={{ marginTop: '8px', padding: '10px 14px', background: eliQScore >= 20 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${eliQScore >= 20 ? '#c0392b40' : '#0e7a5540'}`, borderRadius: '8px' }}>
+                  <strong style={{ color: eliQScore >= 20 ? '#c0392b' : '#0e7a55' }}>
+                    ELI Questionnaire Score: {eliQScore}/40 — {eliQScore >= 20 ? 'HIGH Emotional Load' : 'LOW Emotional Load'}
+                  </strong>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>
+                    This score feeds into the ELI formula for quadrant determination
+                  </div>
+                </div>
+              )}
+              {eliQScore !== null && (
+                <button
+                  type="button"
+                  onClick={() => setEliAnswers(Array(10).fill(null))}
+                  style={{ marginTop: '10px', fontSize: '11px', padding: '4px 12px', borderRadius: '5px', border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--text3)', cursor: 'pointer' }}
+                >
+                  Clear Questionnaire
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Emotional Regulation (Rubimed) */}
         <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '8px' }}>
           Emotional Regulation — Rubimed (Tested Results Only)
@@ -284,7 +378,15 @@ export default function NewPatient({ onBack, onSubmit }) {
 
       <div className="fa">
         <button className="btn btn-ot" onClick={onBack}>Cancel</button>
-        <button className="btn btn-nv" onClick={() => onSubmit(form, files)} disabled={!canSubmit}>
+        <button
+          className="btn btn-nv"
+          onClick={() => onSubmit({
+            ...form,
+            stressQuestionnaireScore: eliQScore !== null ? eliQScore : (form.questionnaireScore !== '' ? Number(form.questionnaireScore) : null),
+            questionnaireScore: effectiveQScore,
+          }, files)}
+          disabled={!canSubmit}
+        >
           Run Analysis →
         </button>
       </div>

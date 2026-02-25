@@ -9,6 +9,7 @@ import {
   CRISGOLD_QUADRANTS, CV_QUADRANTS,
   BRAIN_GAUGE_METRICS,
 } from '../lib/utils';
+import { MASTER_PROTOCOL_LIST } from '../lib/protocols';
 import Badge from './Badge';
 
 // ── PSE: 28 Emvita Conflict Definitions (verbatim from Rubimed Practitioner Guide) ──
@@ -67,6 +68,7 @@ const ACUTE_REMEDY_INFO = {
 const PSE_DOSAGE = '2× daily — 12 drops directly on tongue (adults). Children: 2× daily — 6 drops. Small children: 1 drop per year of age. Acute remedies / Geovita: 2× 12 drops, or 5 drops several times per day for acute symptoms. No known side effects. Does not replace medical or psychotherapeutic care.';
 
 export default function PatientReport({ patient, report, onBack }) {
+  const [reportTab, setReportTab] = useState('clinician');
   if (!report) return null;
   const r = report;
   const markers = r.hrvMarkers?.length ? r.hrvMarkers : (r.markers || []);
@@ -111,6 +113,28 @@ export default function PatientReport({ patient, report, onBack }) {
         <span><strong>HIPAA Protected Health Information.</strong> This report contains PHI and is intended solely for the authorized treating practitioner. Unauthorized access, disclosure, or transmission is prohibited under HIPAA (45 CFR §§ 164.502–164.514). Handle per your facility's PHI policies.</span>
       </div>
 
+      {/* ── Report View Toggle ── */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '14px', background: 'var(--bg3)', borderRadius: '8px', padding: '4px', border: '1px solid var(--border)', width: 'fit-content' }}>
+        {[
+          { id: 'clinician', label: '🩺 Clinician View' },
+          { id: 'patient',   label: '👤 Patient Summary' },
+        ].map(({ id, label }) => (
+          <button
+            key={id}
+            onClick={() => setReportTab(id)}
+            style={{
+              padding: '7px 16px', fontSize: '12.5px', fontWeight: '600', borderRadius: '6px',
+              border: 'none', cursor: 'pointer',
+              background: reportTab === id ? 'var(--navy)' : 'transparent',
+              color: reportTab === id ? '#fff' : 'var(--text2)',
+              transition: 'all .15s',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* ── Patient Header ── */}
       <div className="ph">
         <div className="p-av">{ini(patName)}</div>
@@ -138,6 +162,70 @@ export default function PatientReport({ patient, report, onBack }) {
           ⬇ Export PDF
         </button>
       </div>
+
+      {/* ── PATIENT SUMMARY TAB ── */}
+      {reportTab === 'patient' && (
+        <div>
+          {cgQ && (
+            <div style={{ background: cgQ.bg, border: `1px solid ${cgQ.color}30`, borderLeft: `4px solid ${cgQ.color}`, borderRadius: '8px', padding: '16px 20px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: cgQ.color, marginBottom: '5px' }}>
+                Your Health Quadrant: {r.crisgoldQuadrant} — {cgQ.label}
+              </div>
+              <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{cgQ.description}</div>
+            </div>
+          )}
+          {r.patientFriendlySummary ? (
+            <div style={{ background: '#f0fdf4', border: '1px solid rgba(14,122,85,.2)', borderLeft: '4px solid var(--green)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--green)', marginBottom: '8px' }}>Summary for You</div>
+              <div style={{ fontSize: '14px', color: 'var(--navy2)', lineHeight: '1.85' }}>{r.patientFriendlySummary}</div>
+            </div>
+          ) : (
+            <div style={{ fontSize: '13px', color: 'var(--text2)', padding: '16px', textAlign: 'center' }}>
+              No patient summary available for this report.
+            </div>
+          )}
+          {r.therapeuticSelections && (
+            <div className="card" style={{ marginBottom: '16px' }}>
+              <div className="card-hdr"><span className="card-title">💊 Your Recommended Supplements</span></div>
+              <div style={{ padding: '16px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+                {[
+                  { key: 'drainage',              icon: '🚿', label: 'Drainage' },
+                  { key: 'cellMembraneSupport',   icon: '🧬', label: 'Cell Membrane' },
+                  { key: 'mitochondrialSupport',  icon: '⚡', label: 'Mitochondrial' },
+                  { key: 'neurocognitiveSupport', icon: '🧠', label: 'Neurocognitive' },
+                  { key: 'oxidativeStressSupport',icon: '⚗️', label: 'Oxidative Stress' },
+                  { key: 'cardiovascularSupport', icon: '💓', label: 'Cardiovascular' },
+                ].map(({ key, icon, label }) => {
+                  const items = r.therapeuticSelections[key] || [];
+                  if (!items.length) return null;
+                  return (
+                    <div key={key}>
+                      <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '8px' }}>{icon} {label}</div>
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                        {items.map((item, i) => (
+                          <li key={i} style={{ fontSize: '12.5px', color: 'var(--navy)', padding: '3px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                            • {item.split(' — ')[0]}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {r.recommendedFollowUp && (
+            <div style={{ marginTop: '4px', background: 'var(--teal-lt)', border: '1px solid rgba(14,138,122,.2)', borderLeft: '4px solid var(--teal)', borderRadius: '8px', padding: '16px 20px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--teal)', marginBottom: '6px' }}>📅 Next Steps</div>
+              <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.7' }}>{r.recommendedFollowUp}</div>
+            </div>
+          )}
+          <DisclaimerSection />
+        </div>
+      )}
+
+      {/* ── CLINICIAN VIEW TAB ── */}
+      {reportTab === 'clinician' && <div>
 
       {/* ── Filtration Warning ── */}
       {r.filtrationWarning && (
@@ -361,6 +449,10 @@ export default function PatientReport({ patient, report, onBack }) {
           <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.7' }}>{r.recommendedFollowUp}</div>
         </div>
       )}
+
+      <DisclaimerSection />
+
+      </div>} {/* end clinician tab */}
     </div>
   );
 }
@@ -652,7 +744,7 @@ function RjlBiaCard({ bia, summary }) {
   );
 }
 
-/* ── Therapeutic Selections Card (Editable) ─────────────── */
+/* ── Therapeutic Selections Card (Editable + Master List) ── */
 function TherapeuticCard({ selections, quadrant }) {
   const categories = [
     { key: 'drainage',              icon: '🚿', label: 'Drainage (First Priority)' },
@@ -663,25 +755,42 @@ function TherapeuticCard({ selections, quadrant }) {
     { key: 'cardiovascularSupport', icon: '💓', label: 'Cardiovascular Support' },
   ];
 
-  // Local editable state seeded from AI output
-  const [editSels, setEditSels] = useState(() => {
+  const [editSels, setEditSels]         = useState(() => {
     const s = {};
     categories.forEach(c => { s[c.key] = [...(selections?.[c.key] || [])]; });
     return s;
   });
-  const [newItem, setNewItem] = useState({});
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode]         = useState(false);
+  const [addTab, setAddTab]             = useState({});        // 'browse' | 'custom' per category
+  const [customInput, setCustomInput]   = useState({});
+  const [searchText, setSearchText]     = useState({});
 
-  const removeItem = (catKey, idx) => {
+  const removeItem = (catKey, idx) =>
     setEditSels(prev => ({ ...prev, [catKey]: prev[catKey].filter((_, i) => i !== idx) }));
+
+  const addFromList = (catKey, p) => {
+    const label = `${p.product} — ${p.dose} (${p.brand})`;
+    if (editSels[catKey]?.some(x => x === label)) return;
+    setEditSels(prev => ({ ...prev, [catKey]: [...prev[catKey], label] }));
   };
 
-  const addItem = (catKey) => {
-    const val = (newItem[catKey] || '').trim();
+  const addCustom = (catKey) => {
+    const val = (customInput[catKey] || '').trim();
     if (!val) return;
     setEditSels(prev => ({ ...prev, [catKey]: [...prev[catKey], val] }));
-    setNewItem(prev => ({ ...prev, [catKey]: '' }));
+    setCustomInput(prev => ({ ...prev, [catKey]: '' }));
   };
+
+  const getMasterList = (catKey) => {
+    const list = MASTER_PROTOCOL_LIST[catKey] || [];
+    const qf   = list.filter(p => !quadrant || p.quadrants.includes(quadrant));
+    const q    = (searchText[catKey] || '').toLowerCase().trim();
+    if (!q) return qf;
+    return qf.filter(p => p.product.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q));
+  };
+
+  const isAdded = (catKey, p) =>
+    editSels[catKey]?.some(x => x === `${p.product} — ${p.dose} (${p.brand})`);
 
   const hasAny = categories.some(c => editSels[c.key]?.length > 0);
   if (!hasAny && !editMode) return null;
@@ -689,7 +798,7 @@ function TherapeuticCard({ selections, quadrant }) {
   return (
     <div className="card" style={{ marginBottom: '16px' }}>
       <div className="card-hdr">
-        <span className="card-title">Therapeutic Selections</span>
+        <span className="card-title">💊 Therapeutic Selections</span>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {quadrant && <span className="badge b-bl">{quadrant} Protocol</span>}
           <button
@@ -700,19 +809,26 @@ function TherapeuticCard({ selections, quadrant }) {
           </button>
         </div>
       </div>
-      <div style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+
+      <div style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
         {categories.map(({ key, icon, label }) => {
-          const items = editSels[key];
+          const items      = editSels[key];
+          const tab        = addTab[key] || 'browse';
+          const masterList = getMasterList(key);
           if (!items?.length && !editMode) return null;
+
           return (
             <div key={key}>
+              {/* Category header */}
               <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '8px' }}>
                 {icon} {label}
               </div>
+
+              {/* Current items */}
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {items.map((item, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--navy)', padding: '4px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <span style={{ flex: 1 }}>• {item}</span>
+                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '12.5px', color: 'var(--navy)', padding: '4px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <span style={{ flex: 1, lineHeight: '1.5' }}>• {item}</span>
                     {editMode && (
                       <button
                         onClick={() => removeItem(key, i)}
@@ -723,25 +839,105 @@ function TherapeuticCard({ selections, quadrant }) {
                   </li>
                 ))}
               </ul>
+
+              {/* Add panel — edit mode only */}
               {editMode && (
-                <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
-                  <input
-                    value={newItem[key] || ''}
-                    onChange={e => setNewItem(prev => ({ ...prev, [key]: e.target.value }))}
-                    onKeyDown={e => { if (e.key === 'Enter') addItem(key); }}
-                    placeholder="Add item…"
-                    style={{ flex: 1, fontSize: '11.5px', padding: '4px 8px', borderRadius: '5px', border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--navy)', minWidth: 0 }}
-                  />
-                  <button
-                    onClick={() => addItem(key)}
-                    style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '5px', border: '1px solid var(--teal)', background: 'var(--teal-lt)', color: 'var(--teal)', cursor: 'pointer', fontWeight: '700' }}
-                  >+</button>
+                <div style={{ marginTop: '10px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+                  {/* Tab switcher */}
+                  <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg3)' }}>
+                    {[{ id: 'browse', lbl: '📋 Master List' }, { id: 'custom', lbl: '✏️ Custom' }].map(({ id, lbl }) => (
+                      <button
+                        key={id}
+                        onClick={() => setAddTab(prev => ({ ...prev, [key]: id }))}
+                        style={{
+                          flex: 1, padding: '5px 6px', fontSize: '10.5px', fontWeight: '700',
+                          border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.04em',
+                          background: tab === id ? '#fff' : 'transparent',
+                          color: tab === id ? 'var(--blue)' : 'var(--text3)',
+                          borderBottom: tab === id ? '2px solid var(--blue)' : '2px solid transparent',
+                        }}
+                      >{lbl}</button>
+                    ))}
+                  </div>
+
+                  {/* Browse tab */}
+                  {tab === 'browse' && (
+                    <div>
+                      <div style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)' }}>
+                        <input
+                          placeholder="🔍 Filter products…"
+                          value={searchText[key] || ''}
+                          onChange={e => setSearchText(prev => ({ ...prev, [key]: e.target.value }))}
+                          style={{ width: '100%', fontSize: '11.5px', padding: '4px 6px', border: '1px solid var(--border)', borderRadius: '5px', background: 'var(--bg3)', color: 'var(--navy)', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      {quadrant && (
+                        <div style={{ padding: '3px 8px', fontSize: '10px', color: 'var(--blue)', background: 'var(--blue-lt)', fontWeight: '600' }}>
+                          Filtered to {quadrant} products
+                        </div>
+                      )}
+                      <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                        {masterList.length === 0 ? (
+                          <div style={{ padding: '10px 8px', fontSize: '11.5px', color: 'var(--text3)', textAlign: 'center' }}>
+                            No products found
+                          </div>
+                        ) : masterList.map((p, i) => {
+                          const added = isAdded(key, p);
+                          return (
+                            <div
+                              key={i}
+                              onClick={() => !added && addFromList(key, p)}
+                              style={{
+                                padding: '7px 8px', fontSize: '11.5px',
+                                borderBottom: i < masterList.length - 1 ? '1px solid var(--border)' : 'none',
+                                cursor: added ? 'default' : 'pointer',
+                                background: added ? 'var(--bg3)' : 'transparent',
+                                opacity: added ? 0.55 : 1,
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px',
+                              }}
+                              onMouseEnter={e => { if (!added) e.currentTarget.style.background = 'var(--blue-lt)'; }}
+                              onMouseLeave={e => { if (!added) e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: '600', color: added ? 'var(--text3)' : 'var(--navy)', lineHeight: '1.3' }}>{p.product}</div>
+                                <div style={{ color: 'var(--text3)', fontSize: '10.5px', marginTop: '1px' }}>{p.dose} · {p.brand}</div>
+                              </div>
+                              {added
+                                ? <span style={{ fontSize: '10px', color: 'var(--green)', fontWeight: '700', flexShrink: 0 }}>✓</span>
+                                : <span style={{ fontSize: '10px', color: 'var(--blue)', flexShrink: 0 }}>+ Add</span>
+                              }
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Custom tab */}
+                  {tab === 'custom' && (
+                    <div style={{ padding: '8px' }}>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <input
+                          value={customInput[key] || ''}
+                          onChange={e => setCustomInput(prev => ({ ...prev, [key]: e.target.value }))}
+                          onKeyDown={e => { if (e.key === 'Enter') addCustom(key); }}
+                          placeholder="Type custom item…"
+                          style={{ flex: 1, fontSize: '11.5px', padding: '5px 8px', borderRadius: '5px', border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--navy)', minWidth: 0 }}
+                        />
+                        <button
+                          onClick={() => addCustom(key)}
+                          style={{ fontSize: '13px', padding: '5px 10px', borderRadius: '5px', border: '1px solid var(--teal)', background: 'var(--teal-lt)', color: 'var(--teal)', cursor: 'pointer', fontWeight: '700' }}
+                        >+</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           );
         })}
       </div>
+
       {editMode && (
         <div style={{ padding: '0 22px 14px', fontSize: '11px', color: 'var(--text3)' }}>
           ⚠️ Changes are session-only and not saved to the patient record. Click "Done Editing" when finished.
@@ -791,6 +987,44 @@ function NeuroVizrCard({ programs }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ── Disclaimer Section ─────────────────────────────────── */
+function DisclaimerSection() {
+  const [open, setOpen] = useState(false);
+  const sections = [
+    { title: 'Section 1 – Scope & Intended Use', text: 'CRIS GOLD™ is a clinical decision-support tool intended solely for use by licensed healthcare professionals. It is not a medical device, does not diagnose disease, and does not replace clinical judgment.' },
+    { title: 'Section 2 – AI & Algorithmic Limitations', text: 'AI-generated outputs are based on rule-based logic and probabilistic pattern recognition. They may contain errors or omissions. All outputs must be independently verified by the treating practitioner.' },
+    { title: 'Section 3 – Not for Emergency Use', text: 'CRIS GOLD™ is not appropriate for medical emergencies, acute psychiatric crises, active cardiac events, or trauma. Seek emergency services immediately in life-threatening situations.' },
+    { title: 'Section 4 – Integrative & Bioenergetic Framework', text: 'CRIS GOLD™ integrates conventional physiology with complementary frameworks (including psychosomatic energetics). These frameworks are not universally accepted in conventional medicine. Practitioners must exercise independent clinical judgment.' },
+    { title: 'Section 5 – Liability Limitation', text: 'The developers and licensors of CRIS GOLD™ disclaim all liability for clinical decisions made in reliance on system outputs. The treating practitioner bears sole responsibility for all patient care decisions.' },
+    { title: 'Section 6 – Intellectual Property', text: 'CRIS GOLD™, all report templates, protocol libraries, and scoring algorithms are proprietary. Unauthorized reproduction or distribution is prohibited.' },
+    { title: 'Section 7 – Patient-Facing Notice', text: 'This report was generated using an AI-assisted clinical decision-support system. It is intended for review with your licensed healthcare provider and does not constitute a diagnosis or treatment plan.' },
+  ];
+
+  return (
+    <div style={{ marginTop: '20px', border: '1px solid var(--border)', borderLeft: '4px solid var(--text3)', borderRadius: '8px', background: 'var(--bg3)', overflow: 'hidden' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+      >
+        <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text2)' }}>
+          ⚖️ Legal & Clinical Disclaimer — CRIS GOLD™ v1.0
+        </span>
+        <span style={{ fontSize: '14px', color: 'var(--text3)', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 18px 18px', borderTop: '1px solid var(--border)' }}>
+          {sections.map((s, i) => (
+            <div key={i} style={{ marginTop: '14px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginBottom: '3px' }}>{s.title}</div>
+              <div style={{ fontSize: '12.5px', color: 'var(--text2)', lineHeight: '1.7' }}>{s.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -29,7 +29,10 @@ CORE OPERATING PRINCIPLES (LOCKED v1.0)
 6. Drainage is ALWAYS the first therapeutic priority in all programs.
 7. If HQP filtration rejections > 20 — flag stimulant interference warning in aiSummary.
 8. ARI is entered directly by the practitioner from the HQP device (0–100 integer).
-9. ELI is calculated ONLY from the Stress Index Questionnaire score (formula: round((score / 40) × 100)).
+9. ELI base calculation: round((Stress Index Questionnaire Score / 40) × 100). The full ELI formula is:
+   ELI = (stressQuestionnaireScore × 4) + (VLF% × 3) + (HRV Stress Index × 2) + Freeze Bonus
+   Freeze Bonus = +10 if ALL THREE freeze markers are RED (SDNN < 20, RMSSD < 15, Total Power < 200), else 0.
+   If only stressQuestionnaireScore is available (no VLF%/Stress Index from screenshots), use: ELI = round((score / 40) × 100).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 QUADRANT DETERMINISM (LOCKED)
@@ -207,6 +210,7 @@ JSON SCHEMA (return ALL fields, null if unavailable)
   "filtrationWarning": boolean,
 
   "questionnaireScore": number | null,
+  "stressQuestionnaireScore": number | null,
   "eli": number | null,
   "ari": number | null,
   "hrqEli": number | null,
@@ -365,8 +369,9 @@ export const handler = async (event) => {
     // ── Sanitize clinical inputs ───────────────────────────────────────────
     if (body.clinicalData) {
       const cd = body.clinicalData;
-      cd.questionnaireScore  = cd.questionnaireScore  != null ? sanitizeNumber(cd.questionnaireScore, 0, 40)     : null;
-      cd.ari                 = cd.ari                 != null ? sanitizeNumber(cd.ari, 0, 100)                   : null;
+      cd.questionnaireScore       = cd.questionnaireScore       != null ? sanitizeNumber(cd.questionnaireScore, 0, 40)       : null;
+      cd.stressQuestionnaireScore = cd.stressQuestionnaireScore != null ? sanitizeNumber(cd.stressQuestionnaireScore, 0, 40) : null;
+      cd.ari                      = cd.ari                      != null ? sanitizeNumber(cd.ari, 0, 100)                     : null;
       cd.sbp                 = cd.sbp                 != null ? sanitizeNumber(cd.sbp, 60, 250)                  : null;
       cd.dbp                 = cd.dbp                 != null ? sanitizeNumber(cd.dbp, 40, 180)                  : null;
       cd.filtrationRejections= cd.filtrationRejections!= null ? sanitizeNumber(cd.filtrationRejections, 0, 9999) : null;
@@ -388,7 +393,8 @@ export const handler = async (event) => {
 
     // Pre-compute ELI and quadrant from form data (LOCKED logic)
     let lockedELI = null, lockedQuadrant = null;
-    const qScore = clinicalData?.questionnaireScore;
+    // Prefer stressQuestionnaireScore (from ELI questionnaire) over manual questionnaireScore
+    const qScore = clinicalData?.stressQuestionnaireScore ?? clinicalData?.questionnaireScore;
     const ariVal = clinicalData?.ari;
     if (qScore != null) {
       lockedELI = Math.round((qScore / 40) * 100);
@@ -413,6 +419,7 @@ Patient: ${patientInfo?.firstName || ''} ${patientInfo?.lastName || ''}, ${patie
 Report Type: ${reportType || 'Determine from document'}
 ${sbp ? `SBP: ${sbp} mmHg` : ''}${dbp ? ` | DBP: ${dbp} mmHg` : ''}${pp ? ` | Pulse Pressure: ${pp} mmHg` : ''}
 ${clinicalData?.filtrationRejections != null ? `Filtration Rejections: ${clinicalData.filtrationRejections}${clinicalData.filtrationRejections > 20 ? ' ⚠️ EXCEEDS 20 — FLAG STIMULANT WARNING' : ''}` : ''}
+${clinicalData?.stressQuestionnaireScore != null ? `ELI Questionnaire Score (10-item, 0–40): ${clinicalData.stressQuestionnaireScore}` : ''}
 ${qScore != null ? `Stress Index Questionnaire Score: ${qScore} / 40` : ''}
 ${lockedELI != null ? `ELI (calculated from score): ${lockedELI} — ${qScore >= 20 ? 'HIGH ELI' : 'LOW ELI'}` : ''}
 ${ariVal != null ? `ARI (from HQP device): ${ariVal} — ${ariVal >= 60 ? 'HIGH ARI' : 'LOW ARI'}` : ''}
