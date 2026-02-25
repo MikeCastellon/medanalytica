@@ -36,6 +36,7 @@ export default function App() {
   }, []);
 
   const doLogout = useCallback(async () => {
+    sessionStorage.removeItem('cris_demo_session');
     await supabase.auth.signOut();
     setUser(null);
     setView('dashboard');
@@ -65,15 +66,33 @@ export default function App() {
     };
   }, [user, resetTimer]);
 
-  // Restore Supabase session on load
+  // Restore session on load — demo (sessionStorage) or real Supabase session
   useEffect(() => {
+    // 1. Restore demo session first (no Supabase call needed)
+    const stored = sessionStorage.getItem('cris_demo_session');
+    if (stored) {
+      try { setUser(JSON.parse(stored)); } catch {}
+    }
+
+    // 2. Check real Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({ id: session.user.id, name: session.user.email, role: 'Physician', initials: 'DR' });
       }
     });
+
+    // 3. Keep in sync with Supabase auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') setUser(null);
+      if (event === 'SIGNED_OUT') {
+        sessionStorage.removeItem('cris_demo_session');
+        setUser(null);
+      } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
+        setUser(prev =>
+          prev?.id === 'demo'
+            ? prev  // don't overwrite demo session with Supabase INITIAL_SESSION null
+            : { id: session.user.id, name: session.user.email, role: 'Physician', initials: 'DR' }
+        );
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -81,6 +100,7 @@ export default function App() {
   const handleLogin = (u) => setUser(u);
 
   const handleLogout = async () => {
+    sessionStorage.removeItem('cris_demo_session');
     await supabase.auth.signOut();
     setUser(null);
     setView('dashboard');

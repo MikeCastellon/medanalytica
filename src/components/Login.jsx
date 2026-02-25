@@ -14,7 +14,9 @@ export default function Login({ onLogin }) {
     try {
       // Demo mode: always allow demo credentials regardless of Supabase config
       if (email === 'doctor@clinic.com' && pass === 'demo1234') {
-        onLogin({ id: 'demo', name: 'Dr. Sarah Chen', role: 'Chief of Medicine', initials: 'SC' });
+        const demoUser = { id: 'demo', name: 'Dr. Sarah Chen', role: 'Chief of Medicine', initials: 'SC' };
+        sessionStorage.setItem('cris_demo_session', JSON.stringify(demoUser));
+        onLogin(demoUser);
         return;
       }
 
