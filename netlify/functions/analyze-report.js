@@ -3,15 +3,15 @@
  * POST /.netlify/functions/analyze-report
  *
  * Receives a base64-encoded report file (PDF or image),
- * sends it to Claude with the full CRIS GOLD™ extraction prompt,
+ * sends it to OpenAI GPT-4o with the full CRIS GOLD™ extraction prompt,
  * returns a structured JSON report covering all 9 CRIS sections.
  *
- * The Anthropic API key never touches the browser.
+ * The OpenAI API key never touches the browser.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const SYSTEM_PROMPT = `You are the CRIS GOLD™ clinical extraction AI for MedAnalytica.
 Your job is to analyze uploaded HRV test results and lab reports, then extract ALL structured clinical data.
@@ -192,18 +192,16 @@ export const handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'fileBase64 is required' }) };
     }
 
-    const mediaType = fileType?.includes('pdf')
+    const isPDF = fileType?.includes('pdf');
+    const mediaType = isPDF
       ? 'application/pdf'
       : fileType?.includes('png')
       ? 'image/png'
       : (fileType?.includes('jpg') || fileType?.includes('jpeg'))
       ? 'image/jpeg'
-      : 'application/pdf';
+      : 'image/png';
 
-    const userMessage = [
-      {
-        type: 'text',
-        text: `Analyze this CRIS GOLD™ / HRV / lab report and extract all clinical data into the required JSON format.
+    const userPromptText = `Analyze this CRIS GOLD™ / HRV / lab report and extract all clinical data into the required JSON format.
 
 Report Type (if known): ${reportType || 'Determine from document'}
 Patient: ${patientInfo?.firstName || ''} ${patientInfo?.lastName || ''}, ${patientInfo?.gender || ''}, DOB: ${patientInfo?.dob || 'Unknown'}
@@ -218,26 +216,46 @@ Instructions:
 - If NeuroVIZR programs are listed, include them
 - Write the aiSummary as a concise clinician-facing summary (3-5 sentences)
 - Write patientFriendlySummary in plain language (2-3 sentences)
-- Return ONLY valid JSON, no other text`,
-      },
-      {
-        type: 'document',
-        source: {
-          type: 'base64',
-          media_type: mediaType,
-          data: fileBase64,
-        },
-      },
-    ];
+- Return ONLY valid JSON, no other text`;
 
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
+    // Build the content array for GPT-4o
+    let fileContent;
+    if (isPDF) {
+      // GPT-4o supports PDF via file content type
+      fileContent = {
+        type: 'file',
+        file: {
+          filename: 'report.pdf',
+          file_data: `data:application/pdf;base64,${fileBase64}`,
+        },
+      };
+    } else {
+      // Images sent as base64 via image_url
+      fileContent = {
+        type: 'image_url',
+        image_url: {
+          url: `data:${mediaType};base64,${fileBase64}`,
+          detail: 'high',
+        },
+      };
+    }
+
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o',
       max_tokens: 6000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: userPromptText },
+            fileContent,
+          ],
+        },
+      ],
     });
 
-    const rawText = response.content[0]?.text || '';
+    const rawText = response.choices[0]?.message?.content || '';
 
     let parsed;
     try {

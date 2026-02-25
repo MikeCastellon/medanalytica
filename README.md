@@ -2,7 +2,7 @@
 
 AI-powered platform for doctors to upload HRV and lab reports and instantly receive structured reports with graphs, CRI scores, quadrant placements, and clinical summaries.
 
-**Stack:** React + Vite · Supabase (auth, database, storage) · Netlify (hosting + serverless functions) · Claude AI
+**Stack:** React + Vite · Supabase (auth, database, storage) · Netlify (hosting + serverless functions) · OpenAI GPT-4o
 
 ---
 
@@ -59,7 +59,7 @@ This starts both the Vite dev server and Netlify functions at `http://localhost:
    ```
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key
-   ANTHROPIC_API_KEY=sk-ant-your-key
+   OPENAI_API_KEY=sk-your-openai-key
    ```
 5. Deploy! Netlify auto-deploys on every push to main.
 

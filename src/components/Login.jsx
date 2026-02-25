@@ -11,7 +11,13 @@ export default function Login({ onLogin }) {
     setErr('');
     setLoading(true);
     try {
-      // Try Supabase auth first
+      // Demo mode: always allow demo credentials regardless of Supabase config
+      if (email === 'doctor@clinic.com' && pass === 'demo1234') {
+        onLogin({ id: 'demo', name: 'Dr. Sarah Chen', role: 'Chief of Medicine', initials: 'SC' });
+        return;
+      }
+
+      // Try Supabase auth for real accounts
       if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co') {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
         if (error) { setErr(error.message); return; }
@@ -29,12 +35,7 @@ export default function Login({ onLogin }) {
           clinicName: profile?.clinic_name || '',
         });
       } else {
-        // Demo mode fallback
-        if (email === 'doctor@clinic.com' && pass === 'demo1234') {
-          onLogin({ id: 'demo', name: 'Dr. Sarah Chen', role: 'Chief of Medicine', initials: 'SC' });
-        } else {
-          setErr('Invalid credentials. (Demo: doctor@clinic.com / demo1234)');
-        }
+        setErr('Invalid credentials. (Demo: doctor@clinic.com / demo1234)');
       }
     } finally {
       setLoading(false);
