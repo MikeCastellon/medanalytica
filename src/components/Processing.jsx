@@ -67,6 +67,22 @@ export default function Processing({ user, form, file, customRules, onDone, onEr
           fileType: file.type || file.name.split('.').pop(),
           reportType: form.reportType,
           patientInfo: { firstName: form.firstName, lastName: form.lastName, dob: form.dob, gender: form.gender },
+          clinicalData: {
+            sbp:                  form.sbp ? Number(form.sbp) : null,
+            dbp:                  form.dbp ? Number(form.dbp) : null,
+            filtrationRejections: form.filtrationRejections ? Number(form.filtrationRejections) : null,
+            questionnaireScore:   form.questionnaireScore !== '' && form.questionnaireScore != null ? Number(form.questionnaireScore) : null,
+            ari:                  form.ari !== '' && form.ari != null ? Number(form.ari) : null,
+            chavita:              form.chavita ? Number(form.chavita) : null,
+            emvita:               form.emvita ? Number(form.emvita) : null,
+            ermMethod:            form.ermMethod || null,
+            acuteRemedies:        form.acuteRemedies || null,
+            rjlPhaseAngle:        form.rjlPhaseAngle || null,
+            rjlIcw:               form.rjlIcw || null,
+            rjlEcw:               form.rjlEcw || null,
+            rjlTbw:               form.rjlTbw || null,
+            oxidativeStressScore: form.oxidativeStressScore || null,
+          },
           customRules,
         }),
       });
@@ -150,19 +166,30 @@ export default function Processing({ user, form, file, customRules, onDone, onEr
 }
 
 function getMockReport(form) {
+  // Demo patient: questionnaire score 31/40 → ELI = round((31/40)*100) = 78; ARI = 22 → Q1
+  const questionnaireScore = 31;
+  const ari = 22;
+  const eli = Math.round((questionnaireScore / 40) * 100); // 78
   return {
     reportType: form.reportType || 'CRIS GOLD HRV',
+    sbp: 138, dbp: 86, pulsePressure: 52,
+    filtrationRejections: 6, filtrationWarning: false,
+    questionnaireScore, eli, ari,
+    hrqEli: eli, hrqAri: ari,
     criScore: 7,
     criCategory: 'High Cardiovascular Stress Pattern',
-    // CRIS GOLD™ quadrant
+    // CRIS GOLD™ quadrant (LOCKED: high ELI score 31≥20 + low ARI 22<60 → Q1)
     crisgoldQuadrant: 'Q1',
-    crisgoldQuadrantLabel: 'High Emotional Load + Low Autonomic Resilience',
-    crisgoldQuadrantDescription: 'Quadrant 1 indicates exhaustion with high emotional load. Primary clinical priority is drainage, calming, and rebuilding foundational energy before advancing therapies.',
-    hrqAri: 22,
-    hrqEli: 78,
+    crisgoldQuadrantLabel: 'Overloaded & Dysregulated',
+    crisgoldQuadrantDescription: 'High emotional load combined with low autonomic regulation capacity. Primary clinical priority is drainage, calming, and rebuilding foundational energy before advancing therapies.',
     cvQuadrant: 'Q2',
     cvQuadrantLabel: 'Vascular-Cardio Stress',
     cvQuadrantDescription: 'Cardiovascular system is under strain consistent with elevated pulse pressure and sympathetic dominance. Vascular support and stress reduction recommended.',
+    // Rubimed (demo)
+    chavita: 7, emvita: 27, ermMethod: 'Questionnaire',
+    chavitaText: 'Chavita 7 — Crown Chakra: Themes of meaning, purpose, and spiritual integration. Chronic stress related to existential questions, safety, and deep life meaning. Supports reconnection with inner purpose and systemic nervous system regulation.',
+    emvitaText: 'Emvita 27 — Long-standing disorientation and emotional strain. Pattern of chronic overwhelm, loss of direction, and difficulty finding ground. Supports reorientation and emotional stabilization.',
+    acuteRemedies: null,
     // HRV markers
     hrvMarkers: [
       { name: 'Heart Rate',   value: 61,  unit: 'bpm',   low: 60,   high: 84,   status: 'normal', clinicalNote: 'Normal resting heart rate' },
@@ -196,13 +223,14 @@ function getMockReport(form) {
       overallCorticalMetric: 48,
     },
     brainGaugeSummary: 'Cognitive fatigue is present with preserved focus and time perception. This reflects an overworked but still responsive brain that needs recovery support rather than stimulation.',
-    // Therapeutic selections
+    // Therapeutic selections — 6 categories (CRIS GOLD™ v1.0)
     therapeuticSelections: {
-      drainage: ['Mudipur', 'Stress Buster Kit'],
-      cellMembraneSupport: ['Membrane Mend', 'OmegaAvail Ultra DHA', 'Stress Buster Kit (ELI support)'],
-      mitochondrialSupport: ['The ONE', 'ATP 360', 'IntraMIN and IntraMAX', 'Stress Buster Kit'],
-      neurocognitiveSupport: ['BDNF Essentials', 'Neuropregnenolone', 'Stress Buster Kit'],
-      cardiovascularSupport: ['Carditone', 'Cardio Elite', 'Cardinorm', 'Cora-Calm', 'Lumbrokinase (Bolouke) with Nattokinase', 'Nano-emulsified D3/K2'],
+      drainage: ['Mundipur 1-2 tsp BID', 'Stress Buster Kit (Psy-stabil, Dalectro, Neu-regen)'],
+      cellMembraneSupport: ['Membrane Mend', 'OmegaAvail Ultra DHA', 'Phosphatidylcholine (Quicksilver)'],
+      mitochondrialSupport: ['The ONE', 'ATP 360', 'IntraMIN and IntraMAX'],
+      neurocognitiveSupport: ['BDNF Essentials', 'Neuropregnenolone', 'Cognizin CDP-Choline'],
+      oxidativeStressSupport: ['Liposomal Glutathione (Quicksilver)', 'Liposomal Vitamin C', 'Superoxide Dismutase (SOD)'],
+      cardiovascularSupport: ['Carditone', 'Nano-emulsified D3/K2', 'Lumbrokinase (Bolouke) with Nattokinase'],
     },
     // NeuroVIZR
     neuroVizrPrograms: {

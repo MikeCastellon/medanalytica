@@ -2,92 +2,183 @@
  * MedAnalytica / CRIS GOLD™ — Netlify Serverless Function
  * POST /.netlify/functions/analyze-report
  *
- * Receives a base64-encoded report file (PDF or image),
- * sends it to OpenAI GPT-4o with the full CRIS GOLD™ extraction prompt,
- * returns a structured JSON report covering all 9 CRIS sections.
+ * Receives a base64-encoded report file (PDF or image) plus manually
+ * entered clinical data, sends to OpenAI GPT-4o with the full CRIS GOLD™
+ * v1.0 locked operating system prompt, returns structured JSON.
  *
- * The OpenAI API key never touches the browser.
+ * OPENAI_API_KEY never touches the browser.
  */
 
 import OpenAI from 'openai';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const SYSTEM_PROMPT = `You are the CRIS GOLD™ clinical extraction AI for MedAnalytica.
-Your job is to analyze uploaded HRV test results and lab reports, then extract ALL structured clinical data.
+const SYSTEM_PROMPT = `You are CRIS GOLD™ AI — a licensed clinical decision-support and reporting system for authorized HQP practitioners.
 
-You MUST respond with valid JSON only — no markdown fences, no prose outside the JSON object.
+You do NOT diagnose, prescribe, or replace practitioner judgment. All outputs are suggestive only.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CRIS GOLD™ REFERENCE KNOWLEDGE
+CORE OPERATING PRINCIPLES (LOCKED v1.0)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-HRV MARKER REFERENCE RANGES:
-- Heart Rate:   60–84 bpm     (optimal resting)
-- SDNN:         49–70 ms      (overall HRV / autonomic resilience)
-- RMSSD:        25–50+ ms     (parasympathetic / recovery capacity)
-- LF/HF Ratio:  1.0–3.0       (sympathovagal balance; >3 = sympathetic dominance)
-- Total Power:  1500–3500 ms² (overall energy reserve)
-- Stress Index: 10–100        (autonomic load; >100 = elevated)
-- VLF%:         25–40%        (chronic emotional/neurohormonal load; >45% = elevated)
-- HF%:          30–50%        (parasympathetic tone; <25% = low)
-- LF%:          30–50%        (sympathetic drive; >55% = elevated)
+1. Structured extraction only — no guessing.
+2. No report generation without required inputs.
+3. CASP is NEVER calculated — only included if device-measured on the document.
+4. Chavita + Emvita are always paired — never one without the other.
+5. Acute remedies only if tested (questionnaire, muscle test, or arm-length test).
+6. Drainage is ALWAYS the first therapeutic priority in all programs.
+7. If HQP filtration rejections > 20 — flag stimulant interference warning in aiSummary.
+8. ARI is entered directly by the practitioner from the HQP device (0–100 integer).
+9. ELI is calculated ONLY from the Stress Index Questionnaire score (formula: round((score / 40) × 100)).
 
-CRIS GOLD™ QUADRANT CLASSIFICATION (based on ELI + ARI):
-- Q1: High Emotional Load + Low Autonomic Resilience  → "Stress Dominant / Exhausted System"
-- Q2: High Emotional Load + High Autonomic Resilience → "Regulated but Stressed"
-- Q3: Low Emotional Load + Low Autonomic Resilience   → "Fatigue Dominant / Depleted"
-- Q4: Low Emotional Load + High Autonomic Resilience  → "Balanced / Optimal"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUADRANT DETERMINISM (LOCKED)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-ELI (Emotional Load Index): derived from VLF% + Stress Index + SDNN (high VLF, high Stress, low SDNN = high ELI)
-ARI (Autonomic Regulation Index): derived from SDNN + RMSSD + Total Power (higher = better regulation)
-Score ELI and ARI on a 0–100 scale. Threshold: >50 = High ELI, >50 = High ARI.
+ELI (Emotional Load Index):
+  Formula: ELI = round((Questionnaire Score / 40) × 100)
+  High ELI = Questionnaire Score ≥ 20 (ELI ≥ 50)
+  Low ELI  = Questionnaire Score ≤ 19 (ELI < 50)
 
-CARDIOVASCULAR (CV) QUADRANT (based on Blood Pressure / Pulse Pressure / LF%):
-- Q1: Parasympathetic dominant, Low vascular load
+ARI (Autonomic Regulation Index):
+  Entered directly from HQP device (0–100 integer)
+  High ARI = ARI ≥ 60
+  Low ARI  = ARI ≤ 59
+
+Quadrant Assignment:
+  Q1: High ELI + Low ARI  → "Overloaded & Dysregulated"       (sub: Stress Dominant / Exhausted)
+  Q2: High ELI + High ARI → "High Load / Resilient"            (sub: Regulated but Stressed)
+  Q3: Low ELI  + Low ARI  → "Physiological Exhaustion"         (sub: Fatigue Dominant / Depleted)
+  Q4: Low ELI  + High ARI → "Optimal / Strong Regulation"      (sub: Balanced / Optimal)
+
+If the practitioner has provided Questionnaire Score AND ARI, use the formula above to determine the quadrant — this is LOCKED and cannot be overridden by visual interpretation of the document.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HRV MARKER REFERENCE RANGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Heart Rate:   60–84 bpm
+- SDNN:         49–70 ms      (SDNN reflects overall autonomic resilience — report separately from RMSSD)
+- RMSSD:        25–50+ ms     (RMSSD reflects parasympathetic/recovery capacity — report separately from SDNN)
+- LF/HF Ratio:  1.0–3.0       (>3 = sympathetic dominance)
+- Total Power:  1500–3500 ms²
+- Stress Index: 10–100        (>100 = elevated autonomic load)
+- VLF%:         25–40%        (>45% = elevated chronic load)
+- HF%:          30–50%        (<25% = low parasympathetic tone)
+- LF%:          30–50%        (>55% = elevated sympathetic drive; used as baroreflex indicator)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CARDIOVASCULAR ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pulse Pressure (PP) = SBP − DBP
+CASP: NEVER calculate — only record if explicitly device-measured on the document.
+
+CV Quadrant (based on PP, LF%, vascular markers):
+- Q1: Parasympathetic dominant, low vascular load
 - Q2: Vascular-Cardio stress (high PP, high LF%, stiff vessels)
-- Q3: Energy Reserve / Resilience-Fatigue (depleted but low load)
+- Q3: Energy Reserve / Resilience-Fatigue (depleted, low load)
 - Q4: Autonomic-Stress pattern (sympathetic overdrive)
 
-CRI SCORE (Cardiovascular Risk Index, 0–12):
-- 0–2:  Low Vascular Load
-- 3–5:  Mild Strain
-- 6–8:  High Cardiovascular Stress Pattern
-- 9–12: Critical Cardiovascular Risk
-Derive CRI from: Pulse Pressure, LF%, SDNN, Stress Index, Resting HR, Total Power.
+CRI Score (Cardiovascular Risk Index, 0–12):
+  0–2:  Low Vascular Load
+  3–5:  Mild Strain
+  6–8:  High Cardiovascular Stress Pattern
+  9–12: Critical Cardiovascular Risk
+  Derive from: Pulse Pressure, LF%, SDNN, Stress Index, Resting HR, Total Power.
 
-POLYVAGAL RULE OF 3:
-All THREE of these must simultaneously be in the red zone for a true dorsal vagal freeze pattern:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+POLYVAGAL RULE OF 3
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All THREE must be simultaneously in the red zone for true dorsal vagal freeze:
 1. SDNN < 20 ms
 2. RMSSD < 15 ms
 3. Total Power < 200 ms²
-If all 3 met: "TRUE FREEZE — dorsal vagal shutdown physiology"
-If NOT all 3 met: "Exhausted/stressed system — NOT true freeze. Focus on stabilization."
+If all 3 met → "TRUE FREEZE — dorsal vagal shutdown physiology"
+If NOT all 3 → "Exhausted/stressed system — NOT true freeze. Focus on stabilization."
 
-BRAIN GAUGE REFERENCE RANGES (Cortical Performance):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THERAPEUTIC CATEGORIES (6 REQUIRED — ALL DISPLAYED)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Drainage (ALWAYS first — foundational)
+   Primary vendors: Bioresource/Pekana, Unda, Physica Energetics, Marco Pharma
+   - Q1: Mundipur 1-2 tsp; Stress Buster Kit if high ELI
+   - Q2: Stress Buster Kit + Detox Kit (Apo-HEPAT, RENELIX, ITIRES)
+   - Q3: Neu-regen 1-2 tsp 2x/day; JUVE-CAL 1 tsp 3-4x/day
+   - Q4: Full Detox Kit + TOXEX (start at 1-5 drops, work up)
+
+2. Cell Membrane Support
+   Addresses: phospholipid integrity, receptor sensitivity, ion channel function
+
+3. Mitochondrial Support
+   Addresses: ATP production, electron transport chain, NAD+/NADH, oxidative stress
+
+4. Neuro-Cognitive Support
+   Addresses: neurotransmitter balance, synaptic plasticity, BDNF, neuroinflammation
+
+5. Oxidative Stress Support
+   Addresses: free radical burden, antioxidant capacity, membrane protection
+
+6. Vascular / Cardiovascular Support
+   Addresses: endothelial NO signaling, arterial stiffness, microcirculation
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BRAIN GAUGE REFERENCE RANGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 - Speed:               >40 (optimal >70)
 - Accuracy:            >70 (optimal >85)
 - Time Order Judgment: >20 (optimal >50)
 - Time Perception:     >70 (optimal >85)
 - Plasticity:          >50 (optimal >70)
-- Fatigue:             >30 (low number = high fatigue; optimal >60)
+- Fatigue:             >30 (low = high fatigue; optimal >60)
 - Focus:               >60 (optimal >75)
 - Overall Cortical:    >50 (optimal >70)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-JSON RESPONSE SCHEMA
+RUBIMED RULES (ABSOLUTE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Return ALL fields. Use null for any that cannot be extracted from the document.
+- Chavita (1–7) and Emvita (1–28) are ALWAYS paired.
+- Never present Chavita without Emvita.
+- If Chavita/Emvita numbers are provided, write the full Rubimed practitioner description for each.
+- Acute remedies (Anxiovita, Neurovita, Simvita, Paravita, Geovita) only if tested.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Respond with valid JSON ONLY — no markdown fences, no prose outside JSON.
+- Use null for any field that cannot be determined.
+- SDNN and RMSSD must be described separately — never combined or called "global HRV."
+- Emphasize trends, adaptability, and progressive improvement — not perfection.
+- aiSummary: clinician-facing, 3-5 sentences.
+- patientFriendlySummary: plain language, 2-3 sentences, no jargon.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+JSON SCHEMA (return ALL fields, null if unavailable)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {
   "reportType": "CRIS GOLD HRV" | "CBC" | "Lipid Panel" | "Thyroid" | "Metabolic" | "Other",
-
   "patientName": string | null,
   "patientAge": number | null,
   "bloodPressure": string | null,
-  "pulsePressure": string | null,
+  "sbp": number | null,
+  "dbp": number | null,
+  "pulsePressure": number | null,
+  "casp": number | null,
   "chiefComplaints": string | null,
+  "filtrationRejections": number | null,
+  "filtrationWarning": boolean,
+
+  "questionnaireScore": number | null,
+  "eli": number | null,
+  "ari": number | null,
+  "hrqEli": number | null,
+  "hrqAri": number | null,
 
   "criScore": number | null,
   "criCategory": "Low Vascular Load" | "Mild Strain" | "High Cardiovascular Stress Pattern" | "Critical Cardiovascular Risk" | null,
@@ -96,22 +187,12 @@ Return ALL fields. Use null for any that cannot be extracted from the document.
   "crisgoldQuadrantLabel": string | null,
   "crisgoldQuadrantDescription": string | null,
 
-  "hrqAri": number | null,
-  "hrqEli": number | null,
   "cvQuadrant": "Q1" | "Q2" | "Q3" | "Q4" | null,
   "cvQuadrantLabel": string | null,
   "cvQuadrantDescription": string | null,
 
   "hrvMarkers": [
-    {
-      "name": string,
-      "value": number,
-      "unit": string,
-      "low": number,
-      "high": number,
-      "status": "normal" | "high" | "low",
-      "clinicalNote": string
-    }
+    { "name": string, "value": number, "unit": string, "low": number, "high": number, "status": "normal"|"high"|"low", "clinicalNote": string }
   ],
   "hrvSummary": string | null,
 
@@ -124,22 +205,34 @@ Return ALL fields. Use null for any that cannot be extracted from the document.
   "adrenalSummary": string | null,
 
   "brainGauge": {
-    "speed": number | null,
-    "accuracy": number | null,
-    "timeOrderJudgment": number | null,
-    "timePerception": number | null,
-    "plasticity": number | null,
-    "fatigue": number | null,
-    "focus": number | null,
-    "overallCorticalMetric": number | null
+    "speed": number|null, "accuracy": number|null, "timeOrderJudgment": number|null,
+    "timePerception": number|null, "plasticity": number|null, "fatigue": number|null,
+    "focus": number|null, "overallCorticalMetric": number|null
   } | null,
   "brainGaugeSummary": string | null,
+
+  "rjlBia": {
+    "phaseAngle": number|null, "icw": number|null, "ecw": number|null, "tbw": number|null
+  } | null,
+  "rjlBiaSummary": string | null,
+
+  "oxidativeStressScore": number | null,
+  "oxidativeStressSummary": string | null,
+
+  "chavita": number | null,
+  "emvita": number | null,
+  "ermMethod": string | null,
+  "chavitaText": string | null,
+  "emvitaText": string | null,
+  "acuteRemedies": string[] | null,
+  "acuteRemedyTexts": string[] | null,
 
   "therapeuticSelections": {
     "drainage": string[],
     "cellMembraneSupport": string[],
     "mitochondrialSupport": string[],
     "neurocognitiveSupport": string[],
+    "oxidativeStressSupport": string[],
     "cardiovascularSupport": string[]
   } | null,
 
@@ -151,15 +244,7 @@ Return ALL fields. Use null for any that cannot be extracted from the document.
   "psychosomaticFindings": string | null,
 
   "markers": [
-    {
-      "name": string,
-      "value": number,
-      "unit": string,
-      "low": number,
-      "high": number,
-      "status": "normal" | "high" | "low",
-      "clinicalNote": string
-    }
+    { "name": string, "value": number, "unit": string, "low": number, "high": number, "status": "normal"|"high"|"low", "clinicalNote": string }
   ],
 
   "aiSummary": string,
@@ -176,73 +261,85 @@ export const handler = async (event) => {
     'Content-Type': 'application/json',
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
-
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { fileBase64, fileType, reportType, patientInfo, customRules } = body;
+    const { fileBase64, fileType, reportType, patientInfo, clinicalData, customRules } = body;
 
     if (!fileBase64) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'fileBase64 is required' }) };
     }
 
-    const isPDF = fileType?.includes('pdf');
-    const mediaType = isPDF
-      ? 'application/pdf'
-      : fileType?.includes('png')
-      ? 'image/png'
-      : (fileType?.includes('jpg') || fileType?.includes('jpeg'))
-      ? 'image/jpeg'
-      : 'image/png';
+    // Pre-compute ELI and quadrant from form data (LOCKED logic)
+    let lockedELI = null, lockedQuadrant = null;
+    const qScore = clinicalData?.questionnaireScore;
+    const ariVal = clinicalData?.ari;
+    if (qScore != null) {
+      lockedELI = Math.round((qScore / 40) * 100);
+    }
+    if (lockedELI != null && ariVal != null) {
+      const highELI = qScore >= 20;
+      const highARI = ariVal >= 60;
+      if (highELI && !highARI)  lockedQuadrant = 'Q1';
+      else if (highELI && highARI) lockedQuadrant = 'Q2';
+      else if (!highELI && !highARI) lockedQuadrant = 'Q3';
+      else lockedQuadrant = 'Q4';
+    }
+
+    const sbp = clinicalData?.sbp;
+    const dbp = clinicalData?.dbp;
+    const pp  = sbp && dbp ? sbp - dbp : null;
 
     const userPromptText = `Analyze this CRIS GOLD™ / HRV / lab report and extract all clinical data into the required JSON format.
 
-Report Type (if known): ${reportType || 'Determine from document'}
-Patient: ${patientInfo?.firstName || ''} ${patientInfo?.lastName || ''}, ${patientInfo?.gender || ''}, DOB: ${patientInfo?.dob || 'Unknown'}
+PRACTITIONER-ENTERED DATA (treat as ground truth — do not contradict):
+Patient: ${patientInfo?.firstName || ''} ${patientInfo?.lastName || ''}, ${patientInfo?.gender || ''}, DOB: ${patientInfo?.dob || 'Not provided'}
+Report Type: ${reportType || 'Determine from document'}
+${sbp ? `SBP: ${sbp} mmHg` : ''}${dbp ? ` | DBP: ${dbp} mmHg` : ''}${pp ? ` | Pulse Pressure: ${pp} mmHg` : ''}
+${clinicalData?.filtrationRejections != null ? `Filtration Rejections: ${clinicalData.filtrationRejections}${clinicalData.filtrationRejections > 20 ? ' ⚠️ EXCEEDS 20 — FLAG STIMULANT WARNING' : ''}` : ''}
+${qScore != null ? `Stress Index Questionnaire Score: ${qScore} / 40` : ''}
+${lockedELI != null ? `ELI (calculated from score): ${lockedELI} — ${qScore >= 20 ? 'HIGH ELI' : 'LOW ELI'}` : ''}
+${ariVal != null ? `ARI (from HQP device): ${ariVal} — ${ariVal >= 60 ? 'HIGH ARI' : 'LOW ARI'}` : ''}
+${lockedQuadrant ? `QUADRANT (LOCKED — do not override): ${lockedQuadrant}` : ''}
+${clinicalData?.chavita ? `Chavita: ${clinicalData.chavita} | Emvita: ${clinicalData.emvita || 'REQUIRED — MUST PAIR'}` : ''}
+${clinicalData?.ermMethod ? `ERM Method: ${clinicalData.ermMethod}` : ''}
+${clinicalData?.acuteRemedies ? `Acute Remedies: ${clinicalData.acuteRemedies}` : ''}
+${clinicalData?.rjlPhaseAngle ? `RJL BIA — Phase Angle: ${clinicalData.rjlPhaseAngle} | ICW: ${clinicalData.rjlIcw || '?'} | ECW: ${clinicalData.rjlEcw || '?'} | TBW: ${clinicalData.rjlTbw || '?'}` : ''}
+${clinicalData?.oxidativeStressScore ? `Oxidative Stress Test Score: ${clinicalData.oxidativeStressScore}` : ''}
 ${customRules ? `\nCustom Clinical Rules:\n${customRules}\n` : ''}
 
-Instructions:
-- Extract EVERY marker, score, and recommendation present in the document
-- Calculate CRIS GOLD™ Quadrant (Q1-Q4) from ELI/ARI
-- Calculate CRI score (0-12) from cardiovascular markers
-- Apply Polyvagal Rule of 3
-- If therapeutic selections appear in the document, include them
-- If NeuroVIZR programs are listed, include them
-- Write the aiSummary as a concise clinician-facing summary (3-5 sentences)
+EXTRACTION INSTRUCTIONS:
+- Extract ALL HRV markers, scores, and recommendations from the uploaded document
+- SDNN and RMSSD must be interpreted separately — never combined
+- Set filtrationWarning: true if filtrationRejections > 20
+- Set eli and hrqEli to the LOCKED calculated value if questionnaire score was provided
+- Set ari and hrqAri to the practitioner-entered ARI if provided
+- Set crisgoldQuadrant to the LOCKED value if provided above
+- CASP: only include if explicitly device-measured on the document — NEVER calculate it
+- Include ALL 6 therapeutic categories in therapeuticSelections (use [] for empty)
+- Drainage must always be populated first
+- If Chavita and Emvita numbers were provided, write the full Rubimed practitioner manual description for each
+- Write aiSummary as a clinician-facing summary (3-5 sentences, specific values)
 - Write patientFriendlySummary in plain language (2-3 sentences)
 - Return ONLY valid JSON, no other text`;
 
-    // Build the content array for GPT-4o
-    let fileContent;
-    if (isPDF) {
-      // GPT-4o supports PDF via file content type
-      fileContent = {
-        type: 'file',
-        file: {
-          filename: 'report.pdf',
-          file_data: `data:application/pdf;base64,${fileBase64}`,
-        },
-      };
-    } else {
-      // Images sent as base64 via image_url
-      fileContent = {
-        type: 'image_url',
-        image_url: {
-          url: `data:${mediaType};base64,${fileBase64}`,
-          detail: 'high',
-        },
-      };
-    }
+    const isPDF = fileType?.includes('pdf');
+    const mediaType = isPDF ? 'application/pdf'
+      : fileType?.includes('png') ? 'image/png'
+      : (fileType?.includes('jpg') || fileType?.includes('jpeg')) ? 'image/jpeg'
+      : 'image/png';
+
+    const fileContent = isPDF
+      ? { type: 'file', file: { filename: 'report.pdf', file_data: `data:application/pdf;base64,${fileBase64}` } }
+      : { type: 'image_url', image_url: { url: `data:${mediaType};base64,${fileBase64}`, detail: 'high' } };
 
     const response = await client.chat.completions.create({
       model: 'gpt-4o',
-      max_tokens: 6000,
+      max_tokens: 7000,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         {
@@ -265,9 +362,22 @@ Instructions:
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify({ success: false, error: 'Failed to parse response as JSON', rawResponse: rawText }),
+        body: JSON.stringify({ success: false, error: 'Failed to parse AI response as JSON', rawResponse: rawText }),
       };
     }
+
+    // Enforce locked values from form data
+    if (lockedELI != null) { parsed.eli = lockedELI; parsed.hrqEli = lockedELI; }
+    if (ariVal != null)    { parsed.ari = ariVal;    parsed.hrqAri = ariVal; }
+    if (lockedQuadrant)    { parsed.crisgoldQuadrant = lockedQuadrant; }
+    if (pp != null)        { parsed.pulsePressure = pp; }
+    if (clinicalData?.filtrationRejections != null) {
+      parsed.filtrationRejections = clinicalData.filtrationRejections;
+      parsed.filtrationWarning = clinicalData.filtrationRejections > 20;
+    }
+    if (clinicalData?.chavita) parsed.chavita = clinicalData.chavita;
+    if (clinicalData?.emvita)  parsed.emvita  = clinicalData.emvita;
+    if (clinicalData?.ermMethod) parsed.ermMethod = clinicalData.ermMethod;
 
     return {
       statusCode: 200,

@@ -34,40 +34,54 @@ export const criMeta = (score) => {
 
 export const STATUS_COLOR = { high: '#c0392b', low: '#b45309', normal: '#0e7a55' };
 
-/** CRIS GOLD™ Quadrant definitions (canonical labels from CRIS Prompt Card) */
+/** CRIS GOLD™ Quadrant definitions — v1.0 LOCKED (from CRIS GPT Operating System Block) */
 export const CRISGOLD_QUADRANTS = {
   Q1: {
-    label: 'High Emotional Load + Low Autonomic Resilience',
-    sub: 'Stress Dominant / Exhausted System',
-    description: 'Your nervous system is carrying a high emotional and stress load, and its ability to regulate and recover is compromised. The primary clinical priority is drainage, calming, and rebuilding foundational energy before advancing therapies.',
+    label: 'Overloaded & Dysregulated',
+    sub: 'High ELI + Low ARI — Stress Dominant / Exhausted',
+    description: 'Your nervous system is carrying a high emotional and stress load while its ability to regulate and recover is compromised. The primary clinical priority is drainage, calming, and rebuilding foundational energy before advancing any therapies.',
     color: '#c0392b',
     bg: '#fdecea',
     icon: '⚡',
   },
   Q2: {
-    label: 'High Emotional Load + High Autonomic Resilience',
-    sub: 'Regulated but Stressed',
-    description: 'Your nervous system is under high emotional stress, but is still regulating reasonably well. Your body is stressed yet maintains some balance and resilience. Focus is on reducing stress load and supporting continued recovery.',
+    label: 'High Load / Resilient',
+    sub: 'High ELI + High ARI — Regulated but Stressed',
+    description: 'Your nervous system is under high emotional stress but still regulating reasonably well. Your body is stressed yet maintains some balance and resilience. Focus is on reducing the stress load and supporting continued recovery.',
     color: '#b45309',
     bg: '#fef3e2',
     icon: '🔶',
   },
   Q3: {
-    label: 'Low Emotional Load + Low Autonomic Resilience',
-    sub: 'Fatigue Dominant / Depleted',
+    label: 'Physiological Exhaustion',
+    sub: 'Low ELI + Low ARI — Fatigue Dominant / Depleted',
     description: 'Emotional load is not the primary issue, but autonomic regulation is weak. Your system is less resilient to stress and fatigue is common. Focus is on building resilience, energy reserves, and recovery capacity.',
     color: '#7b6d00',
     bg: '#fffde6',
     icon: '🔋',
   },
   Q4: {
-    label: 'Low Emotional Load + High Autonomic Resilience',
-    sub: 'Balanced / Optimal',
+    label: 'Optimal / Strong Regulation',
+    sub: 'Low ELI + High ARI — Balanced / Optimal',
     description: 'Your nervous system is regulating effectively and emotional stress load is low. This reflects a balanced, resilient state. Continue prioritizing healthy habits to maintain your stress regulation and wellness.',
     color: '#0e7a55',
     bg: '#e6f5ef',
     icon: '⚖️',
   },
+};
+
+/** ELI/ARI thresholds and quadrant computation (v1.0 LOCKED) */
+export const computeELI = (questionnaireScore) =>
+  questionnaireScore != null ? Math.round((questionnaireScore / 40) * 100) : null;
+
+export const computeQuadrant = (questionnaireScore, ari) => {
+  if (questionnaireScore == null || ari == null) return null;
+  const highELI = questionnaireScore >= 20;
+  const highARI = ari >= 60;
+  if (highELI && !highARI) return 'Q1';
+  if (highELI && highARI)  return 'Q2';
+  if (!highELI && !highARI) return 'Q3';
+  return 'Q4';
 };
 
 // Keep HRQ_QUADRANTS as alias for backwards compatibility

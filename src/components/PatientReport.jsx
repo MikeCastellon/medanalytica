@@ -19,6 +19,8 @@ export default function PatientReport({ patient, report, onBack }) {
   const cri = criMeta(r.criScore);
   const cgQ = r.crisgoldQuadrant ? CRISGOLD_QUADRANTS[r.crisgoldQuadrant] : null;
   const cvQ = r.cvQuadrant       ? CV_QUADRANTS[r.cvQuadrant]             : null;
+  const eli = r.eli ?? r.hrqEli;
+  const ari = r.ari ?? r.hrqAri;
 
   const chartData = markers.map(m => ({
     name:     m.name.split(' ').slice(-1)[0],
@@ -75,6 +77,19 @@ export default function PatientReport({ patient, report, onBack }) {
         </button>
       </div>
 
+      {/* ── Filtration Warning ── */}
+      {r.filtrationWarning && (
+        <div style={{ background: '#fff8e1', border: '1px solid #f59e0b', borderLeft: '4px solid #f59e0b', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px' }}>
+          <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: '#b45309', marginBottom: '4px' }}>
+            ⚠️ HQP Filtration Warning
+          </div>
+          <div style={{ fontSize: '13px', color: 'var(--navy2)' }}>
+            Filtration rejections: <strong>{r.filtrationRejections}</strong> (exceeds 20). Results may be affected by stimulants (coffee, energy drinks).
+            Advise patient to avoid stimulants and re-test for accurate interpretation.
+          </div>
+        </div>
+      )}
+
       {/* ── AI Clinical Summary ── */}
       <div className="sum">
         <div className="sum-lbl">🤖 AI Clinical Summary</div>
@@ -94,8 +109,9 @@ export default function PatientReport({ patient, report, onBack }) {
               quadrant={r.crisgoldQuadrant}
               meta={cgQ}
               qDefs={CRISGOLD_QUADRANTS}
-              ari={r.hrqAri}
-              eli={r.hrqEli}
+              ari={ari}
+              eli={eli}
+              qScore={r.questionnaireScore}
             />
           )}
           {cvQ && (
@@ -196,6 +212,31 @@ export default function PatientReport({ patient, report, onBack }) {
             </div>
           )}
         </div>
+      )}
+
+      {/* ── Rubimed / Chavita + Emvita ── */}
+      {(r.chavita || r.emvita) && (
+        <RubimedCard chavita={r.chavita} emvita={r.emvita} method={r.ermMethod}
+          chavitaText={r.chavitaText} emvitaText={r.emvitaText}
+          acuteRemedies={r.acuteRemedies} acuteRemedyTexts={r.acuteRemedyTexts} />
+      )}
+
+      {/* ── RJL BIA ── */}
+      {r.rjlBia && Object.values(r.rjlBia).some(v => v != null) && (
+        <RjlBiaCard bia={r.rjlBia} summary={r.rjlBiaSummary} />
+      )}
+
+      {/* ── Oxidative Stress ── */}
+      {(r.oxidativeStressScore != null || r.oxidativeStressSummary) && (
+        <InfoCard icon="⚗️" title="Oxidative Stress Test" color="var(--amber)" bg="var(--amber-lt)">
+          {r.oxidativeStressScore != null && (
+            <div style={{ marginBottom: '8px' }}>
+              <strong>Score: {r.oxidativeStressScore}</strong>
+              {r.oxidativeStressScore >= 3 && ' — Elevated free radical activity. Antioxidant and membrane support recommended.'}
+            </div>
+          )}
+          {r.oxidativeStressSummary}
+        </InfoCard>
       )}
 
       {/* ── Brain Gauge ── */}
@@ -317,7 +358,7 @@ function CRICard({ cri, score, category }) {
 }
 
 /* ── 2×2 Quadrant Card ──────────────────────────────────── */
-function QuadrantCard({ title, subtitle, quadrant, meta, qDefs, ari, eli }) {
+function QuadrantCard({ title, subtitle, quadrant, meta, qDefs, ari, eli, qScore }) {
   return (
     <div className="cc">
       <div className="ct">{title}</div>
@@ -338,18 +379,26 @@ function QuadrantCard({ title, subtitle, quadrant, meta, qDefs, ari, eli }) {
           );
         })}
       </div>
-      {(eli != null || ari != null) && (
+      {(eli != null || ari != null || qScore != null) && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '12px' }}>
+          {qScore != null && (
+            <div style={{ flex: 1, background: 'var(--bg3)', borderRadius: '6px', padding: '8px 12px' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '.07em' }}>Questionnaire</div>
+              <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--navy)' }}>{qScore}<span style={{ fontSize: '12px', color: 'var(--text3)' }}>/40</span></div>
+            </div>
+          )}
           {eli != null && (
             <div style={{ flex: 1, background: 'var(--bg3)', borderRadius: '6px', padding: '8px 12px' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '.07em' }}>ELI Score</div>
-              <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--navy)' }}>{eli}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '.07em' }}>ELI</div>
+              <div style={{ fontSize: '20px', fontWeight: '700', color: eli >= 50 ? '#c0392b' : '#0e7a55' }}>{eli}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{eli >= 50 ? 'HIGH' : 'LOW'}</div>
             </div>
           )}
           {ari != null && (
             <div style={{ flex: 1, background: 'var(--bg3)', borderRadius: '6px', padding: '8px 12px' }}>
-              <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '.07em' }}>ARI Score</div>
-              <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--navy)' }}>{ari}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '.07em' }}>ARI</div>
+              <div style={{ fontSize: '20px', fontWeight: '700', color: ari >= 60 ? '#0e7a55' : '#c0392b' }}>{ari}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{ari >= 60 ? 'HIGH' : 'LOW'}</div>
             </div>
           )}
         </div>
@@ -400,6 +449,78 @@ function BrainGaugeCard({ brainGauge, summary }) {
   );
 }
 
+/* ── Rubimed / Chavita + Emvita Card ────────────────────── */
+function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRemedies, acuteRemedyTexts }) {
+  return (
+    <div className="cc" style={{ marginBottom: '16px' }}>
+      <div className="ct">🔮 Psychosomatic Energetics — Rubimed</div>
+      <div className="cs">Emotional Regulation Matrix (ERM) — tested results only</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+        {chavita && (
+          <div style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '12px 14px' }}>
+            <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '4px' }}>Chavita #{chavita}</div>
+            {chavitaText
+              ? <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.7' }}>{chavitaText}</div>
+              : <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Chakra #{chavita} selected</div>}
+          </div>
+        )}
+        {emvita && (
+          <div style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '12px 14px' }}>
+            <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '4px' }}>Emvita #{emvita}</div>
+            {emvitaText
+              ? <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.7' }}>{emvitaText}</div>
+              : <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Conflict pattern #{emvita} selected</div>}
+          </div>
+        )}
+      </div>
+      {method && <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '8px' }}>Testing method: <strong>{method}</strong></div>}
+      {acuteRemedies?.length > 0 && (
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '6px' }}>Acute Remedies (tested)</div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {acuteRemedies.map((r, i) => (
+              <span key={i} style={{ padding: '3px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '20px', fontSize: '12px', color: 'var(--navy)' }}>
+                {r}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── RJL BIA Card ───────────────────────────────────────── */
+function RjlBiaCard({ bia, summary }) {
+  const fields = [
+    { key: 'phaseAngle', label: 'Phase Angle', unit: '°', note: '<5 suggests membrane repair needed' },
+    { key: 'icw',        label: 'ICW',         unit: 'L', note: 'Intracellular Water' },
+    { key: 'ecw',        label: 'ECW',         unit: 'L', note: 'Extracellular Water' },
+    { key: 'tbw',        label: 'TBW',         unit: 'L', note: 'Total Body Water' },
+  ];
+  return (
+    <div className="cc" style={{ marginBottom: '16px' }}>
+      <div className="ct">📊 RJL BIA — Bioimpedance Analysis</div>
+      <div className="cs">Body composition and cellular hydration markers</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '12px' }}>
+        {fields.map(({ key, label, unit, note }) => {
+          const val = bia[key];
+          if (val == null) return null;
+          const warn = key === 'phaseAngle' && val < 5;
+          return (
+            <div key={key} style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '10px 12px', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '2px' }}>{label}</div>
+              <div style={{ fontSize: '22px', fontWeight: '700', color: warn ? '#c0392b' : 'var(--navy)' }}>{val}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{unit}</div>
+            </div>
+          );
+        })}
+      </div>
+      {summary && <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: '1.7' }}>{summary}</div>}
+    </div>
+  );
+}
+
 /* ── Therapeutic Selections Card ────────────────────────── */
 function TherapeuticCard({ selections, quadrant }) {
   const categories = [
@@ -407,6 +528,7 @@ function TherapeuticCard({ selections, quadrant }) {
     { key: 'cellMembraneSupport',   icon: '🧬', label: 'Cell Membrane Support' },
     { key: 'mitochondrialSupport',  icon: '⚡', label: 'Mitochondrial Support' },
     { key: 'neurocognitiveSupport', icon: '🧠', label: 'Neurocognitive Support' },
+    { key: 'oxidativeStressSupport',icon: '⚗️', label: 'Oxidative Stress Support' },
     { key: 'cardiovascularSupport', icon: '💓', label: 'Cardiovascular Support' },
   ];
   const hasAny = categories.some(c => selections[c.key]?.length > 0);
