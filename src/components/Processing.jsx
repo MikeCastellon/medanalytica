@@ -3,15 +3,16 @@ import { supabase } from '../lib/supabase';
 import { fileToBase64 } from '../lib/utils';
 
 const STEPS = [
-  'Uploading document securely…',
-  'Parsing document structure…',
+  'Uploading screenshots securely…',
+  'Reading HQP screen captures…',
   'Extracting HRV & laboratory markers…',
   'Calculating CRI score & quadrant placement…',
   'Applying clinical rules engine…',
   'Generating report & visualizations…',
 ];
 
-export default function Processing({ user, form, file, customRules, onDone, onError }) {
+export default function Processing({ user, form, files = [], customRules, onDone, onError }) {
+  // files is now an array of File objects (screenshots)
   const [step, setStep]       = useState(0);
   const [stepDone, setStepDone] = useState([]);
 
@@ -27,16 +28,21 @@ export default function Processing({ user, form, file, customRules, onDone, onEr
   const run = async () => {
     try {
       advance(1);
-      // Convert file to base64
-      const fileBase64 = await fileToBase64(file);
+      // Convert all screenshots to base64
+      const screenshotBase64s = files.length > 0
+        ? await Promise.all(files.map(f => fileToBase64(f)))
+        : [];
 
       advance(2);
-      // Upload file to Supabase Storage (if not demo)
-      let filePath = null;
-      if (user.id !== 'demo') {
-        const ext = file.name.split('.').pop();
-        filePath = `${user.id}/${Date.now()}.${ext}`;
-        await supabase.storage.from('reports').upload(filePath, file);
+      // Upload screenshots to Supabase Storage (if not demo)
+      let filePaths = [];
+      if (user.id !== 'demo' && files.length > 0) {
+        filePaths = await Promise.all(files.map(async (f) => {
+          const ext = f.name.split('.').pop();
+          const path = `${user.id}/${Date.now()}-${f.name}`;
+          await supabase.storage.from('reports').upload(path, f);
+          return path;
+        }));
       }
 
       advance(3);
@@ -63,8 +69,8 @@ export default function Processing({ user, form, file, customRules, onDone, onEr
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileBase64,
-          fileType: file.type || file.name.split('.').pop(),
+          screenshots: screenshotBase64s,  // array of base64 image strings
+          fileCount: screenshotBase64s.length,
           reportType: form.reportType,
           patientInfo: { firstName: form.firstName, lastName: form.lastName, dob: form.dob, gender: form.gender },
           clinicalData: {
@@ -99,8 +105,8 @@ export default function Processing({ user, form, file, customRules, onDone, onEr
           doctor_id:       user.id,
           report_type:     aiData.reportType || form.reportType,
           collection_date: form.collectionDate || null,
-          file_path:       filePath,
-          file_name:       file.name,
+          file_path:       filePaths[0] || null,
+          file_name:       files[0]?.name || null,
           status:          'complete',
           cri_score:       aiData.criScore,
           hrq_ari:         aiData.hrqAri,
@@ -128,7 +134,7 @@ export default function Processing({ user, form, file, customRules, onDone, onEr
           report: {
             ...aiData,
             report_type: aiData.reportType || form.reportType,
-            file_name:   file.name,
+            file_name:   files.length > 0 ? `${files.length} screenshot(s)` : null,
             collection_date: form.collectionDate,
           },
         });

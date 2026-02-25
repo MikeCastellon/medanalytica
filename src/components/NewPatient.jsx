@@ -20,13 +20,22 @@ export default function NewPatient({ onBack, onSubmit }) {
     rjlPhaseAngle: '', rjlIcw: '', rjlEcw: '', rjlTbw: '',
     oxidativeStressScore: '',
   });
-  const [file, setFile]       = useState(null);
+  const [files, setFiles]     = useState([]); // multiple screenshots
   const [drag, setDrag]       = useState(false);
+
+  const addFiles = (incoming) => {
+    const arr = Array.from(incoming).filter(f => f.type.startsWith('image/') || f.name.match(/\.(png|jpg|jpeg|tiff|webp|heic)$/i));
+    setFiles(prev => {
+      const names = new Set(prev.map(f => f.name));
+      return [...prev, ...arr.filter(f => !names.has(f.name))];
+    });
+  };
+  const removeFile = (idx) => setFiles(prev => prev.filter((_, i) => i !== idx));
   const [showOptional, setShowOptional] = useState(false);
 
   const s = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const num = (k) => (e) => s(k, e.target.value.replace(/[^0-9.]/g, ''));
-  const canSubmit = file && form.firstName && form.lastName;
+  const canSubmit = form.firstName && form.lastName;
 
   // Live ELI / quadrant preview
   const qScore = form.questionnaireScore !== '' ? Number(form.questionnaireScore) : null;
@@ -41,7 +50,7 @@ export default function NewPatient({ onBack, onSubmit }) {
       <div className="pg-hdr">
         <div>
           <div className="pg-title">New Patient</div>
-          <div className="pg-sub">Complete patient details and upload their HQP report for AI analysis</div>
+          <div className="pg-sub">Complete patient details — upload an HQP report for full AI analysis (optional)</div>
         </div>
       </div>
 
@@ -227,42 +236,55 @@ export default function NewPatient({ onBack, onSubmit }) {
       {/* ── Step 4: Upload HQP Screenshots ── */}
       <div className="fc">
         <div className="fc-hdr">
-          <div className="fc-title">Upload HQP Report *</div>
+          <div className="fc-title">
+            HQP Report Screenshots
+            <span style={{ fontWeight: 400, fontSize: '12px', color: 'var(--text3)', marginLeft: '8px' }}>(optional — upload as many as needed)</span>
+          </div>
           <div className="fc-badge">Step 4</div>
         </div>
+
+        {/* Drop zone */}
         <div
           className={`uz${drag ? ' drag' : ''}`}
           onDragOver={e => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
-          onDrop={e => { e.preventDefault(); setDrag(false); if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); }}
+          onDrop={e => { e.preventDefault(); setDrag(false); addFiles(e.dataTransfer.files); }}
           onClick={() => document.getElementById('fup').click()}
         >
-          <input id="fup" type="file" accept=".pdf,.png,.jpg,.jpeg,.tiff"
-            style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) setFile(e.target.files[0]); }} />
-          {!file ? (
-            <>
-              <div className="uz-ico">📄</div>
-              <div className="uz-title">Drop HQP report here or click to browse</div>
-              <div className="uz-sub">PDF or image — AI extracts all markers and confirms entered values</div>
-            </>
-          ) : (
-            <div className="fp">
-              <span style={{ fontSize: '24px' }}>{file.name.endsWith('.pdf') ? '📕' : '🖼️'}</span>
-              <div style={{ flex: 1 }}>
-                <div className="fn">{file.name}</div>
-                <div className="fsz">{(file.size / 1024 / 1024).toFixed(2)} MB · Ready</div>
-              </div>
-              <button style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '20px', lineHeight: 1 }}
-                onClick={e => { e.stopPropagation(); setFile(null); }}>×</button>
-            </div>
-          )}
+          <input id="fup" type="file" accept="image/*,.png,.jpg,.jpeg,.tiff,.webp,.heic"
+            multiple style={{ display: 'none' }}
+            onChange={e => addFiles(e.target.files)} />
+          <div className="uz-ico">📸</div>
+          <div className="uz-title">Drop screenshots here or click to browse</div>
+          <div className="uz-sub">Upload multiple HQP screen captures — PNG, JPG, TIFF, WEBP accepted. GPT-4o reads all screens and extracts every marker.</div>
         </div>
-        <p className="hint">⚡ Powered by GPT-4o — HRV scores, CRI, quadrants, and markers extracted automatically. Entered values take priority.</p>
+
+        {/* File list */}
+        {files.length > 0 && (
+          <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '2px' }}>
+              {files.length} screenshot{files.length > 1 ? 's' : ''} queued
+            </div>
+            {files.map((f, i) => (
+              <div key={i} className="fp" style={{ padding: '8px 12px' }}>
+                <span style={{ fontSize: '18px' }}>🖼️</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="fn" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                  <div className="fsz">{(f.size / 1024 / 1024).toFixed(2)} MB</div>
+                </div>
+                <button style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', fontSize: '18px', lineHeight: 1, padding: '0 4px' }}
+                  onClick={e => { e.stopPropagation(); removeFile(i); }}>×</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="hint">⚡ Powered by GPT-4o vision — all screenshots are read together. Manually entered clinical values always take priority over extracted values.</p>
       </div>
 
       <div className="fa">
         <button className="btn btn-ot" onClick={onBack}>Cancel</button>
-        <button className="btn btn-nv" onClick={() => onSubmit(form, file)} disabled={!canSubmit}>
+        <button className="btn btn-nv" onClick={() => onSubmit(form, files)} disabled={!canSubmit}>
           Run Analysis →
         </button>
       </div>

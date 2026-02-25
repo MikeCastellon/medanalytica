@@ -138,13 +138,45 @@ BRAIN GAUGE REFERENCE RANGES
 - Overall Cortical:    >50 (optimal >70)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-RUBIMED RULES (ABSOLUTE)
+RUBIMED / PSYCHOSOMATIC ENERGETICS (PSE) — ABSOLUTE RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+PSE is a method developed by Dr. Reimar Banis & Dr. Birgitt Holschuh-Lorang addressing repressed emotional traumas (conflicts) that store life energy and block its normal flow. Four energy levels tested: Vital, Emotional, Mental, Causal.
+
+RULES:
 - Chavita (1–7) and Emvita (1–28) are ALWAYS paired.
 - Never present Chavita without Emvita.
-- If Chavita/Emvita numbers are provided, write the full Rubimed practitioner description for each.
-- Acute remedies (Anxiovita, Neurovita, Simvita, Paravita, Geovita) only if tested.
+- Emvita reflects CONFLICTS — always use the term "Conflict" in descriptions.
+- If Chavita/Emvita numbers are provided, use the EXACT practitioner descriptions below verbatim.
+- Acute remedies (Anxiovita, Neurovita, Simvita, Paravita, Geovita) ONLY if tested.
+- Standard dosage: 2× daily 12 drops directly on tongue (adults); children: 2× daily 6 drops.
+
+THE 28 EMVITA CONFLICTS (verbatim from Rubimed Practitioner Guide):
+Chakra 1: 1-Independence | 2-Lack of Concentration | 3-At the Mercy of/Helpless | 4-Extremely Self-Controlled
+Chakra 2: 5-Hectic/Nervous | 6-Perseverance | 7-Show of Strength/Stubborn
+Chakra 3: 8-Isolated | 9-Pent-up Emotions | 10-Wanting More | 11-Craving Good Feelings
+Chakra 4: 12-Mental Overexertion | 13-Withdrawn/Deeply Injured | 14-Introverted/Compulsive | 15-Apprehensive | 16-Panic
+Chakra 5: 17-Emotional Emptiness | 18-Rushed
+Chakra 6: 19-Timid/Faint-Hearted | 20-Self-Sufficient | 21-Physical Overexertion | 22-Restless/Mentally Hyperactive | 23-Tense | 24-Uneasiness/Discomfort
+Chakra 7: 25-Mistrust | 26-Materialistic | 27-Unwilling to Face Reality | 28-Wrong Thinking
+
+THE 7 CHAVITA CHAKRA REMEDIES:
+1-Root/Base Chakra (physical foundation, survival, vitality)
+2-Sacral Chakra (creativity, sexuality, emotional flow)
+3-Solar Plexus Chakra (personal power, self-esteem, will)
+4-Heart Chakra (love, compassion, emotional healing)
+5-Throat Chakra (communication, expression, truth)
+6-Third Eye Chakra (intuition, insight, mental clarity)
+7-Crown Chakra (spiritual connection, higher consciousness)
+
+ACUTE REMEDIES (verbatim):
+- Anxiovita: Eases anxiety, panic, and phobias. Indicated for acute anxiety states, irrational fears, or panic attacks.
+- Neurovita: Homeopathic neuroleptic for sedation and tension relief. Indicated for nervous system overstimulation and agitation.
+- Simvita: For sympathicotonic conditions — diarrhea, cardiac arrhythmia, restlessness. Sympathetic nervous system overdrive pattern.
+- Paravita: For parasympathicotonic/vagotonic conditions — constipation, cramps, sluggishness. Overactive parasympathetic pattern.
+- Geovita: For chronic exhaustion, geopathic stress, and electrosmog sensitivity. Environmental energy depletion pattern.
+
+When writing chavitaText and emvitaText: use the exact conflict name and chakra association. Always call Emvita results "Conflicts." Use clinical PSE language.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 OUTPUT RULES
@@ -254,25 +286,105 @@ JSON SCHEMA (return ALL fields, null if unavailable)
   "extractionConfidence": "high" | "medium" | "low"
 }`;
 
+// ── In-memory rate limiter (per IP, resets on cold start) ─────────────────
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX       = 10;        // max 10 requests per minute per IP
+
+function checkRateLimit(ip) {
+  const now   = Date.now();
+  const entry = rateLimitMap.get(ip) || { count: 0, start: now };
+  if (now - entry.start > RATE_LIMIT_WINDOW_MS) {
+    rateLimitMap.set(ip, { count: 1, start: now });
+    return true;
+  }
+  entry.count += 1;
+  rateLimitMap.set(ip, entry);
+  return entry.count <= RATE_LIMIT_MAX;
+}
+
+// ── Input sanitization ─────────────────────────────────────────────────────
+function sanitizeString(val, maxLen = 500) {
+  if (typeof val !== 'string') return '';
+  return val.replace(/<[^>]*>/g, '').replace(/[^\w\s\-.,;:()/°%@+]/g, '').slice(0, maxLen);
+}
+
+function sanitizeNumber(val, min = 0, max = 99999) {
+  const n = Number(val);
+  if (!isFinite(n)) return null;
+  return Math.min(Math.max(n, min), max);
+}
+
 export const handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
+  const securityHeaders = {
+    'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN || 'https://medanalytica-cris.netlify.app',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Referrer-Policy': 'no-referrer',
   };
+  const headers = securityHeaders;
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
+  // ── Rate limiting ────────────────────────────────────────────────────────
+  const clientIP = event.headers['x-forwarded-for']?.split(',')[0]?.trim()
+                || event.headers['client-ip']
+                || 'unknown';
+  if (!checkRateLimit(clientIP)) {
+    return { statusCode: 429, headers, body: JSON.stringify({ error: 'Too many requests. Please wait before submitting again.' }) };
+  }
+
+  // ── API key guard ─────────────────────────────────────────────────────────
+  if (!process.env.OPENAI_API_KEY) {
+    return { statusCode: 503, headers, body: JSON.stringify({ error: 'AI service not configured. Contact your administrator.' }) };
+  }
+
+  // ── Body size guard (max 20 MB) ──────────────────────────────────────────
+  const bodyLen = event.body ? Buffer.byteLength(event.body, 'utf8') : 0;
+  if (bodyLen > 20 * 1024 * 1024) {
+    return { statusCode: 413, headers, body: JSON.stringify({ error: 'Request too large. Maximum file size is 20 MB.' }) };
+  }
+
+  // ── HIPAA audit log (server-side only — never returned to client) ─────────
+  console.log(JSON.stringify({
+    event: 'analyze-report-request',
+    timestamp: new Date().toISOString(),
+    ip: clientIP,
+    bodyBytes: bodyLen,
+  }));
+
   try {
     const body = JSON.parse(event.body || '{}');
-    const { fileBase64, fileType, reportType, patientInfo, clinicalData, customRules } = body;
 
-    if (!fileBase64) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: 'fileBase64 is required' }) };
+    // ── Sanitize clinical inputs ───────────────────────────────────────────
+    if (body.clinicalData) {
+      const cd = body.clinicalData;
+      cd.questionnaireScore  = cd.questionnaireScore  != null ? sanitizeNumber(cd.questionnaireScore, 0, 40)     : null;
+      cd.ari                 = cd.ari                 != null ? sanitizeNumber(cd.ari, 0, 100)                   : null;
+      cd.sbp                 = cd.sbp                 != null ? sanitizeNumber(cd.sbp, 60, 250)                  : null;
+      cd.dbp                 = cd.dbp                 != null ? sanitizeNumber(cd.dbp, 40, 180)                  : null;
+      cd.filtrationRejections= cd.filtrationRejections!= null ? sanitizeNumber(cd.filtrationRejections, 0, 9999) : null;
+      cd.chavita             = cd.chavita             != null ? sanitizeNumber(cd.chavita, 1, 7)                 : null;
+      cd.emvita              = cd.emvita              != null ? sanitizeNumber(cd.emvita, 1, 28)                 : null;
+      cd.rjlPhaseAngle       = cd.rjlPhaseAngle       != null ? sanitizeNumber(cd.rjlPhaseAngle, 0, 20)          : null;
+      cd.oxidativeStressScore= cd.oxidativeStressScore!= null ? sanitizeNumber(cd.oxidativeStressScore, 0, 10)   : null;
+      if (cd.ermMethod)      cd.ermMethod      = sanitizeString(cd.ermMethod, 100);
+      if (cd.acuteRemedies)  cd.acuteRemedies  = sanitizeString(cd.acuteRemedies, 200);
     }
+    if (body.customRules) body.customRules = sanitizeString(body.customRules, 1000);
+
+    // ── Screenshot count guard ────────────────────────────────────────────
+    if (body.screenshots && body.screenshots.length > 10) {
+      body.screenshots = body.screenshots.slice(0, 10);
+    }
+    const { screenshots = [], reportType, patientInfo, clinicalData, customRules } = body;
+    // screenshots: array of base64 image strings (PNG/JPG/TIFF)
 
     // Pre-compute ELI and quadrant from form data (LOCKED logic)
     let lockedELI = null, lockedQuadrant = null;
@@ -313,7 +425,8 @@ ${clinicalData?.oxidativeStressScore ? `Oxidative Stress Test Score: ${clinicalD
 ${customRules ? `\nCustom Clinical Rules:\n${customRules}\n` : ''}
 
 EXTRACTION INSTRUCTIONS:
-- Extract ALL HRV markers, scores, and recommendations from the uploaded document
+- ${screenshots.length > 0 ? `You are provided with ${screenshots.length} HQP screenshot(s). Read ALL of them together to extract the complete clinical picture.` : 'No screenshots provided — generate report from practitioner-entered clinical data only.'}
+- Extract ALL HRV markers, scores, and recommendations visible across all screenshots
 - SDNN and RMSSD must be interpreted separately — never combined
 - Set filtrationWarning: true if filtrationRejections > 20
 - Set eli and hrqEli to the LOCKED calculated value if questionnaire score was provided
@@ -327,28 +440,23 @@ EXTRACTION INSTRUCTIONS:
 - Write patientFriendlySummary in plain language (2-3 sentences)
 - Return ONLY valid JSON, no other text`;
 
-    const isPDF = fileType?.includes('pdf');
-    const mediaType = isPDF ? 'application/pdf'
-      : fileType?.includes('png') ? 'image/png'
-      : (fileType?.includes('jpg') || fileType?.includes('jpeg')) ? 'image/jpeg'
-      : 'image/png';
+    // Build image content blocks for each screenshot
+    const imageBlocks = screenshots.map(b64 => ({
+      type: 'image_url',
+      image_url: { url: `data:image/png;base64,${b64}`, detail: 'high' },
+    }));
 
-    const fileContent = isPDF
-      ? { type: 'file', file: { filename: 'report.pdf', file_data: `data:application/pdf;base64,${fileBase64}` } }
-      : { type: 'image_url', image_url: { url: `data:${mediaType};base64,${fileBase64}`, detail: 'high' } };
+    const userContent = [
+      { type: 'text', text: userPromptText },
+      ...imageBlocks,
+    ];
 
     const response = await client.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 7000,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: userPromptText },
-            fileContent,
-          ],
-        },
+        { role: 'user', content: userContent },
       ],
     });
 

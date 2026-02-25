@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell,
@@ -9,6 +10,61 @@ import {
   BRAIN_GAUGE_METRICS,
 } from '../lib/utils';
 import Badge from './Badge';
+
+// ── PSE: 28 Emvita Conflict Definitions (verbatim from Rubimed Practitioner Guide) ──
+const EMVITA_CONFLICTS = {
+  1:  { name: 'Independence',                   chakra: 1, description: 'Conflict of independence and self-determination. Patient suppresses the need for autonomy, often compensating with over-compliance or rigidity. May experience fatigue and muscular tension in the lower back and legs.' },
+  2:  { name: 'Lack of Concentration',          chakra: 1, description: 'Difficulty sustaining focus and mental clarity. Repressed conflict around cognitive performance expectations. May present with scattered thinking, forgetfulness, and grounding difficulties.' },
+  3:  { name: 'At the Mercy of / Helpless',     chakra: 1, description: 'Conflict of feeling controlled or powerless. Deep helplessness pattern, often rooted in early loss of control experiences. Physical manifestations may include immune suppression and lower extremity weakness.' },
+  4:  { name: 'Extremely Self-Controlled',      chakra: 1, description: 'Rigid self-regulation pattern with suppressed spontaneity. Chronically held tension from constant self-monitoring. May manifest as constipation, rigidity, and adrenal overload.' },
+  5:  { name: 'Hectic / Nervous',               chakra: 2, description: 'Chronic internal restlessness and nervous agitation. Patient cannot allow stillness; driven by unconscious urgency. Associated with kidney/adrenal stress and creative/sexual energy dysregulation.' },
+  6:  { name: 'Perseverance',                   chakra: 2, description: 'Compulsive drive to push through at all costs. Inability to rest or accept limitations. Often linked to burnout patterns, lower abdominal tension, and reproductive system stress.' },
+  7:  { name: 'Show of Strength / Stubborn',    chakra: 2, description: 'Compensatory strength display masking inner vulnerability. Stubbornness as a defense against perceived weakness. May present with hip tension, sacral pain, and hormonal imbalance.' },
+  8:  { name: 'Isolated',                       chakra: 3, description: 'Deep conflict of social disconnection and belonging. Feels fundamentally separate from others. Solar plexus tension, digestive disorders, and weakened immune identity are common.' },
+  9:  { name: 'Pent-up Emotions',               chakra: 3, description: 'Chronically suppressed emotional expression. Emotions are held internally, creating physiological tension. Associated with upper digestive disorders, liver stress, and diaphragmatic holding.' },
+  10: { name: 'Wanting More',                   chakra: 3, description: 'Insatiable desire pattern; never enough. Driven by an inner void seeking external fulfillment. May manifest as compulsive behaviors, metabolic dysregulation, and spleen/stomach imbalance.' },
+  11: { name: 'Craving Good Feelings',          chakra: 3, description: 'Conflict of dependency on pleasurable states to regulate inner discomfort. Avoidance of difficult emotions through sensation-seeking. Associated with blood sugar dysregulation and pancreatic stress.' },
+  12: { name: 'Mental Overexertion',            chakra: 4, description: 'Chronic mental over-engagement with inability to disengage. The mind cannot rest. Heart rhythm irregularities, hypertension, and thoracic tension are frequently observed.' },
+  13: { name: 'Withdrawn / Deeply Injured',     chakra: 4, description: 'Profound emotional withdrawal following deep wounding. Protective isolation from further hurt. May present with cardiac vulnerability, immune dysregulation, and thymus stress.' },
+  14: { name: 'Introverted / Compulsive',       chakra: 4, description: 'Turned inward with compulsive internal repetition. Rumination cycles prevent resolution. Associated with cardiac tension, breathing restrictions, and mid-thoracic holding patterns.' },
+  15: { name: 'Apprehensive',                   chakra: 4, description: 'Persistent low-grade anxiety and anticipatory fear. Constant vigilance for threat. Heart palpitations, shallow breathing, and adrenal activation are common presentations.' },
+  16: { name: 'Panic',                          chakra: 4, description: 'Acute overwhelm response with complete regulatory collapse. Trauma-rooted freeze/flight activation. Severe cardiac and respiratory involvement; ANS dysregulation pattern.' },
+  17: { name: 'Emotional Emptiness',            chakra: 5, description: 'Profound depletion of emotional reserves. The patient feels hollow and unable to access genuine feeling. Throat and thyroid involvement; communication and expression are compromised.' },
+  18: { name: 'Rushed',                         chakra: 5, description: 'Chronically time-pressured with inability to be present. Speed and urgency override authentic expression. Associated with thyroid overstimulation and neck/shoulder tension.' },
+  19: { name: 'Timid / Faint-Hearted',          chakra: 6, description: 'Suppressed courage and assertiveness; withdraws under pressure. Inner voice is silenced. May present with tension headaches, visual disturbances, and pituitary/pineal dysregulation.' },
+  20: { name: 'Self-Sufficient',                chakra: 6, description: 'Compulsive self-reliance as defense against vulnerability. Cannot receive help or nurturing from others. Associated with chronic tension headaches and overactivated prefrontal patterns.' },
+  21: { name: 'Physical Overexertion',          chakra: 6, description: 'Drives the body past its limits repeatedly. Disconnected from physical warning signals. Chronic fatigue, adrenal exhaustion, and musculoskeletal breakdown are common.' },
+  22: { name: 'Restless / Mentally Hyperactive',chakra: 6, description: 'Racing mind with inability to quiet mental activity. Excessive mental processing blocks intuition and rest. Associated with insomnia, migraines, and sympathetic overdrive.' },
+  23: { name: 'Tense',                          chakra: 6, description: 'Chronic whole-body tension pattern; bracing against life. Cannot release and trust. Manifests as widespread myofascial tension, jaw clenching, and cortisol dysregulation.' },
+  24: { name: 'Uneasiness / Discomfort',        chakra: 6, description: 'Persistent nameless discomfort and inner unease. Cannot identify the source of distress. Associated with diffuse somatic complaints, neuralgia, and autonomic sensitivity.' },
+  25: { name: 'Mistrust',                       chakra: 7, description: 'Fundamental inability to trust life, others, or the universe. Hypervigilance rooted in early safety failures. May present with immune dysregulation, neurological sensitivity, and CNS overactivation.' },
+  26: { name: 'Materialistic',                  chakra: 7, description: 'Over-identification with material reality; blocks spiritual and intuitive dimensions. Creates existential emptiness masked by acquisition. Associated with neurological tension and crown/head pressure.' },
+  27: { name: 'Unwilling to Face Reality',      chakra: 7, description: 'Avoidance of difficult truths; reality denial as a coping mechanism. Associated with dissociation, perceptual distortions, and neurological vulnerabilities.' },
+  28: { name: 'Wrong Thinking',                 chakra: 7, description: 'Distorted cognitive patterns and belief systems that perpetuate suffering. Difficulty correcting ingrained negative conclusions about self and world. Associated with cerebral tension and higher cortical dysregulation.' },
+};
+
+// ── PSE: 7 Chavita Chakra Remedy Descriptions ──────────────────────────────
+const CHAVITA_CHAKRAS = {
+  1: { name: 'Root / Base Chakra',    color: '#c0392b', description: 'Physical foundation, survival instincts, vitality, and grounding. Governs the legs, feet, lower back, immune system, and adrenal glands. Balances the energy of security and physical existence.' },
+  2: { name: 'Sacral Chakra',         color: '#e67e22', description: 'Creative expression, sexuality, emotional fluidity, and pleasure. Governs reproductive organs, kidneys, and lower abdomen. Balances desire, creativity, and relational energy.' },
+  3: { name: 'Solar Plexus Chakra',   color: '#f1c40f', description: 'Personal power, self-esteem, will, and digestion. Governs the stomach, liver, pancreas, and upper abdomen. Balances autonomy, identity, and metabolic vitality.' },
+  4: { name: 'Heart Chakra',          color: '#27ae60', description: 'Love, compassion, emotional healing, and connection. Governs the heart, lungs, thymus, and circulatory system. Balances giving and receiving, self-love, and cardiac coherence.' },
+  5: { name: 'Throat Chakra',         color: '#2980b9', description: 'Communication, authentic expression, truth, and listening. Governs the throat, thyroid, parathyroid, and cervical spine. Balances voice, boundaries, and self-expression.' },
+  6: { name: 'Third Eye Chakra',      color: '#8e44ad', description: 'Intuition, insight, mental clarity, and perception. Governs the pituitary gland, eyes, and prefrontal cortex. Balances inner vision, cognitive function, and intuitive intelligence.' },
+  7: { name: 'Crown Chakra',          color: '#6c3483', description: 'Spiritual connection, higher consciousness, and universal awareness. Governs the pineal gland and cerebral cortex. Balances transcendence, meaning, and the integration of body and spirit.' },
+};
+
+// ── PSE: Acute Remedy Descriptions (verbatim from Rubimed Practitioner Guide) ──
+const ACUTE_REMEDY_INFO = {
+  'Anxiovita': 'Eases anxiety, panic, and phobias. Indicated when the patient experiences acute anxiety states, irrational fears, or panic attacks. Supports the nervous system in re-establishing calm and safety.',
+  'Neurovita': 'Homeopathic neuroleptic for sedation and tension relief. Indicated for nervous system overstimulation, agitation, and emotional tension that does not resolve with rest.',
+  'Simvita':   'For sympathicotonic conditions including diarrhea, cardiac arrhythmia, and restlessness. Indicated when sympathetic nervous system overdrive is the predominant pattern.',
+  'Paravita':  'For parasympathicotonic / vagotonic conditions including constipation, cramps, and sluggishness. Indicated when the parasympathetic system is overactive or dysregulated.',
+  'Geovita':   'For chronic exhaustion, geopathic stress, and electrosmog sensitivity. Indicated when environmental energy fields are contributing to depletion and recovery failure.',
+};
+
+// ── PSE: Standard Dosage (verbatim from Rubimed Practitioner Guide) ─────────
+const PSE_DOSAGE = '2× daily — 12 drops directly on tongue (adults). Children: 2× daily — 6 drops. Small children: 1 drop per year of age. Acute remedies / Geovita: 2× 12 drops, or 5 drops several times per day for acute symptoms. No known side effects. Does not replace medical or psychotherapeutic care.';
 
 export default function PatientReport({ patient, report, onBack }) {
   if (!report) return null;
@@ -48,6 +104,12 @@ export default function PatientReport({ patient, report, onBack }) {
   return (
     <div className="fade-in">
       <button className="back-btn" onClick={onBack}>← Back to Dashboard</button>
+
+      {/* ── HIPAA Compliance Notice ── */}
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderLeft: '4px solid #3b82f6', borderRadius: '8px', padding: '8px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: '#1e40af' }}>
+        <span style={{ fontSize: '14px' }}>🔒</span>
+        <span><strong>HIPAA Protected Health Information.</strong> This report contains PHI and is intended solely for the authorized treating practitioner. Unauthorized access, disclosure, or transmission is prohibited under HIPAA (45 CFR §§ 164.502–164.514). Handle per your facility's PHI policies.</span>
+      </div>
 
       {/* ── Patient Header ── */}
       <div className="ph">
@@ -449,40 +511,109 @@ function BrainGaugeCard({ brainGauge, summary }) {
   );
 }
 
-/* ── Rubimed / Chavita + Emvita Card ────────────────────── */
+/* ── Psychosomatic Energetics — Rubimed Card (PSE Guide verbatim) ─────────── */
 function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRemedies, acuteRemedyTexts }) {
+  const chavitaInfo = chavita ? CHAVITA_CHAKRAS[chavita] : null;
+  const emvitaInfo  = emvita  ? EMVITA_CONFLICTS[emvita]  : null;
+  const chakraColor = chavitaInfo?.color || 'var(--teal)';
+
   return (
     <div className="cc" style={{ marginBottom: '16px' }}>
-      <div className="ct">🔮 Psychosomatic Energetics — Rubimed</div>
-      <div className="cs">Emotional Regulation Matrix (ERM) — tested results only</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+        <div className="ct" style={{ margin: 0 }}>🔮 Psychosomatic Energetics — Rubimed</div>
+      </div>
+      <div className="cs" style={{ marginBottom: '16px' }}>
+        Emotional Regulation Matrix (ERM) — Psychosomatic Energetics (PSE) by Dr. Reimar Banis &amp; Dr. Birgitt Holschuh-Lorang
+        {method && <span style={{ marginLeft: '8px', color: 'var(--text3)' }}>· Testing method: <strong>{method}</strong></span>}
+      </div>
+
+      {/* PSE Intro */}
+      <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75' }}>
+        <strong>What is Psychosomatic Energetics (PSE)?</strong> PSE is a method that addresses repressed emotional traumas — called <em>conflicts</em> — that store life energy and block its normal flow. Using the RebaPad Test Device, four energy levels are tested: <strong>Vital</strong> (physical &amp; regenerative powers), <strong>Emotional</strong> (mood, resilience), <strong>Mental</strong> (concentration, focus), and <strong>Causal</strong> (intuition, inner sensitivity). Conflicts are treated with homeopathic compound remedies (Emvita 1–28), always paired with the corresponding Chakra remedy (Chavita 1–7).
+      </div>
+
+      {/* Chavita + Emvita Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+
+        {/* Chavita — Chakra Remedy */}
         {chavita && (
-          <div style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '12px 14px' }}>
-            <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '4px' }}>Chavita #{chavita}</div>
-            {chavitaText
-              ? <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.7' }}>{chavitaText}</div>
-              : <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Chakra #{chavita} selected</div>}
+          <div style={{ borderRadius: '10px', border: `2px solid ${chakraColor}40`, overflow: 'hidden' }}>
+            <div style={{ background: chakraColor, padding: '10px 14px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,.8)', marginBottom: '2px' }}>
+                Chavita {chavita} — Chakra Remedy
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>
+                {chavitaInfo ? `Chakra ${chavita}: ${chavitaInfo.name}` : `Chakra #${chavita}`}
+              </div>
+            </div>
+            <div style={{ background: 'var(--bg3)', padding: '12px 14px' }}>
+              {chavitaInfo && (
+                <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75', marginBottom: '8px' }}>
+                  {chavitaInfo.description}
+                </div>
+              )}
+              {chavitaText && chavitaText !== chavitaInfo?.description && (
+                <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75', borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '4px' }}>
+                  {chavitaText}
+                </div>
+              )}
+            </div>
           </div>
         )}
+
+        {/* Emvita — Emotional Conflict Remedy */}
         {emvita && (
-          <div style={{ background: 'var(--bg3)', borderRadius: '8px', padding: '12px 14px' }}>
-            <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '4px' }}>Emvita #{emvita}</div>
-            {emvitaText
-              ? <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.7' }}>{emvitaText}</div>
-              : <div style={{ fontSize: '12px', color: 'var(--text3)' }}>Conflict pattern #{emvita} selected</div>}
+          <div style={{ borderRadius: '10px', border: `2px solid ${chakraColor}40`, overflow: 'hidden' }}>
+            <div style={{ background: `${chakraColor}dd`, padding: '10px 14px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,.8)', marginBottom: '2px' }}>
+                Emvita {emvita} — Emotional Conflict
+                {emvitaInfo && <span style={{ marginLeft: '6px', fontWeight: '400' }}>(Chakra {emvitaInfo.chakra})</span>}
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>
+                Conflict: {emvitaInfo ? emvitaInfo.name : `Pattern #${emvita}`}
+              </div>
+            </div>
+            <div style={{ background: 'var(--bg3)', padding: '12px 14px' }}>
+              {emvitaInfo && (
+                <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75', marginBottom: '8px' }}>
+                  {emvitaInfo.description}
+                </div>
+              )}
+              {emvitaText && emvitaText !== emvitaInfo?.description && (
+                <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75', borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '4px' }}>
+                  {emvitaText}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
-      {method && <div style={{ fontSize: '12px', color: 'var(--text3)', marginBottom: '8px' }}>Testing method: <strong>{method}</strong></div>}
+
+      {/* Dosage */}
+      <div style={{ background: '#f0fdf4', border: '1px solid rgba(14,122,85,.2)', borderLeft: '4px solid var(--green)', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', fontSize: '12px', color: 'var(--navy2)', lineHeight: '1.7' }}>
+        <strong>Standard Dosage (Rubimed Protocol):</strong> {PSE_DOSAGE}
+      </div>
+
+      {/* Acute Remedies */}
       {acuteRemedies?.length > 0 && (
         <div>
-          <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '6px' }}>Acute Remedies (tested)</div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {acuteRemedies.map((r, i) => (
-              <span key={i} style={{ padding: '3px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '20px', fontSize: '12px', color: 'var(--navy)' }}>
-                {r}
-              </span>
-            ))}
+          <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '10px' }}>
+            Acute Remedies — Tested &amp; Indicated
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+            {acuteRemedies.map((remedy, i) => {
+              const info = ACUTE_REMEDY_INFO[remedy];
+              const customText = acuteRemedyTexts?.[i];
+              return (
+                <div key={i} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--navy)', marginBottom: '4px' }}>{remedy}</div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--text2)', lineHeight: '1.6' }}>
+                    {customText || info || remedy}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -521,7 +652,7 @@ function RjlBiaCard({ bia, summary }) {
   );
 }
 
-/* ── Therapeutic Selections Card ────────────────────────── */
+/* ── Therapeutic Selections Card (Editable) ─────────────── */
 function TherapeuticCard({ selections, quadrant }) {
   const categories = [
     { key: 'drainage',              icon: '🚿', label: 'Drainage (First Priority)' },
@@ -531,19 +662,48 @@ function TherapeuticCard({ selections, quadrant }) {
     { key: 'oxidativeStressSupport',icon: '⚗️', label: 'Oxidative Stress Support' },
     { key: 'cardiovascularSupport', icon: '💓', label: 'Cardiovascular Support' },
   ];
-  const hasAny = categories.some(c => selections[c.key]?.length > 0);
-  if (!hasAny) return null;
+
+  // Local editable state seeded from AI output
+  const [editSels, setEditSels] = useState(() => {
+    const s = {};
+    categories.forEach(c => { s[c.key] = [...(selections?.[c.key] || [])]; });
+    return s;
+  });
+  const [newItem, setNewItem] = useState({});
+  const [editMode, setEditMode] = useState(false);
+
+  const removeItem = (catKey, idx) => {
+    setEditSels(prev => ({ ...prev, [catKey]: prev[catKey].filter((_, i) => i !== idx) }));
+  };
+
+  const addItem = (catKey) => {
+    const val = (newItem[catKey] || '').trim();
+    if (!val) return;
+    setEditSels(prev => ({ ...prev, [catKey]: [...prev[catKey], val] }));
+    setNewItem(prev => ({ ...prev, [catKey]: '' }));
+  };
+
+  const hasAny = categories.some(c => editSels[c.key]?.length > 0);
+  if (!hasAny && !editMode) return null;
 
   return (
     <div className="card" style={{ marginBottom: '16px' }}>
       <div className="card-hdr">
         <span className="card-title">Therapeutic Selections</span>
-        {quadrant && <span className="badge b-bl">{quadrant} Protocol</span>}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {quadrant && <span className="badge b-bl">{quadrant} Protocol</span>}
+          <button
+            onClick={() => setEditMode(e => !e)}
+            style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: editMode ? 'var(--navy)' : 'var(--bg3)', color: editMode ? '#fff' : 'var(--navy)', cursor: 'pointer', fontWeight: '600' }}
+          >
+            {editMode ? '✓ Done Editing' : '✏️ Edit'}
+          </button>
+        </div>
       </div>
-      <div style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '20px' }}>
+      <div style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
         {categories.map(({ key, icon, label }) => {
-          const items = selections[key];
-          if (!items?.length) return null;
+          const items = editSels[key];
+          if (!items?.length && !editMode) return null;
           return (
             <div key={key}>
               <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '8px' }}>
@@ -551,15 +711,42 @@ function TherapeuticCard({ selections, quadrant }) {
               </div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {items.map((item, i) => (
-                  <li key={i} style={{ fontSize: '12.5px', color: 'var(--navy)', padding: '3px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    • {item}
+                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: 'var(--navy)', padding: '4px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <span style={{ flex: 1 }}>• {item}</span>
+                    {editMode && (
+                      <button
+                        onClick={() => removeItem(key, i)}
+                        title="Remove"
+                        style={{ flexShrink: 0, fontSize: '11px', lineHeight: 1, padding: '2px 6px', borderRadius: '4px', border: '1px solid #e3342f40', background: '#fef2f2', color: '#e3342f', cursor: 'pointer' }}
+                      >✕</button>
+                    )}
                   </li>
                 ))}
               </ul>
+              {editMode && (
+                <div style={{ display: 'flex', gap: '4px', marginTop: '8px' }}>
+                  <input
+                    value={newItem[key] || ''}
+                    onChange={e => setNewItem(prev => ({ ...prev, [key]: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') addItem(key); }}
+                    placeholder="Add item…"
+                    style={{ flex: 1, fontSize: '11.5px', padding: '4px 8px', borderRadius: '5px', border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--navy)', minWidth: 0 }}
+                  />
+                  <button
+                    onClick={() => addItem(key)}
+                    style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '5px', border: '1px solid var(--teal)', background: 'var(--teal-lt)', color: 'var(--teal)', cursor: 'pointer', fontWeight: '700' }}
+                  >+</button>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
+      {editMode && (
+        <div style={{ padding: '0 22px 14px', fontSize: '11px', color: 'var(--text3)' }}>
+          ⚠️ Changes are session-only and not saved to the patient record. Click "Done Editing" when finished.
+        </div>
+      )}
     </div>
   );
 }

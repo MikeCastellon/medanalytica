@@ -10,13 +10,24 @@ const DEMO_PATIENTS = [
   { id: 3, first_name: 'Aisha', last_name: 'Patel',      dob: '1990-11-05', gender: 'Female', mrn: 'MRN-0043', updated_at: '2026-02-22', status: 'warning',  report_count: 2, report_type: 'HRV Analysis' },
 ];
 
-export default function Dashboard({ user, onNew, onView }) {
-  const [patients, setPatients] = useState([]);
+export default function Dashboard({ user, onNew, onView, sessionPatients = [] }) {
+  const [dbPatients, setDbPatients] = useState([]);
   const [loading, setLoading]   = useState(true);
+
+  // Merge session patients on top of DB/demo patients, deduplicating by id
+  const patients = [
+    ...sessionPatients.map(p => ({
+      ...p,
+      status: p.latestReport?.overallStatus || 'normal',
+      report_count: 1,
+      report_type: p.latestReport?.report_type || 'CRIS GOLD HRV',
+    })),
+    ...dbPatients.filter(p => !sessionPatients.find(s => s.id === p.id)),
+  ];
 
   useEffect(() => {
     const load = async () => {
-      if (user.id === 'demo') { setPatients(DEMO_PATIENTS); setLoading(false); return; }
+      if (user.id === 'demo') { setDbPatients(DEMO_PATIENTS); setLoading(false); return; }
       const { data } = await supabase
         .from('patients')
         .select(`id, first_name, last_name, dob, gender, mrn, updated_at,
@@ -24,7 +35,7 @@ export default function Dashboard({ user, onNew, onView }) {
         .eq('doctor_id', user.id)
         .order('updated_at', { ascending: false });
       if (data) {
-        setPatients(data.map(p => ({
+        setDbPatients(data.map(p => ({
           ...p,
           status: deriveStatus(p.reports),
           report_count: p.reports?.length || 0,
