@@ -131,6 +131,7 @@ export default function LandingPage() {
           .lp-footer-grid { grid-template-columns: 1fr 1fr !important; }
           .lp-hero-h1 { font-size: 38px !important; }
           .lp-test-grid { grid-template-columns: 1fr !important; }
+          .lp-security-grid { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 600px) {
           .lp-feat-grid { grid-template-columns: 1fr !important; }
@@ -325,37 +326,44 @@ export default function LandingPage() {
 
       {/* ── SECURITY ───────────────────────────────────────────────────────── */}
       <section id="security" style={{ background: C.white, padding: '80px 24px', borderTop: `1px solid ${C.border}` }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
+        <div className="lp-security-grid" style={{ maxWidth: 900, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: C.teal, marginBottom: 10 }}>Compliance & Security</div>
             <h2 style={{ fontFamily: serif, fontSize: 32, fontWeight: 700, color: C.navy, marginBottom: 16, lineHeight: 1.3 }}>Built for PHI. Designed for Practitioners.</h2>
             <p style={{ fontSize: 14.5, color: C.text2, lineHeight: 1.8, marginBottom: 24 }}>
-              Patient health information never leaves your control. No PHI is stored in the AI layer — all clinical data is processed in a HIPAA-aligned serverless environment and returned directly to you.
+              Your patients' health information never leaves your control. Nothing is stored in the AI — clinical data is processed securely and returned directly to you.
             </p>
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                'HIPAA PHI notice on every generated report',
-                '15-minute inactivity auto-logout with warning',
-                'HSTS + Content Security Policy headers enforced',
-                'Rate limiting and input sanitization on all API calls',
-                'No AI training on patient data',
-                'Encrypted in transit (TLS) at all times',
+                'Every report clearly marked as protected health information',
+                'Session automatically closes after 15 minutes of inactivity',
+                'Your account is protected against unauthorized access attempts',
+                'Patient data is never used to train any AI model',
+                'All information is encrypted during transmission',
+                'No patient records stored in the AI layer — ever',
               ].map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5, color: C.text2 }}>
-                  <span style={{ color: C.green, fontWeight: 700, fontSize: 15, flexShrink: 0 }}>✓</span> {item}
+                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13.5, color: C.text2 }}>
+                  <span style={{ color: C.green, fontWeight: 700, fontSize: 15, flexShrink: 0, marginTop: 1 }}>✓</span> {item}
                 </li>
               ))}
             </ul>
           </div>
           <div style={{ background: C.bg3, borderRadius: 14, padding: '28px 24px', border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: C.blue, marginBottom: 12 }}>🔒 HIPAA Protected Health Information</div>
-            <p style={{ fontSize: 12.5, color: C.text2, lineHeight: 1.8, marginBottom: 16 }}>
-              This report contains PHI and is intended solely for the authorized treating practitioner. Unauthorized access, disclosure, or transmission is prohibited under HIPAA (45 CFR §§ 164.502–164.514).
-            </p>
-            <div style={{ background: C.white, borderRadius: 8, padding: '10px 14px', fontSize: 12, color: C.text3, fontFamily: 'monospace', borderLeft: `3px solid ${C.teal}` }}>
-              Session timeout: 15 min · Auto-logout: enabled<br />
-              PHI cache: none · AI retention: none<br />
-              Headers: HSTS · CSP · no-referrer
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.09em', color: C.blue, marginBottom: 16 }}>🔒 Your Patients Are Protected</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {[
+                { icon: '🕐', title: 'Auto Sign-Out',       body: 'Your session closes automatically if left idle, so no one else can access patient records on a shared or unattended device.' },
+                { icon: '🚫', title: 'Zero AI Retention',   body: 'The AI reads your data to generate a report and immediately discards it. Nothing is saved, logged, or used for any other purpose.' },
+                { icon: '🔐', title: 'Encrypted End-to-End', body: 'All data travels over a secure, encrypted connection — the same standard used by banks and healthcare systems.' },
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div style={{ fontSize: 20, flexShrink: 0, marginTop: 2 }}>{item.icon}</div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 4 }}>{item.title}</div>
+                    <div style={{ fontSize: 12.5, color: C.text2, lineHeight: 1.7 }}>{item.body}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
