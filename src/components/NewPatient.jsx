@@ -40,6 +40,43 @@ export default function NewPatient({ onBack, onSubmit }) {
   const num = (k) => (e) => s(k, e.target.value.replace(/[^0-9.]/g, ''));
   const canSubmit = form.firstName && form.lastName;
 
+  // ── Quick Test: randomize all clinical inputs ──────────────────────
+  const FIRST_NAMES = ['Alex', 'Jordan', 'Taylor', 'Morgan', 'Casey', 'Dana', 'Riley', 'Drew'];
+  const LAST_NAMES  = ['Smith', 'Johnson', 'Lee', 'Garcia', 'Brown', 'Patel', 'Kim', 'Wilson'];
+  const ri = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+  const quickTest = () => {
+    const qScore  = ri(0, 40);
+    const ari     = ri(0, 100);
+    const chavita = ri(1, 7);
+    const emvita  = ri(1, 28);
+    const sbp     = ri(100, 165);
+    const dbp     = ri(60, 100);
+    const filt    = ri(0, 30);
+    const mrNum   = ri(1000, 9999);
+    setForm(f => ({
+      ...f,
+      firstName:           FIRST_NAMES[ri(0, FIRST_NAMES.length - 1)],
+      lastName:            LAST_NAMES[ri(0, LAST_NAMES.length - 1)],
+      dob:                 `${ri(1955, 2000)}-${String(ri(1,12)).padStart(2,'0')}-${String(ri(1,28)).padStart(2,'0')}`,
+      gender:              ['Male', 'Female'][ri(0, 1)],
+      mrn:                 `TST-${mrNum}`,
+      reportType:          'CRIS GOLD HRV',
+      collectionDate:      new Date().toISOString().split('T')[0],
+      sbp:                 String(sbp),
+      dbp:                 String(dbp),
+      filtrationRejections: String(filt),
+      questionnaireScore:  String(qScore),
+      ari:                 String(ari),
+      chavita:             String(chavita),
+      emvita:              String(emvita),
+      ermMethod:           ['Questionnaire', 'Muscle testing', 'Arm-length testing'][ri(0, 2)],
+      acuteRemedies:       '',
+      notes:               `Quick-test patient. Q-score ${qScore}/40 | ARI ${ari} | Chavita ${chavita} | Emvita ${emvita}`,
+    }));
+    setEliAnswers(Array(10).fill(null));
+  };
+
   // ELI questionnaire computed score (0–40)
   const eliAnswered = eliAnswers.filter(v => v !== null).length;
   const eliQScore   = eliAnswered === 10 ? eliAnswers.reduce((a, v) => a + v, 0) : null;
@@ -63,6 +100,18 @@ export default function NewPatient({ onBack, onSubmit }) {
           <div className="pg-title">New Patient</div>
           <div className="pg-sub">Complete patient details — upload an HQP report for full AI analysis (optional)</div>
         </div>
+        <button
+          type="button"
+          onClick={quickTest}
+          title="Fill all fields with random clinical values to quickly test different results"
+          style={{
+            padding: '8px 16px', borderRadius: '8px', border: '1.5px dashed var(--blue)',
+            background: 'var(--blue-lt)', color: 'var(--blue)', fontWeight: '700', cursor: 'pointer',
+            fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px',
+          }}
+        >
+          ⚡ Quick Test
+        </button>
       </div>
 
       {/* ── Step 1: Patient Information ── */}
