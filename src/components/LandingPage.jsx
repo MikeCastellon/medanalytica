@@ -158,7 +158,7 @@ export default function LandingPage() {
 
           {/* Nav links */}
           <div className="lp-nav-links" style={{ display: 'flex', gap: 28, flex: 1, justifyContent: 'center' }}>
-            {[['#features', 'Features'], ['#how-it-works', 'How It Works'], ['#security', 'Security'], ['#pricing', 'Pricing']].map(([href, label]) => (
+            {[['#features', 'Features'], ['#how-it-works', 'How It Works'], ['#security', 'Security'], ['#pricing', 'Pricing'], ['/contact', 'Contact']].map(([href, label]) => (
               <a key={href} href={href} className="lp-nav-link">{label}</a>
             ))}
           </div>
@@ -468,7 +468,7 @@ export default function LandingPage() {
                 <button
                   className={p.featured ? 'lp-btn-primary' : 'lp-btn-outline'}
                   style={{ width: '100%', justifyContent: 'center' }}
-                  onClick={goToDashboard}
+                  onClick={p.cta === 'Contact Us' ? () => nav('/contact') : goToDashboard}
                 >
                   {p.cta}
                 </button>
