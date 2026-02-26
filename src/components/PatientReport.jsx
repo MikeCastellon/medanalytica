@@ -67,6 +67,105 @@ const ACUTE_REMEDY_INFO = {
 // ── PSE: Standard Dosage (verbatim from Rubimed Practitioner Guide) ─────────
 const PSE_DOSAGE = '2× daily — 12 drops directly on tongue (adults). Children: 2× daily — 6 drops. Small children: 1 drop per year of age. Acute remedies / Geovita: 2× 12 drops, or 5 drops several times per day for acute symptoms. No known side effects. Does not replace medical or psychotherapeutic care.';
 
+// ── Quadrant Clinical Focus (from CRIS GOLD™ Protocol Matrix docs) ───────────
+const QUADRANT_CLINICAL_FOCUS = {
+  Q1: [
+    'Adrenal overactivation / elevated cortisol pattern',
+    'Stress-induced energy crashes and wired-but-tired state',
+    'Sympathetic overdrive with compromised recovery',
+    'Priority: Drainage, calming, and foundational energy restoration',
+  ],
+  Q2: [
+    'High emotional stress load with maintained regulation',
+    'Inflammatory or oxidative mitochondrial stress pattern',
+    'Nervous system regulation preserved — load reduction needed',
+    'Priority: Reduce stress burden, protect energy reserves',
+  ],
+  Q3: [
+    'Low cardiac output and orthostatic symptom patterns',
+    'Mitochondrial insufficiency and fatigue dominance',
+    'Cognitive hypoperfusion — reduced cerebral oxygen delivery',
+    'Priority: Build resilience, energy reserves, and recovery capacity',
+  ],
+  Q4: [
+    'High Pulse Pressure and vascular stiffness pattern',
+    'Long-term endothelial injury and microcirculatory dysfunction',
+    'Chronic degenerative / autonomic-stress pattern',
+    'Priority: Vascular support, NO signaling, cardiac workload reduction',
+  ],
+};
+
+// ── CV Protocol Objectives by CRI Category ───────────────────────────────────
+const CV_PROTOCOL_OBJECTIVES = {
+  'Low Vascular Load':              ['Maintain endothelial function', 'Support nitric oxide production', 'Continue cardiovascular wellness routine'],
+  'Mild Strain':                    ['Reduce arterial stiffness progression', 'Improve baroreflex sensitivity', 'Lifestyle modifications + periodic monitoring'],
+  'High Cardiovascular Stress':     ['Reduce Pulse Pressure', 'Support endothelial NO signaling', 'Lower cardiac workload', 'Close monitoring recommended'],
+  'High Cardiovascular Stress Pattern': ['Reduce Pulse Pressure', 'Support endothelial NO signaling', 'Lower cardiac workload', 'Close monitoring recommended'],
+  'Critical Cardiovascular Risk':   ['Urgent cardiovascular evaluation', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair', 'Referral to cardiologist'],
+};
+
+// ── Therapeutic Category Rationale ───────────────────────────────────────────
+const CATEGORY_RATIONALE = {
+  drainage:              'Always foundational — lymphatic, liver & kidney clearance before any other protocol',
+  cellMembraneSupport:   'Indicated: phospholipid integrity, receptor sensitivity, RJL Phase Angle <5°',
+  mitochondrialSupport:  'Indicated: low Total Power, fatigue pattern, neuro-metabolic load',
+  neurocognitiveSupport: 'Indicated: Brain Gauge deficits, brain fog, cognitive hypoperfusion',
+  oxidativeStressSupport:'Indicated: elevated free radical activity, antioxidant depletion',
+  cardiovascularSupport: 'Indicated: CRI ≥3, elevated Pulse Pressure, CV Quadrant Q2/Q4',
+};
+
+// ── HRV Pattern Definitions (from HQP Patient-Friendly HRV Handout) ──────────
+const HRV_PATTERNS = [
+  {
+    id: 'heavy-stress',
+    name: 'Heavy Stress / Low Reserves',
+    color: '#c0392b',
+    bg: '#fdecea',
+    icon: '⚡',
+    description: 'Nervous system is overworked and under-recovered. Classic exhausted-but-wired pattern.',
+    symptoms: ['Anxious fatigue — wired but exhausted', 'Poor sleep and poor recovery', 'Hormone and digestive disruption', 'Brain fog with exertion'],
+    test: (markers) => {
+      const lf  = markers.find(m => /LF%/i.test(m.name));
+      const vlf = markers.find(m => /VLF%/i.test(m.name));
+      const hf  = markers.find(m => /HF%/i.test(m.name));
+      const tp  = markers.find(m => /Total Power/i.test(m.name));
+      return (lf?.status === 'high' || vlf?.status === 'high') &&
+             hf?.status === 'low' &&
+             tp?.status === 'low';
+    },
+  },
+  {
+    id: 'constant-stress',
+    name: 'Constant Stress / Weak Calming',
+    color: '#b45309',
+    bg: '#fef3e2',
+    icon: '🔶',
+    description: 'Stress drive dominating, recovery not keeping up. Autonomic balance tilted toward sympathetic.',
+    symptoms: ['Anxiety, tension, and insomnia', 'Blood pressure dysregulation', 'Muscle tightness and jaw clenching', 'Adrenaline-dominant pattern'],
+    test: (markers) => {
+      const lf = markers.find(m => /LF%/i.test(m.name));
+      const hf = markers.find(m => /HF%/i.test(m.name));
+      const si = markers.find(m => /Stress Index/i.test(m.name));
+      return lf?.status === 'high' && hf?.status === 'low' && si?.status === 'high';
+    },
+  },
+  {
+    id: 'depleted',
+    name: 'Depleted Energy Reserves',
+    color: '#7b6d00',
+    bg: '#fffde6',
+    icon: '🔋',
+    description: 'Fuel tank running low. Low stress drive but insufficient recovery power to rebuild.',
+    symptoms: ['Persistent fatigue without obvious cause', 'Slow recovery from illness or stress', 'Brain fog and reduced cognitive output', 'Low stamina and motivation'],
+    test: (markers) => {
+      const tp  = markers.find(m => /Total Power/i.test(m.name));
+      const si  = markers.find(m => /Stress Index/i.test(m.name));
+      const sdnn = markers.find(m => /SDNN/i.test(m.name));
+      return tp?.status === 'low' && sdnn?.status === 'low' && si?.status !== 'high';
+    },
+  },
+];
+
 export default function PatientReport({ patient, report, saveError, onBack, doctorName }) {
   const [reportTab, setReportTab] = useState('clinician');
   if (!report) return null;
@@ -124,12 +223,28 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       <div className="report-header" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a3a5c 60%, #7a5209 100%)', borderRadius: '12px', padding: '28px 32px', marginBottom: '16px', color: '#fff', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '24px', boxShadow: '0 4px 20px rgba(10,22,40,.35)' }}>
         <div style={{ flex: 1 }}>
           {/* Brand line */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
             <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#7a5209', border: '2px solid #f5c842', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>❤</div>
             <div>
               <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.14em', color: '#f5c842', lineHeight: 1 }}>CRIS GOLD™</div>
-              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.55)', marginTop: '2px' }}>by MedAnalytica · Clinical Report Intelligence System</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.55)', marginTop: '2px' }}>by MedAnalytica · Clinical Report Intelligence System · v1.0</div>
             </div>
+            {doctorName && (
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,.65)', background: 'rgba(255,255,255,.1)', borderRadius: '20px', padding: '3px 10px', marginLeft: 'auto' }}>
+                Attending: {doctorName}
+              </span>
+            )}
+            {r.extractionConfidence && (
+              <span style={{
+                fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.06em',
+                borderRadius: '20px', padding: '3px 10px',
+                background: r.extractionConfidence === 'high' ? 'rgba(14,122,85,.35)' : r.extractionConfidence === 'medium' ? 'rgba(180,83,9,.35)' : 'rgba(192,57,43,.35)',
+                color: r.extractionConfidence === 'high' ? '#6ee7b7' : r.extractionConfidence === 'medium' ? '#fbbf24' : '#f87171',
+                border: `1px solid ${r.extractionConfidence === 'high' ? '#6ee7b760' : r.extractionConfidence === 'medium' ? '#fbbf2460' : '#f8717160'}`,
+              }}>
+                {r.extractionConfidence === 'high' ? '🟢' : r.extractionConfidence === 'medium' ? '🟡' : '🔴'} {r.extractionConfidence} confidence
+              </span>
+            )}
           </div>
           {/* Patient name + status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px', flexWrap: 'wrap' }}>
@@ -280,13 +395,30 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
 
       {/* ── §1 AI Clinical Summary ── */}
       <SectionLabel number={1} title="AI Clinical Summary" />
-      <div className="sum">
-        <div className="sum-lbl">🤖 AI Clinical Summary</div>
-        <div className="sum-txt">{r.aiSummary}</div>
+      <div className="cc" style={{ marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--navy)' }}>🤖 AI Clinical Summary</div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {cgQ && <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: cgQ.bg, color: cgQ.color, border: `1px solid ${cgQ.color}40` }}>{r.crisgoldQuadrant}: {cgQ.sub || cgQ.label}</span>}
+            {cri.label !== 'N/A' && <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: cri.bg, color: cri.color, border: `1px solid ${cri.color}40` }}>CRI {r.criScore} — {cri.label}</span>}
+            <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: overallStatus === 'critical' ? '#fdecea' : overallStatus === 'warning' ? '#fef3e2' : '#e6f5ef', color: overallStatus === 'critical' ? '#c0392b' : overallStatus === 'warning' ? '#b45309' : '#0e7a55', border: '1px solid currentColor' }}>
+              {overallStatus === 'critical' ? '⚠ Critical' : overallStatus === 'warning' ? '⚠ Review' : '✓ Normal'}
+            </span>
+            {r.extractionConfidence && <span style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '20px', background: 'var(--bg3)', color: 'var(--text3)' }}>
+              {r.extractionConfidence === 'high' ? '🟢' : r.extractionConfidence === 'medium' ? '🟡' : '🔴'} {r.extractionConfidence} confidence
+            </span>}
+          </div>
+        </div>
+        <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.85', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>{r.aiSummary}</div>
+        <div style={{ marginTop: '10px', fontSize: '11px', color: 'var(--text3)', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <span>📅 Generated: {generatedDate}</span>
+          {doctorName && <span>👨‍⚕️ {doctorName}</span>}
+          <span style={{ marginLeft: 'auto', fontFamily: 'monospace' }}>ID: {reportId}</span>
+        </div>
       </div>
 
       {/* ── §2 CRI Score ── */}
-      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Risk Index (CRI)" /><CRICard cri={cri} score={r.criScore} category={r.criCategory} /></>}
+      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Risk Index (CRI)" /><CRICard cri={cri} score={r.criScore} category={r.criCategory} /><CVPatternPanel report={r} markers={markers} criLabel={cri.label} /></>}
 
       {/* ── §3 CRIS GOLD™ Quadrant + CV Quadrant ── */}
       {(cgQ || cvQ) && <SectionLabel number={3} title="Quadrant Placement" />}
@@ -343,13 +475,18 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
               {markers.map((m, i) => {
                 const pct = Math.min(Math.max(((m.value - m.low) / ((m.high - m.low) || 1)) * 100, 0), 100);
                 return (
-                  <div key={i} className="mr">
-                    <div className="mn">{m.name}</div>
-                    <div>
-                      <div className="mb"><div className="mbi" style={{ width: `${pct}%`, background: STATUS_COLOR[m.status], opacity: .7 }} /></div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text3)', marginTop: '2px' }}>{m.low}–{m.high} {m.unit}</div>
+                  <div key={i} className="mr" style={{ display: 'block', padding: '8px 0', borderBottom: i < markers.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <div className="mn" style={{ flex: 1 }}>{m.name}</div>
+                      <div className="mv" style={{ color: STATUS_COLOR[m.status], flexShrink: 0 }}>{m.value} <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{m.unit}</span></div>
                     </div>
-                    <div className="mv" style={{ color: STATUS_COLOR[m.status] }}>{m.value}</div>
+                    <div className="mb" style={{ marginBottom: '3px' }}><div className="mbi" style={{ width: `${pct}%`, background: STATUS_COLOR[m.status], opacity: .7 }} /></div>
+                    <div style={{ fontSize: '10.5px', color: 'var(--text3)' }}>Ref: {m.low}–{m.high} {m.unit}</div>
+                    {m.clinicalNote && (
+                      <div style={{ fontSize: '11.5px', color: 'var(--text2)', marginTop: '4px', lineHeight: '1.55', fontStyle: 'italic', paddingLeft: '2px', borderLeft: `2px solid ${STATUS_COLOR[m.status]}40` }}>
+                        {m.clinicalNote}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -357,6 +494,12 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
           </div>
         </div>
       )}
+
+      {/* ── HRV Clinical Table ── */}
+      {markers.length > 0 && <HRVTable markers={markers} />}
+
+      {/* ── HRV Pattern Recognition ── */}
+      {markers.length > 0 && <HRVPatternCard markers={markers} />}
 
       {/* ── §5 HRV Summary ── */}
       {r.hrvSummary && <SectionLabel number={5} title="Autonomic Nervous System Interpretation" />}
@@ -604,11 +747,24 @@ function QuadrantCard({ title, subtitle, quadrant, meta, qDefs, ari, eli, qScore
         </div>
       )}
       {meta && (
-        <div style={{ background: meta.bg, border: `1px solid ${meta.color}30`, borderLeft: `4px solid ${meta.color}`, borderRadius: '8px', padding: '12px 16px' }}>
+        <div style={{ background: meta.bg, border: `1px solid ${meta.color}30`, borderLeft: `4px solid ${meta.color}`, borderRadius: '8px', padding: '12px 16px', marginBottom: '10px' }}>
           <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: meta.color, marginBottom: '5px' }}>
             {quadrant}: {meta.label}
           </div>
           <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.7' }}>{meta.description}</div>
+        </div>
+      )}
+      {QUADRANT_CLINICAL_FOCUS[quadrant] && (
+        <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px' }}>
+          <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text3)', marginBottom: '7px' }}>Clinical Focus</div>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {QUADRANT_CLINICAL_FOCUS[quadrant].map((point, i) => (
+              <li key={i} style={{ fontSize: '12px', color: 'var(--navy2)', padding: '3px 0', display: 'flex', gap: '6px', borderBottom: i < QUADRANT_CLINICAL_FOCUS[quadrant].length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <span style={{ color: meta?.color || 'var(--teal)', flexShrink: 0 }}>▸</span>
+                {point}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
@@ -669,6 +825,58 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
       {/* PSE Intro */}
       <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75' }}>
         <strong>What is Psychosomatic Energetics (PSE)?</strong> PSE is a method that addresses repressed emotional traumas — called <em>conflicts</em> — that store life energy and block its normal flow. Using the RebaPad Test Device, four energy levels are tested: <strong>Vital</strong> (physical &amp; regenerative powers), <strong>Emotional</strong> (mood, resilience), <strong>Mental</strong> (concentration, focus), and <strong>Causal</strong> (intuition, inner sensitivity). Conflicts are treated with homeopathic compound remedies (Emvita 1–28), always paired with the corresponding Chakra remedy (Chavita 1–7).
+      </div>
+
+      {/* Structured Clinical Table */}
+      {(chavita || emvita || (acuteRemedies?.length > 0)) && (
+        <div style={{ marginBottom: '16px', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+            <thead>
+              <tr style={{ background: 'var(--navy)', color: '#fff' }}>
+                <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.07em', width: '18%' }}>Component</th>
+                <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.07em', width: '28%' }}>Selection</th>
+                <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.07em' }}>Clinical Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+              {chavita && CHAVITA_CHAKRAS[chavita] && (
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '10px 12px', fontWeight: '700', color: CHAVITA_CHAKRAS[chavita].color, verticalAlign: 'top' }}>Chavita {chavita}</td>
+                  <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
+                    <div style={{ fontWeight: '600', color: 'var(--navy)' }}>Chakra {chavita}: {CHAVITA_CHAKRAS[chavita].name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Chakra Remedy · {method || 'Questionnaire'}</div>
+                  </td>
+                  <td style={{ padding: '10px 12px', color: 'var(--text2)', lineHeight: '1.6', verticalAlign: 'top', fontSize: '12px' }}>{CHAVITA_CHAKRAS[chavita].description}</td>
+                </tr>
+              )}
+              {emvita && EMVITA_CONFLICTS[emvita] && (
+                <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg3)' }}>
+                  <td style={{ padding: '10px 12px', fontWeight: '700', color: CHAVITA_CHAKRAS[chavita]?.color || 'var(--teal)', verticalAlign: 'top' }}>Emvita {emvita}</td>
+                  <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
+                    <div style={{ fontWeight: '600', color: 'var(--navy)' }}>Conflict: {EMVITA_CONFLICTS[emvita].name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Chakra {EMVITA_CONFLICTS[emvita].chakra} pattern · Emotional Conflict</div>
+                  </td>
+                  <td style={{ padding: '10px 12px', color: 'var(--text2)', lineHeight: '1.6', verticalAlign: 'top', fontSize: '12px' }}>{EMVITA_CONFLICTS[emvita].description}</td>
+                </tr>
+              )}
+              {acuteRemedies?.map((remedy, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '10px 12px', fontWeight: '700', color: '#c0392b', verticalAlign: 'top' }}>Acute {i + 1}</td>
+                  <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
+                    <div style={{ fontWeight: '600', color: 'var(--navy)' }}>{remedy}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Acute Stabilization Remedy</div>
+                  </td>
+                  <td style={{ padding: '10px 12px', color: 'var(--text2)', lineHeight: '1.6', verticalAlign: 'top', fontSize: '12px' }}>{ACUTE_REMEDY_INFO[remedy] || acuteRemedyTexts?.[i] || remedy}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Clinical Integration Notes */}
+      <div style={{ background: 'var(--blue-lt)', border: '1px solid rgba(26,111,181,.2)', borderLeft: '4px solid var(--blue)', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.7' }}>
+        <strong>Clinical Integration Notes:</strong> Rubimed findings correlate with elevated Stress Index and reduced HRV coherence. Emotional conflict resolution is expected to progressively improve parasympathetic recovery capacity and enhance protocol response across Vascular, Mitochondrial, and Neurocognitive therapeutic categories. Monitor ELI reduction at follow-up.
       </div>
 
       {/* Chavita + Emvita Grid */}
@@ -849,8 +1057,19 @@ function TherapeuticCard({ selections, quadrant }) {
     <div className="card" style={{ marginBottom: '16px' }}>
       <div className="card-hdr">
         <span className="card-title">💊 Therapeutic Selections</span>
-        {quadrant && <span className="badge b-bl">{quadrant} Protocol</span>}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {quadrant && <span className="badge b-bl">{quadrant} Protocol</span>}
+          <span style={{ fontSize: '10px', fontWeight: '700', padding: '3px 8px', borderRadius: '4px', background: 'var(--bg3)', color: 'var(--text3)', border: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Protocol Library v1.0 LOCKED</span>
+        </div>
       </div>
+      {(quadrant === 'Q1' || quadrant === 'Q2') && (
+        <div style={{ margin: '0 0 0 0', padding: '10px 22px', background: '#fff8e1', borderBottom: '1px solid #f59e0b30', display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12.5px', color: '#92400e' }}>
+          <span style={{ fontSize: '16px', flexShrink: 0 }}>⚡</span>
+          <div>
+            <strong>Stress Buster Kit auto-indicated for {quadrant}</strong> — Psy-Stabil + Dalectro + Neu-Regen (Bioresource) should be included under Drainage. Primary nervous system calming protocol for high emotional load states.
+          </div>
+        </div>
+      )}
 
       <div style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
         {categories.map(({ key, icon, label }) => {
@@ -863,7 +1082,7 @@ function TherapeuticCard({ selections, quadrant }) {
           return (
             <div key={key}>
               {/* Category header with per-column edit button */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)' }}>
                   {icon} {label}
                 </div>
@@ -875,6 +1094,13 @@ function TherapeuticCard({ selections, quadrant }) {
                   {editing ? '✓ Done' : '✏️'}
                 </button>
               </div>
+
+              {/* Category rationale */}
+              {CATEGORY_RATIONALE[key] && !editing && (
+                <div style={{ fontSize: '10.5px', color: 'var(--text3)', fontStyle: 'italic', marginBottom: '8px', lineHeight: '1.4' }}>
+                  {CATEGORY_RATIONALE[key]}
+                </div>
+              )}
 
               {/* Current items */}
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
@@ -1111,6 +1337,128 @@ function InfoCard({ icon, title, color, bg, children }) {
         {icon} {title}
       </div>
       <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{children}</div>
+    </div>
+  );
+}
+
+/* ── HRV Clinical Table ─────────────────────────────────── */
+function HRVTable({ markers }) {
+  const [open, setOpen] = useState(false);
+  if (!markers?.length) return null;
+  return (
+    <div className="card" style={{ marginBottom: '16px' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+      >
+        <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--navy)' }}>
+          📋 Complete HRV Clinical Reference Table
+        </span>
+        <span style={{ fontSize: '13px', color: 'var(--text3)', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s' }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12.5px' }}>
+            <thead>
+              <tr style={{ background: 'var(--bg3)' }}>
+                <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>Marker</th>
+                <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>Value</th>
+                <th style={{ padding: '8px 14px', textAlign: 'right', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>Units</th>
+                <th style={{ padding: '8px 14px', textAlign: 'center', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>Reference</th>
+                <th style={{ padding: '8px 14px', textAlign: 'center', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>Status</th>
+                <th style={{ padding: '8px 14px', textAlign: 'left', fontWeight: '700', fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--text3)', borderBottom: '1px solid var(--border)' }}>Clinical Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {markers.map((m, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : 'var(--bg3)' }}>
+                  <td style={{ padding: '9px 14px', fontWeight: '600', color: 'var(--navy)' }}>{m.name}</td>
+                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: '700', color: STATUS_COLOR[m.status], fontFamily: 'monospace', fontSize: '13px' }}>{m.value}</td>
+                  <td style={{ padding: '9px 14px', textAlign: 'right', color: 'var(--text3)', fontSize: '11px' }}>{m.unit}</td>
+                  <td style={{ padding: '9px 14px', textAlign: 'center', color: 'var(--text3)', fontFamily: 'monospace', fontSize: '11.5px' }}>{m.low}–{m.high}</td>
+                  <td style={{ padding: '9px 14px', textAlign: 'center' }}>
+                    <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '12px', fontSize: '10.5px', fontWeight: '700', background: `${STATUS_COLOR[m.status]}22`, color: STATUS_COLOR[m.status] }}>
+                      {m.status === 'high' ? '↑ High' : m.status === 'low' ? '↓ Low' : '✓ Normal'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '9px 14px', color: 'var(--text2)', fontSize: '11.5px', lineHeight: '1.5', fontStyle: 'italic' }}>{m.clinicalNote || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── HRV Pattern Recognition ────────────────────────────── */
+function HRVPatternCard({ markers }) {
+  const detected = HRV_PATTERNS.find(p => p.test(markers));
+  if (!detected) return null;
+  return (
+    <div style={{ background: detected.bg, border: `1px solid ${detected.color}30`, borderLeft: `4px solid ${detected.color}`, borderRadius: '8px', padding: '14px 18px', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+        <span style={{ fontSize: '18px' }}>{detected.icon}</span>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: detected.color }}>HRV Pattern Detected</div>
+          <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--navy)' }}>{detected.name}</div>
+        </div>
+      </div>
+      <div style={{ fontSize: '13px', color: 'var(--navy2)', lineHeight: '1.7', marginBottom: '10px' }}>{detected.description}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        {detected.symptoms.map((s, i) => (
+          <span key={i} style={{ fontSize: '11.5px', padding: '3px 10px', background: `${detected.color}18`, border: `1px solid ${detected.color}30`, borderRadius: '20px', color: detected.color }}>
+            {s}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── CV Pattern Flags Panel ─────────────────────────────── */
+function CVPatternPanel({ report: r, markers, criLabel }) {
+  const stressMarker = markers.find(m => /Stress Index/i.test(m.name));
+  const lfMarker     = markers.find(m => /LF%/i.test(m.name));
+
+  const flags = [
+    { key: 'highPP',  label: 'High Pulse Pressure',    color: '#c0392b', active: r?.pulsePressure >= 60 },
+    { key: 'stiff',   label: 'Arterial Stiffness',      color: '#7b1111', active: r?.pulsePressure >= 70 },
+    { key: 'autoLoad',label: 'Elevated Autonomic Load', color: '#b45309', active: stressMarker?.status === 'high' },
+    { key: 'baro',    label: 'Baroreflex Dysfunction',  color: '#b45309', active: lfMarker?.status === 'high' },
+    { key: 'endo',    label: 'Endothelial Concern',     color: '#c0392b', active: r?.criScore >= 6 },
+  ].filter(f => f.active);
+
+  const objectives = CV_PROTOCOL_OBJECTIVES[criLabel] || CV_PROTOCOL_OBJECTIVES['Mild Strain'];
+
+  if (!flags.length && !objectives) return null;
+
+  return (
+    <div className="cc" style={{ marginBottom: '16px' }}>
+      <div className="ct">💓 Cardiovascular Clinical Pattern</div>
+      <div className="cs">Active flags based on HRV and blood pressure data</div>
+      {flags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+          {flags.map(f => (
+            <span key={f.key} style={{ fontSize: '11.5px', fontWeight: '700', padding: '4px 12px', borderRadius: '20px', background: `${f.color}18`, color: f.color, border: `1px solid ${f.color}40` }}>
+              ⚠ {f.label}
+            </span>
+          ))}
+        </div>
+      )}
+      {objectives && (
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text3)', marginBottom: '8px' }}>Protocol Objectives</div>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {objectives.map((obj, i) => (
+              <li key={i} style={{ fontSize: '12.5px', color: 'var(--navy2)', padding: '4px 0', display: 'flex', gap: '8px', borderBottom: i < objectives.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <span style={{ color: 'var(--teal)', flexShrink: 0 }}>→</span> {obj}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
