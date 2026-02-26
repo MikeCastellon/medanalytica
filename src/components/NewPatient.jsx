@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { computeELI, computeQuadrant, CRISGOLD_QUADRANTS } from '../lib/utils';
 import { ELI_QUESTIONS, ELI_SCALE } from '../lib/protocols';
 
@@ -26,14 +26,41 @@ export default function NewPatient({ onBack, onSubmit }) {
   const [eliAnswers, setEliAnswers] = useState(Array(10).fill(null));
   const [showEli, setShowEli] = useState(false);
 
+  const [pasteFlash, setPasteFlash] = useState(false);
+
   const addFiles = (incoming) => {
-    const arr = Array.from(incoming).filter(f => f.type.startsWith('image/') || f.name.match(/\.(png|jpg|jpeg|tiff|webp|heic)$/i));
+    const arr = Array.from(incoming).filter(f =>
+      f.type.startsWith('image/') || f.name?.match(/\.(png|jpg|jpeg|tiff|webp|heic)$/i)
+    );
     setFiles(prev => {
       const names = new Set(prev.map(f => f.name));
       return [...prev, ...arr.filter(f => !names.has(f.name))];
     });
   };
   const removeFile = (idx) => setFiles(prev => prev.filter((_, i) => i !== idx));
+
+  // Clipboard paste — capture images pasted anywhere on the page
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = Array.from(e.clipboardData?.items || []);
+      const imageFiles = items
+        .filter(item => item.type.startsWith('image/'))
+        .map((item, idx) => {
+          const file = item.getAsFile();
+          if (!file) return null;
+          // Give pasted files a meaningful name with timestamp
+          return new File([file], `paste-${Date.now()}-${idx + 1}.png`, { type: file.type });
+        })
+        .filter(Boolean);
+      if (imageFiles.length > 0) {
+        addFiles(imageFiles);
+        setPasteFlash(true);
+        setTimeout(() => setPasteFlash(false), 2000);
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, []);
   const [showOptional, setShowOptional] = useState(false);
 
   const s = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -388,18 +415,28 @@ export default function NewPatient({ onBack, onSubmit }) {
 
         {/* Drop zone */}
         <div
-          className={`uz${drag ? ' drag' : ''}`}
+          className={`uz${drag ? ' drag' : ''}${pasteFlash ? ' drag' : ''}`}
           onDragOver={e => { e.preventDefault(); setDrag(true); }}
           onDragLeave={() => setDrag(false)}
           onDrop={e => { e.preventDefault(); setDrag(false); addFiles(e.dataTransfer.files); }}
           onClick={() => document.getElementById('fup').click()}
+          style={pasteFlash ? { borderColor: 'var(--green)', background: 'var(--bg3)' } : {}}
         >
           <input id="fup" type="file" accept="image/*,.png,.jpg,.jpeg,.tiff,.webp,.heic"
             multiple style={{ display: 'none' }}
             onChange={e => addFiles(e.target.files)} />
-          <div className="uz-ico">📸</div>
-          <div className="uz-title">Drop screenshots here or click to browse</div>
-          <div className="uz-sub">Upload multiple HQP screen captures — PNG, JPG, TIFF, WEBP accepted. GPT-4o reads all screens and extracts every marker.</div>
+          {pasteFlash ? (
+            <>
+              <div className="uz-ico">✅</div>
+              <div className="uz-title" style={{ color: 'var(--green)' }}>Screenshot pasted!</div>
+            </>
+          ) : (
+            <>
+              <div className="uz-ico">📸</div>
+              <div className="uz-title">Drop, click to browse, or <kbd style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '4px', padding: '1px 5px', fontSize: '11px', fontFamily: 'monospace' }}>Ctrl+V</kbd> to paste</div>
+              <div className="uz-sub">Upload multiple HQP screen captures — PNG, JPG, TIFF, WEBP accepted. GPT-4o reads all screens and extracts every marker.</div>
+            </>
+          )}
         </div>
 
         {/* File list */}

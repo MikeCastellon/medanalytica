@@ -67,7 +67,7 @@ const ACUTE_REMEDY_INFO = {
 // ── PSE: Standard Dosage (verbatim from Rubimed Practitioner Guide) ─────────
 const PSE_DOSAGE = '2× daily — 12 drops directly on tongue (adults). Children: 2× daily — 6 drops. Small children: 1 drop per year of age. Acute remedies / Geovita: 2× 12 drops, or 5 drops several times per day for acute symptoms. No known side effects. Does not replace medical or psychotherapeutic care.';
 
-export default function PatientReport({ patient, report, saveError, onBack }) {
+export default function PatientReport({ patient, report, saveError, onBack, doctorName }) {
   const [reportTab, setReportTab] = useState('clinician');
   if (!report) return null;
   const r = report;
@@ -103,72 +103,101 @@ export default function PatientReport({ patient, report, saveError, onBack }) {
     );
   };
 
+  const generatedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const reportId = `CG-${Date.now().toString(36).toUpperCase().slice(-8)}`;
+
   return (
     <div className="fade-in">
-      <button className="back-btn" onClick={onBack}>← Back to Dashboard</button>
+      <div className="report-toolbar no-print">
+        <button className="back-btn" onClick={onBack} style={{ margin: 0 }}>← Back to Dashboard</button>
+        <div style={{ display: 'flex', gap: '4px', background: 'var(--bg3)', borderRadius: '8px', padding: '4px', border: '1px solid var(--border)' }}>
+          {[{ id: 'clinician', label: '🩺 Clinician View' }, { id: 'patient', label: '👤 Patient Summary' }].map(({ id, label }) => (
+            <button key={id} onClick={() => setReportTab(id)} style={{ padding: '7px 16px', fontSize: '12.5px', fontWeight: '600', borderRadius: '6px', border: 'none', cursor: 'pointer', background: reportTab === id ? 'var(--navy)' : 'transparent', color: reportTab === id ? '#fff' : 'var(--text2)', transition: 'all .15s' }}>{label}</button>
+          ))}
+        </div>
+        <button className="btn btn-nv" style={{ fontSize: '12.5px', padding: '8px 18px' }} onClick={() => window.print()}>
+          ⬇ Export PDF
+        </button>
+      </div>
+
+      {/* ── CRIS GOLD™ Branded Report Header ── */}
+      <div className="report-header" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a3a5c 60%, #7a5209 100%)', borderRadius: '12px', padding: '28px 32px', marginBottom: '16px', color: '#fff', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '24px', boxShadow: '0 4px 20px rgba(10,22,40,.35)' }}>
+        <div style={{ flex: 1 }}>
+          {/* Brand line */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#7a5209', border: '2px solid #f5c842', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>❤</div>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.14em', color: '#f5c842', lineHeight: 1 }}>CRIS GOLD™</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.55)', marginTop: '2px' }}>by MedAnalytica · Clinical Report Intelligence System</div>
+            </div>
+          </div>
+          {/* Patient name + status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px', flexWrap: 'wrap' }}>
+            <div style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '26px', fontWeight: '700', color: '#fff', lineHeight: 1 }}>{patName}</div>
+            <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', background: overallStatus === 'critical' ? 'rgba(192,57,43,.35)' : overallStatus === 'warning' ? 'rgba(180,83,9,.35)' : 'rgba(14,122,85,.35)', color: overallStatus === 'critical' ? '#f87171' : overallStatus === 'warning' ? '#fbbf24' : '#6ee7b7', border: `1px solid ${overallStatus === 'critical' ? '#f8717160' : overallStatus === 'warning' ? '#fbbf2460' : '#6ee7b760'}` }}>
+              {overallStatus === 'critical' ? '⚠ Critical' : overallStatus === 'warning' ? '⚠ Review' : '✓ Normal'}
+            </span>
+          </div>
+          {/* Meta row */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: 'rgba(255,255,255,.7)' }}>
+            {patient.mrn       && <span>📋 {patient.mrn}</span>}
+            {patient.dob       && <span>Age {age(patient.dob)}</span>}
+            {patient.gender    && <span>{patient.gender}</span>}
+            {r.collection_date && <span>📅 {fmtDate(r.collection_date)}</span>}
+            {r.report_type     && <span>🧬 {r.report_type}</span>}
+            {r.bloodPressure   && <span>💓 BP {r.bloodPressure}</span>}
+            {r.pulsePressure   && <span>PP {r.pulsePressure} mmHg</span>}
+          </div>
+          {r.chiefComplaints && (
+            <div style={{ marginTop: '10px', fontSize: '12.5px', color: 'rgba(255,255,255,.8)', fontStyle: 'italic' }}>
+              "{r.chiefComplaints}"
+            </div>
+          )}
+        </div>
+        {/* Right side: key scores */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end', flexShrink: 0 }}>
+          {r.criScore != null && (
+            <div style={{ textAlign: 'center', background: 'rgba(255,255,255,.1)', borderRadius: '10px', padding: '10px 16px', minWidth: '80px' }}>
+              <div style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(255,255,255,.55)', marginBottom: '2px' }}>CRI</div>
+              <div style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '32px', fontWeight: '700', color: cri.color, lineHeight: 1 }}>{r.criScore}</div>
+              <div style={{ fontSize: '9px', color: 'rgba(255,255,255,.45)' }}>/ 12</div>
+            </div>
+          )}
+          {cgQ && (
+            <div style={{ textAlign: 'center', background: 'rgba(255,255,255,.1)', borderRadius: '10px', padding: '8px 16px', minWidth: '80px' }}>
+              <div style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(255,255,255,.55)', marginBottom: '2px' }}>Quadrant</div>
+              <div style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '26px', fontWeight: '700', color: cgQ.color, lineHeight: 1 }}>{r.crisgoldQuadrant}</div>
+              <div style={{ fontSize: '9px', color: cgQ.color, fontWeight: '600' }}>{cgQ.sub || cgQ.label}</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Quick Score Bar ── */}
+      {(eli != null || ari != null || r.criScore != null || cgQ) && (
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
+          {r.criScore != null && <ScorePill label="CRI Score" value={`${r.criScore}/12`} sub={cri.label} color={cri.color} />}
+          {eli != null && <ScorePill label="ELI" value={eli} sub={eli >= 50 ? 'High Emotional Load' : 'Low Emotional Load'} color={eli >= 50 ? '#c0392b' : '#0e7a55'} />}
+          {ari != null && <ScorePill label="ARI" value={ari} sub={ari >= 60 ? 'High Regulation' : 'Low Regulation'} color={ari >= 60 ? '#0e7a55' : '#c0392b'} />}
+          {cgQ && <ScorePill label="CRIS GOLD™ Quadrant" value={r.crisgoldQuadrant} sub={cgQ.label} color={cgQ.color} />}
+          {cvQ && <ScorePill label="CV Quadrant" value={r.cvQuadrant} sub={cvQ.label} color={cvQ.color} />}
+          {r.adrenalUrineDrops != null && <ScorePill label="Adrenal (Urine)" value={`${r.adrenalUrineDrops} drops`} sub={r.adrenalInterpretation} color="var(--amber)" />}
+        </div>
+      )}
 
       {/* ── Save Error Banner ── */}
       {saveError && (
         <div style={{ background: '#fffbeb', border: '1px solid #f59e0b', borderLeft: '4px solid #f59e0b', borderRadius: '8px', padding: '8px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: '#92400e' }}>
           <span style={{ fontSize: '14px' }}>⚠️</span>
-          <span><strong>Report generated but not saved to patient records.</strong> {saveError} — Please contact your administrator or try re-submitting.</span>
+          <span><strong>Report generated but not saved to patient records.</strong> {saveError}</span>
         </div>
       )}
 
-      {/* ── HIPAA Compliance Notice ── */}
-      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderLeft: '4px solid #3b82f6', borderRadius: '8px', padding: '8px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: '#1e40af' }}>
-        <span style={{ fontSize: '14px' }}>🔒</span>
-        <span><strong>HIPAA Protected Health Information.</strong> This report contains PHI and is intended solely for the authorized treating practitioner. Unauthorized access, disclosure, or transmission is prohibited under HIPAA (45 CFR §§ 164.502–164.514). Handle per your facility's PHI policies.</span>
-      </div>
-
-      {/* ── Report View Toggle ── */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '14px', background: 'var(--bg3)', borderRadius: '8px', padding: '4px', border: '1px solid var(--border)', width: 'fit-content' }}>
-        {[
-          { id: 'clinician', label: '🩺 Clinician View' },
-          { id: 'patient',   label: '👤 Patient Summary' },
-        ].map(({ id, label }) => (
-          <button
-            key={id}
-            onClick={() => setReportTab(id)}
-            style={{
-              padding: '7px 16px', fontSize: '12.5px', fontWeight: '600', borderRadius: '6px',
-              border: 'none', cursor: 'pointer',
-              background: reportTab === id ? 'var(--navy)' : 'transparent',
-              color: reportTab === id ? '#fff' : 'var(--text2)',
-              transition: 'all .15s',
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Patient Header ── */}
-      <div className="ph">
-        <div className="p-av">{ini(patName)}</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '2px' }}>
-            <div className="p-name">{patName}</div>
-            <Badge status={overallStatus} />
-          </div>
-          <div className="p-meta">
-            {patient.mrn       && <div className="p-mi">📋 {patient.mrn}</div>}
-            {patient.dob       && <div className="p-mi">🎂 Age {age(patient.dob)}</div>}
-            {patient.gender    && <div className="p-mi">⚧ {patient.gender}</div>}
-            {r.collection_date && <div className="p-mi">📅 {fmtDate(r.collection_date)}</div>}
-            {r.report_type     && <div className="p-mi">🧬 {r.report_type}</div>}
-            {r.bloodPressure   && <div className="p-mi">💓 BP: {r.bloodPressure}</div>}
-            {r.pulsePressure   && <div className="p-mi">〰️ PP: {r.pulsePressure}</div>}
-          </div>
-          {r.chiefComplaints && (
-            <div style={{ marginTop: '6px', fontSize: '12.5px', color: 'var(--text2)' }}>
-              <strong>Chief Complaints:</strong> {r.chiefComplaints}
-            </div>
-          )}
-        </div>
-        <button className="btn btn-ot" style={{ fontSize: '12.5px' }} onClick={() => window.print()}>
-          ⬇ Export PDF
-        </button>
+      {/* ── HIPAA Notice ── */}
+      <div className="no-print" style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderLeft: '4px solid #3b82f6', borderRadius: '8px', padding: '8px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11.5px', color: '#1e40af' }}>
+        <span>🔒</span>
+        <span><strong>HIPAA PHI.</strong> Intended solely for the authorized treating practitioner. Handle per your facility's PHI policies (45 CFR §§ 164.502–164.514).</span>
+        <span style={{ marginLeft: 'auto', fontFamily: 'monospace', fontSize: '10.5px', color: '#93c5fd', flexShrink: 0 }}>Report ID: {reportId}</span>
       </div>
 
       {/* ── PATIENT SUMMARY TAB ── */}
@@ -236,6 +265,7 @@ export default function PatientReport({ patient, report, saveError, onBack }) {
       {reportTab === 'clinician' && <div>
 
       {/* ── Filtration Warning ── */}
+
       {r.filtrationWarning && (
         <div style={{ background: '#fff8e1', border: '1px solid #f59e0b', borderLeft: '4px solid #f59e0b', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px' }}>
           <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: '#b45309', marginBottom: '4px' }}>
@@ -248,16 +278,18 @@ export default function PatientReport({ patient, report, saveError, onBack }) {
         </div>
       )}
 
-      {/* ── AI Clinical Summary ── */}
+      {/* ── §1 AI Clinical Summary ── */}
+      <SectionLabel number={1} title="AI Clinical Summary" />
       <div className="sum">
         <div className="sum-lbl">🤖 AI Clinical Summary</div>
         <div className="sum-txt">{r.aiSummary}</div>
       </div>
 
-      {/* ── CRI Score ── */}
-      {r.criScore != null && <CRICard cri={cri} score={r.criScore} category={r.criCategory} />}
+      {/* ── §2 CRI Score ── */}
+      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Risk Index (CRI)" /><CRICard cri={cri} score={r.criScore} category={r.criCategory} /></>}
 
-      {/* ── CRIS GOLD™ Quadrant + CV Quadrant ── */}
+      {/* ── §3 CRIS GOLD™ Quadrant + CV Quadrant ── */}
+      {(cgQ || cvQ) && <SectionLabel number={3} title="Quadrant Placement" />}
       {(cgQ || cvQ) && (
         <div className="rg" style={{ gridTemplateColumns: cgQ && cvQ ? '1fr 1fr' : '1fr' }}>
           {cgQ && (
@@ -284,7 +316,8 @@ export default function PatientReport({ patient, report, saveError, onBack }) {
         </div>
       )}
 
-      {/* ── HRV Markers Chart ── */}
+      {/* ── §4 HRV Markers Chart ── */}
+      {chartData.length > 0 && <SectionLabel number={4} title="HRV Markers & Reference Ranges" />}
       {chartData.length > 0 && (
         <div className="rg">
           <div className="cc">
@@ -325,14 +358,16 @@ export default function PatientReport({ patient, report, saveError, onBack }) {
         </div>
       )}
 
-      {/* ── HRV Summary ── */}
+      {/* ── §5 HRV Summary ── */}
+      {r.hrvSummary && <SectionLabel number={5} title="Autonomic Nervous System Interpretation" />}
       {r.hrvSummary && (
         <InfoCard icon="🫀" title="Autonomic Nervous System Summary" color="var(--blue)" bg="var(--blue-lt)">
           {r.hrvSummary}
         </InfoCard>
       )}
 
-      {/* ── Polyvagal + Adrenal ── */}
+      {/* ── §6 Polyvagal + Adrenal ── */}
+      {(r.polyvagalInterpretation || r.adrenalSummary) && <SectionLabel number={6} title="Polyvagal & Adrenal Assessment" />}
       {(r.polyvagalInterpretation || r.adrenalSummary) && (
         <div className="rg" style={{ gridTemplateColumns: r.polyvagalInterpretation && r.adrenalSummary ? '1fr 1fr' : '1fr' }}>
           {r.polyvagalInterpretation && (
@@ -372,7 +407,8 @@ export default function PatientReport({ patient, report, saveError, onBack }) {
         </div>
       )}
 
-      {/* ── Rubimed / Chavita + Emvita ── */}
+      {/* ── §7 Rubimed PSE ── */}
+      {(r.chavita || r.emvita) && <SectionLabel number={7} title="Psychosomatic Energetics — Rubimed" />}
       {(r.chavita || r.emvita) && (
         <RubimedCard chavita={r.chavita} emvita={r.emvita} method={r.ermMethod}
           chavitaText={r.chavitaText} emvitaText={r.emvitaText}
@@ -397,7 +433,8 @@ export default function PatientReport({ patient, report, saveError, onBack }) {
         </InfoCard>
       )}
 
-      {/* ── Brain Gauge ── */}
+      {/* ── §8 Brain Gauge ── */}
+      {r.brainGauge && Object.values(r.brainGauge).some(v => v != null) && <SectionLabel number={8} title="Brain Gauge — Cortical Performance" />}
       {r.brainGauge && Object.values(r.brainGauge).some(v => v != null) && (
         <BrainGaugeCard brainGauge={r.brainGauge} summary={r.brainGaugeSummary} />
       )}
@@ -429,7 +466,8 @@ export default function PatientReport({ patient, report, saveError, onBack }) {
         </div>
       )}
 
-      {/* ── Therapeutic Selections ── */}
+      {/* ── §9 Therapeutic Selections ── */}
+      {r.therapeuticSelections && <SectionLabel number={9} title="Therapeutic Selections" />}
       {r.therapeuticSelections && <TherapeuticCard selections={r.therapeuticSelections} quadrant={r.crisgoldQuadrant} />}
 
       {/* ── NeuroVIZR ── */}
@@ -1039,6 +1077,28 @@ function DisclaimerSection() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Section Label ──────────────────────────────────────── */
+function SectionLabel({ number, title }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '20px 0 10px', pageBreakBefore: 'auto' }}>
+      <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--navy)', color: '#fff', fontSize: '10px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{number}</div>
+      <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--navy)' }}>{title}</div>
+      <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+    </div>
+  );
+}
+
+/* ── Score Pill ─────────────────────────────────────────── */
+function ScorePill({ label, value, sub, color }) {
+  return (
+    <div style={{ background: 'var(--bg2)', border: `1.5px solid ${color}40`, borderTop: `3px solid ${color}`, borderRadius: '8px', padding: '8px 14px', minWidth: '90px', flex: '1 1 90px', maxWidth: '160px' }}>
+      <div style={{ fontSize: '9.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--text3)', marginBottom: '3px' }}>{label}</div>
+      <div style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '22px', fontWeight: '700', color, lineHeight: 1, marginBottom: '2px' }}>{value}</div>
+      {sub && <div style={{ fontSize: '10px', color: 'var(--text3)', lineHeight: 1.3 }}>{sub}</div>}
     </div>
   );
 }

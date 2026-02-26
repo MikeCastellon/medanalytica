@@ -174,11 +174,25 @@ textarea.fi { resize: vertical; min-height: 80px; }
 .av-sm { width: 32px; height: 32px; border-radius: 50%; background: var(--navy); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
 .tag-bl { display: inline-flex; align-items: center; padding: 3px 9px; background: var(--blue-lt); border: 1px solid rgba(26,111,181,.2); border-radius: 4px; font-size: 11px; font-weight: 700; color: var(--blue); letter-spacing: .05em; text-transform: uppercase; }
 
-/* ── Print ── */
+/* ── Report Toolbar (screen only) ── */
+.report-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+
+/* ── Print / Export PDF ── */
 @media print {
-  .sidebar, .topbar, .back-btn, .btn, .btn-ot { display: none !important; }
-  .app-layout { grid-template-columns: 1fr; }
-  .main-content { padding: 16px; }
+  .no-print, .sidebar, .topbar, .back-btn, .btn, .btn-ot, .btn-nv,
+  .report-toolbar { display: none !important; }
+
+  .app-layout { display: block !important; }
+  .main-content { padding: 0 !important; margin: 0 !important; }
+  .main-wrap { margin: 0 !important; }
+  body { background: #fff !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  .cc, .card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
+  .report-header { break-inside: avoid; }
+  .rg { grid-template-columns: 1fr 1fr; }
+
+  @page { margin: 16mm 14mm; size: A4; }
 }
 
 /* ── Responsive ── */
