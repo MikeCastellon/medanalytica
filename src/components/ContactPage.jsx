@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CrisLogo from './CrisLogo';
+import PublicNav from './PublicNav';
 
 const C = {
   navy:    '#0f2744',
@@ -110,30 +111,7 @@ export default function ContactPage() {
         }
       `}</style>
 
-      {/* ── NAV ── */}
-      <nav style={{
-        position: 'sticky', top: 0, zIndex: 100,
-        background: C.navy,
-        borderBottom: '1px solid rgba(255,255,255,.08)',
-        boxShadow: '0 2px 16px rgba(10,22,40,.25)',
-      }}>
-        <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', gap: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => nav('/')}>
-            <CrisLogo size={46} showSub={false} />
-          </div>
-          <div style={{ display: 'flex', gap: 28, flex: 1, justifyContent: 'center' }}>
-            {[['/#features', 'Features'], ['/#how-it-works', 'How It Works'], ['/#security', 'Security'], ['/#pricing', 'Pricing'], ['/contact', 'Contact']].map(([href, label]) => (
-              <a key={href} href={href} className="lp-nav-link">{label}</a>
-            ))}
-          </div>
-          <button
-            style={{ background: 'transparent', color: 'rgba(255,255,255,.85)', padding: '10px 20px', borderRadius: 7, fontSize: 14, fontWeight: 500, fontFamily: sans, border: '1.5px solid rgba(255,255,255,.25)', cursor: 'pointer' }}
-            onClick={() => nav('/dashboard')}
-          >
-            Log In →
-          </button>
-        </div>
-      </nav>
+      <PublicNav />
 
       {/* ── HERO ── */}
       <section style={{ background: C.navy, padding: '64px 24px 56px', textAlign: 'center' }}>
@@ -218,8 +196,7 @@ export default function ContactPage() {
               </div>
             ) : (
               <>
-                <h3 style={{ fontFamily: serif, fontSize: 22, fontWeight: 700, color: C.navy, marginBottom: 6 }}>Send Us a Message</h3>
-                <p style={{ fontSize: 13.5, color: C.text3, marginBottom: 28 }}>All fields marked * are required.</p>
+                <h3 style={{ fontFamily: serif, fontSize: 22, fontWeight: 700, color: C.navy, marginBottom: 24 }}>Send Us a Message</h3>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>

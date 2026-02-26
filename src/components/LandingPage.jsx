@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import CrisLogo from './CrisLogo';
+import PublicNav from './PublicNav';
 
 /* ─── Inline style tokens matching index.css variables exactly ──────────── */
 const C = {
@@ -143,34 +144,7 @@ export default function LandingPage() {
         }
       `}</style>
 
-      {/* ── NAVIGATION ─────────────────────────────────────────────────────── */}
-      <nav style={{
-        position: 'sticky', top: 0, zIndex: 100,
-        background: C.navy,
-        borderBottom: '1px solid rgba(255,255,255,.08)',
-        boxShadow: '0 2px 16px rgba(10,22,40,.25)',
-      }}>
-        <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', gap: 32 }}>
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <CrisLogo size={46} showSub={false} />
-          </div>
-
-          {/* Nav links */}
-          <div className="lp-nav-links" style={{ display: 'flex', gap: 28, flex: 1, justifyContent: 'center' }}>
-            {[['#features', 'Features'], ['#how-it-works', 'How It Works'], ['#security', 'Security'], ['#pricing', 'Pricing'], ['/contact', 'Contact']].map(([href, label]) => (
-              <a key={href} href={href} className="lp-nav-link">{label}</a>
-            ))}
-          </div>
-
-          {/* CTA */}
-          <div style={{ marginLeft: 'auto' }}>
-            <button className="lp-btn-ghost" onClick={goToDashboard}>
-              Log In →
-            </button>
-          </div>
-        </div>
-      </nav>
+      <PublicNav />
 
       {/* ── HERO ───────────────────────────────────────────────────────────── */}
       <section style={{ background: C.white, padding: '80px 24px 64px', textAlign: 'center' }}>
