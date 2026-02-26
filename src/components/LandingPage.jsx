@@ -522,16 +522,26 @@ export default function LandingPage() {
             {/* Compliance */}
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(255,255,255,.3)', marginBottom: 14 }}>Compliance</div>
-              {['HIPAA Aligned', 'PHI Protection', 'Data Security', 'Privacy Policy'].map(l => (
-                <span key={l} className="footer-link">{l}</span>
+              {[
+                { label: 'HIPAA Aligned',  href: '#security' },
+                { label: 'PHI Protection', href: '#security' },
+                { label: 'Data Security',  href: '#security' },
+                { label: 'Privacy Policy', href: '#security' },
+              ].map(({ label, href }) => (
+                <a key={label} href={href} className="footer-link">{label}</a>
               ))}
             </div>
 
             {/* About */}
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(255,255,255,.3)', marginBottom: 14 }}>About</div>
-              {['About CRIS GOLD™', 'Rubimed PSE', 'HRV Protocol', 'Contact'].map(l => (
-                <span key={l} className="footer-link">{l}</span>
+              {[
+                { label: 'About CRIS GOLD™', href: '#features'    },
+                { label: 'Rubimed PSE',       href: '#features'    },
+                { label: 'HRV Protocol',      href: '#how-it-works'},
+                { label: 'Contact',           href: '#pricing'     },
+              ].map(({ label, href }) => (
+                <a key={label} href={href} className="footer-link">{label}</a>
               ))}
             </div>
           </div>
