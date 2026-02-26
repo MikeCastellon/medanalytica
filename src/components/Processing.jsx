@@ -94,6 +94,9 @@ export default function Processing({ user, form, files = [], customRules, onDone
             rjlEcw:               form.rjlEcw || null,
             rjlTbw:               form.rjlTbw || null,
             oxidativeStressScore: form.oxidativeStressScore || null,
+            // Explicit test flags — sections only appear if these are true
+            adrenalTested:        form.adrenalTested === true,
+            brainGaugeTested:     form.brainGaugeTested === true,
           },
           customRules,
         }),

@@ -154,7 +154,7 @@ export default function ContactPage() {
                 <div style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>✉️</div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 3 }}>Email</div>
-                  <div style={{ fontSize: 14, color: C.blue }}>support@medanalytica.com</div>
+                  <div style={{ fontSize: 14, color: C.blue }}>support@kesslercris.com</div>
                   <div style={{ fontSize: 12, color: C.text3, marginTop: 2 }}>We reply within 1 business day</div>
                 </div>
               </div>
@@ -174,7 +174,7 @@ export default function ContactPage() {
                 <div style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>💬</div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 3 }}>Sales Inquiries</div>
-                  <div style={{ fontSize: 14, color: C.blue }}>sales@medanalytica.com</div>
+                  <div style={{ fontSize: 14, color: C.blue }}>sales@kesslercris.com</div>
                   <div style={{ fontSize: 12, color: C.text3, marginTop: 2 }}>Clinic & Enterprise plans</div>
                 </div>
               </div>
@@ -289,7 +289,7 @@ export default function ContactPage() {
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <CrisLogo size={38} showSub={false} />
           <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,.25)' }}>
-            © {new Date().getFullYear()} MedAnalytica. All rights reserved.
+            © {new Date().getFullYear()} CRIS GOLD™. All rights reserved.
           </span>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,.2)' }}>
             For licensed practitioners only · HIPAA compliant

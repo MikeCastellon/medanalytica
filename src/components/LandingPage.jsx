@@ -523,7 +523,7 @@ export default function LandingPage() {
           {/* Bottom bar */}
           <div style={{ borderTop: '1px solid rgba(255,255,255,.07)', paddingTop: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
             <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,.25)' }}>
-              © {new Date().getFullYear()} MedAnalytica. All rights reserved.
+              © {new Date().getFullYear()} CRIS GOLD™. All rights reserved.
             </span>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,.2)', textAlign: 'right' }}>
               CRIS GOLD™ is intended for use by licensed practitioners only. Not for patient self-diagnosis.

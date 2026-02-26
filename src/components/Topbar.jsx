@@ -12,7 +12,7 @@ export default function Topbar({ page }) {
   return (
     <div className="topbar">
       <div className="tb-bc">
-        MedAnalytica &rsaquo; <strong>{PAGE_LABELS[page] || page}</strong>
+        CRIS GOLD™ &rsaquo; <strong>{PAGE_LABELS[page] || page}</strong>
       </div>
       <div className="tb-r">
         <div className="tb-date">{tod()}</div>

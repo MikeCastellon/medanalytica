@@ -1,5 +1,5 @@
 /**
- * MedAnalytica — Contact Form Handler
+ * CRIS GOLD™ — Contact Form Handler
  * POST /.netlify/functions/contact-form
  *
  * Sends contact form submissions via Postmark.
@@ -36,8 +36,8 @@ export default async (req) => {
   }
 
   const POSTMARK_API_KEY  = process.env.POSTMARK_API_KEY;
-  const FROM_EMAIL        = process.env.POSTMARK_FROM_EMAIL || 'noreply@medanalytica.com';
-  const TO_EMAIL          = process.env.POSTMARK_TO_EMAIL   || 'support@medanalytica.com';
+  const FROM_EMAIL        = process.env.POSTMARK_FROM_EMAIL || 'noreply@kesslercris.com';
+  const TO_EMAIL          = process.env.POSTMARK_TO_EMAIL   || 'support@kesslercris.com';
 
   if (!POSTMARK_API_KEY) {
     return new Response(JSON.stringify({ error: 'Mail service not configured' }), {
@@ -60,7 +60,7 @@ export default async (req) => {
     <div style="font-family: sans-serif; max-width: 600px; color: #1a2535;">
       <div style="background: #0f2744; padding: 24px 28px; border-radius: 8px 8px 0 0;">
         <h2 style="color: #fff; margin: 0; font-size: 20px;">New Contact Form Submission</h2>
-        <p style="color: rgba(255,255,255,.6); margin: 6px 0 0; font-size: 13px;">MedAnalytica / CRIS GOLD™</p>
+        <p style="color: rgba(255,255,255,.6); margin: 6px 0 0; font-size: 13px;">CRIS GOLD™</p>
       </div>
       <div style="border: 1px solid #dde2ea; border-top: none; border-radius: 0 0 8px 8px; padding: 28px;">
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
@@ -74,7 +74,7 @@ export default async (req) => {
         <p style="font-size: 14px; line-height: 1.75; white-space: pre-wrap;">${message}</p>
       </div>
       <p style="font-size: 11px; color: #8896aa; margin-top: 16px; text-align: center;">
-        Sent from MedAnalytica contact form · ${new Date().toUTCString()}
+        Sent from CRIS GOLD™ contact form · ${new Date().toUTCString()}
       </p>
     </div>
   `;

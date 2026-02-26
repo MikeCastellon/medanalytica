@@ -4,7 +4,7 @@ import CrisLogo from './CrisLogo';
 
 const LOGO_KEY = 'medanalytica_custom_logo';
 
-const DEFAULT_RULES = `# MedAnalytica — Clinical Extraction Rules
+const DEFAULT_RULES = `# CRIS GOLD™ — Clinical Extraction Rules
 # These rules are injected into the AI prompt during analysis.
 
 [HRV_ANALYSIS]

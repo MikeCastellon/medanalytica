@@ -20,6 +20,9 @@ export default function NewPatient({ onBack, onSubmit }) {
     // Optional add-ons
     rjlPhaseAngle: '', rjlIcw: '', rjlEcw: '', rjlTbw: '',
     oxidativeStressScore: '',
+    // Test flags — must be explicitly checked to include in report
+    adrenalTested: false,
+    brainGaugeTested: false,
   });
   const [files, setFiles]     = useState([]); // multiple screenshots
   const [drag, setDrag]       = useState(false);
@@ -396,8 +399,24 @@ export default function NewPatient({ onBack, onSubmit }) {
             <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '8px' }}>
               Oxidative Stress Test (Osumex)
             </div>
-            <div className="fg2">
+            <div className="fg2" style={{ marginBottom: '20px' }}>
               <div className="fg"><label className="fl">Score / Category (e.g. 4 = high)</label><input className="fi" placeholder="e.g. 4" value={form.oxidativeStressScore} onChange={num('oxidativeStressScore')} /></div>
+            </div>
+
+            <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '10px' }}>
+              Tests Performed This Session
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', color: 'var(--text2)' }}>
+                <input type="checkbox" checked={form.adrenalTested} onChange={e => s('adrenalTested', e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--teal)', cursor: 'pointer' }} />
+                <span>Adrenal Urine Test was performed (include adrenal section in report)</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', color: 'var(--text2)' }}>
+                <input type="checkbox" checked={form.brainGaugeTested} onChange={e => s('brainGaugeTested', e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--teal)', cursor: 'pointer' }} />
+                <span>Brain Gauge test was performed (include Brain Gauge section in report)</span>
+              </label>
             </div>
           </div>
         )}

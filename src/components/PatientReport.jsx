@@ -227,7 +227,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
             <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#7a5209', border: '2px solid #c9a227', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>❤</div>
             <div>
               <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.14em', color: '#7a5209', lineHeight: 1 }}>CRIS GOLD™</div>
-              <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>by MedAnalytica · Clinical Report Intelligence System · v1.0</div>
+              <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Clinical Report Intelligence System · v1.0</div>
             </div>
             {doctorName && (
               <span style={{ fontSize: '11px', color: 'var(--text2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '20px', padding: '3px 10px', marginLeft: 'auto' }}>
@@ -382,11 +382,11 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
             </div>
           )}
 
-          {/* Polyvagal plain-language */}
-          {r.polyvagalInterpretation && (
-            <div style={{ background: r.polyvagalRuleOf3Met ? '#fef2f2' : '#fffbeb', border: `1px solid ${r.polyvagalRuleOf3Met ? 'rgba(192,57,43,.2)' : 'rgba(180,83,9,.2)'}`, borderLeft: `4px solid ${r.polyvagalRuleOf3Met ? 'var(--red)' : 'var(--amber)'}`, borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: r.polyvagalRuleOf3Met ? 'var(--red)' : '#b45309', marginBottom: '8px' }}>
-                {r.polyvagalRuleOf3Met ? '⚠️ Stress Response Pattern Detected' : '⚡ Stress & Recovery Balance'}
+          {/* Polyvagal plain-language — only shown if Rule of 3 is truly MET */}
+          {r.polyvagalRuleOf3Met && r.polyvagalInterpretation && (
+            <div style={{ background: '#fef2f2', border: '1px solid rgba(192,57,43,.2)', borderLeft: '4px solid var(--red)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--red)', marginBottom: '8px' }}>
+                ⚠️ Stress Response Pattern Detected
               </div>
               <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{r.polyvagalInterpretation}</div>
             </div>
@@ -544,7 +544,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       {chartData.length > 0 && (
         <div className="rg">
           <div className="cc">
-            <div className="ct">HRV / Lab Values vs. Reference Range</div>
+            <div className="ct">HRV Values vs. Reference Range</div>
             <div className="cs">% of upper reference limit — dashed line = 100% (upper normal)</div>
             <ResponsiveContainer width="100%" height={248}>
               <BarChart data={chartData} margin={{ top: 4, right: 0, left: -22, bottom: 0 }}>
@@ -601,15 +601,16 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       )}
 
       {/* ── §6 Polyvagal + Adrenal ── */}
-      {(r.polyvagalInterpretation || r.adrenalSummary) && <SectionLabel number={6} title="Polyvagal & Adrenal Assessment" />}
-      {(r.polyvagalInterpretation || r.adrenalSummary) && (
-        <div className="rg" style={{ gridTemplateColumns: r.polyvagalInterpretation && r.adrenalSummary ? '1fr 1fr' : '1fr' }}>
-          {r.polyvagalInterpretation && (
+      {/* Polyvagal only shows if Rule of 3 is truly MET (all 3 freeze markers red) */}
+      {(r.polyvagalRuleOf3Met || r.adrenalSummary) && <SectionLabel number={6} title="Polyvagal & Adrenal Assessment" />}
+      {(r.polyvagalRuleOf3Met || r.adrenalSummary) && (
+        <div className="rg" style={{ gridTemplateColumns: r.polyvagalRuleOf3Met && r.adrenalSummary ? '1fr 1fr' : '1fr' }}>
+          {r.polyvagalRuleOf3Met && r.polyvagalInterpretation && (
             <InfoCard
-              icon={r.polyvagalRuleOf3Met ? '🔴' : '🟡'}
-              title={`Polyvagal Rule of 3: ${r.polyvagalRuleOf3Met ? 'MET — True Freeze Pattern' : 'Not Met — Exhausted System'}`}
-              color={r.polyvagalRuleOf3Met ? 'var(--red)' : 'var(--amber)'}
-              bg={r.polyvagalRuleOf3Met ? 'var(--red-lt)' : 'var(--amber-lt)'}
+              icon="🔴"
+              title="Polyvagal Rule of 3: MET — True Freeze Pattern"
+              color="var(--red)"
+              bg="var(--red-lt)"
             >
               {r.polyvagalInterpretation}
             </InfoCard>

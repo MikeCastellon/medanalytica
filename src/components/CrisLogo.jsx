@@ -4,7 +4,7 @@
  *   size      — icon height in px (default 44)
  *   textColor — color for the text (default '#ffffff' for dark backgrounds)
  *   subColor  — color for the sub-label (default 'rgba(255,255,255,.45)')
- *   showSub   — show "by MedAnalytica" sub-line (default false)
+ *   showSub   — show "CRIS GOLD™" sub-line (default false)
  *   customUrl — if set, use this image URL instead of the SVG (from Settings)
  */
 export default function CrisLogo({
@@ -127,7 +127,7 @@ export default function CrisLogo({
             letterSpacing: '.02em',
             marginTop: 2,
           }}>
-            by MedAnalytica
+            CRIS GOLD™
           </span>
         )}
       </div>

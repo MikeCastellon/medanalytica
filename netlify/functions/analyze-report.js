@@ -128,6 +128,28 @@ THERAPEUTIC CATEGORIES (6 REQUIRED — ALL DISPLAYED)
    Addresses: endothelial NO signaling, arterial stiffness, microcirculation
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STRICT NO-HALLUCINATION RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ONLY REPORT WHAT IS EXPLICITLY PRESENT. Never estimate, infer, or fill in missing data.
+
+BRAIN GAUGE — set brainGauge: null and brainGaugeSummary: null AND neuroVizrPrograms: null UNLESS:
+  The practitioner explicitly confirmed Brain Gauge was tested (flag sent in data).
+  Brain Gauge is a SEPARATE device from HQP — it will NEVER appear in HQP screenshots.
+  Do NOT generate Brain Gauge scores under any circumstances if not tested.
+
+ADRENAL URINE TEST — set adrenalUrineDrops: null, adrenalInterpretation: null, and adrenalSummary: null UNLESS:
+  The practitioner explicitly confirmed the Adrenal Urine Test was performed (flag sent in data).
+  The adrenal urine drop count is a specific physical test — do NOT infer or estimate from HRV markers.
+
+THYROID LANGUAGE — NEVER use the phrase "Hashimoto's-type pattern".
+  Instead say: "findings are consistent with possible Hypothyroid or Hyperthyroid function — a complete Thyroid Panel is recommended."
+
+POLYVAGAL — Only report polyvagalRuleOf3Met: true if ALL THREE criteria are simultaneously met:
+  SDNN < 20 ms AND RMSSD < 15 ms AND Total Power < 200 ms².
+  If not ALL three met, set polyvagalRuleOf3Met: false and polyvagalInterpretation: null.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BRAIN GAUGE REFERENCE RANGES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -441,6 +463,10 @@ ${clinicalData?.ermMethod ? `ERM Method: ${clinicalData.ermMethod}` : ''}
 ${clinicalData?.acuteRemedies ? `Acute Remedies: ${clinicalData.acuteRemedies}` : ''}
 ${clinicalData?.rjlPhaseAngle ? `RJL BIA — Phase Angle: ${clinicalData.rjlPhaseAngle} | ICW: ${clinicalData.rjlIcw || '?'} | ECW: ${clinicalData.rjlEcw || '?'} | TBW: ${clinicalData.rjlTbw || '?'}` : ''}
 ${clinicalData?.oxidativeStressScore ? `Oxidative Stress Test Score: ${clinicalData.oxidativeStressScore}` : ''}
+
+TESTS PERFORMED THIS SESSION:
+- Adrenal Urine Test: ${clinicalData?.adrenalTested ? 'YES — include adrenal findings' : 'NOT PERFORMED — set adrenalUrineDrops: null, adrenalInterpretation: null, adrenalSummary: null'}
+- Brain Gauge Test: ${clinicalData?.brainGaugeTested ? 'YES — include Brain Gauge data' : 'NOT PERFORMED — set brainGauge: null, brainGaugeSummary: null, neuroVizrPrograms: null'}
 ${customRules ? `\nCustom Clinical Rules:\n${customRules}\n` : ''}
 
 EXTRACTION INSTRUCTIONS:
@@ -505,6 +531,22 @@ EXTRACTION INSTRUCTIONS:
     if (clinicalData?.chavita) parsed.chavita = clinicalData.chavita;
     if (clinicalData?.emvita)  parsed.emvita  = clinicalData.emvita;
     if (clinicalData?.ermMethod) parsed.ermMethod = clinicalData.ermMethod;
+
+    // ── STRICT ENFORCEMENT: null out sections not explicitly tested ───────
+    if (!clinicalData?.brainGaugeTested) {
+      parsed.brainGauge        = null;
+      parsed.brainGaugeSummary = null;
+      parsed.neuroVizrPrograms = null;
+    }
+    if (!clinicalData?.adrenalTested) {
+      parsed.adrenalUrineDrops     = null;
+      parsed.adrenalInterpretation = null;
+      parsed.adrenalSummary        = null;
+    }
+    // Polyvagal: only show if ALL THREE freeze markers simultaneously met
+    if (!parsed.polyvagalRuleOf3Met) {
+      parsed.polyvagalInterpretation = null;
+    }
 
     return {
       statusCode: 200,
