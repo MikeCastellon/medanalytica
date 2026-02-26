@@ -122,7 +122,7 @@ export default function ContactPage() {
             <CrisLogo size={46} showSub={false} />
           </div>
           <div style={{ display: 'flex', gap: 28, flex: 1, justifyContent: 'center' }}>
-            {[['/#features', 'Features'], ['/#how-it-works', 'How It Works'], ['/#security', 'Security'], ['/#pricing', 'Pricing']].map(([href, label]) => (
+            {[['/#features', 'Features'], ['/#how-it-works', 'How It Works'], ['/#security', 'Security'], ['/#pricing', 'Pricing'], ['/contact', 'Contact']].map(([href, label]) => (
               <a key={href} href={href} className="lp-nav-link">{label}</a>
             ))}
           </div>
