@@ -5,3 +5,9 @@ dist
 .DS_Store
 *.log
 .netlify
+
+# Local docs and branding — not for version control
+Medicalreports/
+BRANDING.md
+job-scheduler-landing.html
+.claude/
