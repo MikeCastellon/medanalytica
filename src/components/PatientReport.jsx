@@ -220,17 +220,17 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       </div>
 
       {/* ── CRIS GOLD™ Branded Report Header ── */}
-      <div className="report-header" style={{ background: 'linear-gradient(135deg, #0a1628 0%, #1a3a5c 60%, #7a5209 100%)', borderRadius: '12px', padding: '28px 32px', marginBottom: '16px', color: '#fff', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '24px', boxShadow: '0 4px 20px rgba(10,22,40,.35)' }}>
+      <div className="report-header" style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderTop: '4px solid #c9a227', borderRadius: '12px', padding: '28px 32px', marginBottom: '16px', color: 'var(--navy)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '24px', boxShadow: '0 2px 8px rgba(10,22,40,.08)' }}>
         <div style={{ flex: 1 }}>
           {/* Brand line */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#7a5209', border: '2px solid #f5c842', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>❤</div>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#7a5209', border: '2px solid #c9a227', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>❤</div>
             <div>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.14em', color: '#f5c842', lineHeight: 1 }}>CRIS GOLD™</div>
-              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.55)', marginTop: '2px' }}>by MedAnalytica · Clinical Report Intelligence System · v1.0</div>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.14em', color: '#7a5209', lineHeight: 1 }}>CRIS GOLD™</div>
+              <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>by MedAnalytica · Clinical Report Intelligence System · v1.0</div>
             </div>
             {doctorName && (
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,.65)', background: 'rgba(255,255,255,.1)', borderRadius: '20px', padding: '3px 10px', marginLeft: 'auto' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '20px', padding: '3px 10px', marginLeft: 'auto' }}>
                 Attending: {doctorName}
               </span>
             )}
@@ -238,9 +238,9 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
               <span style={{
                 fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.06em',
                 borderRadius: '20px', padding: '3px 10px',
-                background: r.extractionConfidence === 'high' ? 'rgba(14,122,85,.35)' : r.extractionConfidence === 'medium' ? 'rgba(180,83,9,.35)' : 'rgba(192,57,43,.35)',
-                color: r.extractionConfidence === 'high' ? '#6ee7b7' : r.extractionConfidence === 'medium' ? '#fbbf24' : '#f87171',
-                border: `1px solid ${r.extractionConfidence === 'high' ? '#6ee7b760' : r.extractionConfidence === 'medium' ? '#fbbf2460' : '#f8717160'}`,
+                background: r.extractionConfidence === 'high' ? 'rgba(14,122,85,.12)' : r.extractionConfidence === 'medium' ? 'rgba(180,83,9,.12)' : 'rgba(192,57,43,.12)',
+                color: r.extractionConfidence === 'high' ? '#0e7a55' : r.extractionConfidence === 'medium' ? '#b45309' : '#c0392b',
+                border: `1px solid ${r.extractionConfidence === 'high' ? '#0e7a5540' : r.extractionConfidence === 'medium' ? '#b4530940' : '#c0392b40'}`,
               }}>
                 {r.extractionConfidence === 'high' ? '🟢' : r.extractionConfidence === 'medium' ? '🟡' : '🔴'} {r.extractionConfidence} confidence
               </span>
@@ -248,13 +248,13 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
           </div>
           {/* Patient name + status */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px', flexWrap: 'wrap' }}>
-            <div style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '26px', fontWeight: '700', color: '#fff', lineHeight: 1 }}>{patName}</div>
-            <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', background: overallStatus === 'critical' ? 'rgba(192,57,43,.35)' : overallStatus === 'warning' ? 'rgba(180,83,9,.35)' : 'rgba(14,122,85,.35)', color: overallStatus === 'critical' ? '#f87171' : overallStatus === 'warning' ? '#fbbf24' : '#6ee7b7', border: `1px solid ${overallStatus === 'critical' ? '#f8717160' : overallStatus === 'warning' ? '#fbbf2460' : '#6ee7b760'}` }}>
+            <div style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '26px', fontWeight: '700', color: 'var(--navy)', lineHeight: 1 }}>{patName}</div>
+            <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', background: overallStatus === 'critical' ? 'rgba(192,57,43,.12)' : overallStatus === 'warning' ? 'rgba(180,83,9,.12)' : 'rgba(14,122,85,.12)', color: overallStatus === 'critical' ? '#c0392b' : overallStatus === 'warning' ? '#b45309' : '#0e7a55', border: `1px solid ${overallStatus === 'critical' ? '#c0392b40' : overallStatus === 'warning' ? '#b4530940' : '#0e7a5540'}` }}>
               {overallStatus === 'critical' ? '⚠ Critical' : overallStatus === 'warning' ? '⚠ Review' : '✓ Normal'}
             </span>
           </div>
           {/* Meta row */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: 'rgba(255,255,255,.7)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '12px', color: 'var(--text2)' }}>
             {patient.mrn       && <span>📋 {patient.mrn}</span>}
             {patient.dob       && <span>Age {age(patient.dob)}</span>}
             {patient.gender    && <span>{patient.gender}</span>}
@@ -264,7 +264,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
             {r.pulsePressure   && <span>PP {r.pulsePressure} mmHg</span>}
           </div>
           {r.chiefComplaints && (
-            <div style={{ marginTop: '10px', fontSize: '12.5px', color: 'rgba(255,255,255,.8)', fontStyle: 'italic' }}>
+            <div style={{ marginTop: '10px', fontSize: '12.5px', color: 'var(--text2)', fontStyle: 'italic' }}>
               "{r.chiefComplaints}"
             </div>
           )}
@@ -272,15 +272,15 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
         {/* Right side: key scores */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end', flexShrink: 0 }}>
           {r.criScore != null && (
-            <div style={{ textAlign: 'center', background: 'rgba(255,255,255,.1)', borderRadius: '10px', padding: '10px 16px', minWidth: '80px' }}>
-              <div style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(255,255,255,.55)', marginBottom: '2px' }}>CRI</div>
+            <div style={{ textAlign: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 16px', minWidth: '80px' }}>
+              <div style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text3)', marginBottom: '2px' }}>CRI</div>
               <div style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '32px', fontWeight: '700', color: cri.color, lineHeight: 1 }}>{r.criScore}</div>
-              <div style={{ fontSize: '9px', color: 'rgba(255,255,255,.45)' }}>/ 12</div>
+              <div style={{ fontSize: '9px', color: 'var(--text3)' }}>/ 12</div>
             </div>
           )}
           {cgQ && (
-            <div style={{ textAlign: 'center', background: 'rgba(255,255,255,.1)', borderRadius: '10px', padding: '8px 16px', minWidth: '80px' }}>
-              <div style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.1em', color: 'rgba(255,255,255,.55)', marginBottom: '2px' }}>Quadrant</div>
+            <div style={{ textAlign: 'center', background: cgQ.bg, border: `1px solid ${cgQ.color}30`, borderRadius: '10px', padding: '8px 16px', minWidth: '80px' }}>
+              <div style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.1em', color: cgQ.color, marginBottom: '2px', opacity: 0.7 }}>Quadrant</div>
               <div style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '26px', fontWeight: '700', color: cgQ.color, lineHeight: 1 }}>{r.crisgoldQuadrant}</div>
               <div style={{ fontSize: '9px', color: cgQ.color, fontWeight: '600' }}>{cgQ.sub || cgQ.label}</div>
             </div>
@@ -328,7 +328,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
           )}
           {r.patientFriendlySummary ? (
             <div style={{ background: '#f0fdf4', border: '1px solid rgba(14,122,85,.2)', borderLeft: '4px solid var(--green)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--green)', marginBottom: '8px' }}>Summary for You</div>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--green)', marginBottom: '8px' }}>📋 Summary for You</div>
               <div style={{ fontSize: '14px', color: 'var(--navy2)', lineHeight: '1.85' }}>{r.patientFriendlySummary}</div>
             </div>
           ) : (
@@ -336,6 +336,97 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
               No patient summary available for this report.
             </div>
           )}
+
+          {/* Key numbers in plain language */}
+          {(r.criScore != null || eli != null || ari != null || r.adrenalUrineDrops != null) && (
+            <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--text3)', marginBottom: '14px' }}>📊 Your Key Numbers Explained</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+                {r.criScore != null && (
+                  <div style={{ background: 'var(--bg)', border: `1px solid ${cri.color}30`, borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '22px', fontWeight: '700', color: cri.color, fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{r.criScore}<span style={{ fontSize: '13px', color: 'var(--text3)', fontFamily: 'inherit' }}>/12</span></div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Cardiovascular Risk</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{r.criScore <= 3 ? 'Low risk — heart and vessels under minimal strain' : r.criScore <= 6 ? 'Moderate — some cardiovascular stress present' : r.criScore <= 9 ? 'Elevated — cardiovascular system under significant load' : 'High — priority cardiovascular support needed'}</div>
+                  </div>
+                )}
+                {eli != null && (
+                  <div style={{ background: 'var(--bg)', border: `1px solid ${eli >= 50 ? '#c0392b30' : '#0e7a5530'}`, borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '22px', fontWeight: '700', color: eli >= 50 ? '#c0392b' : '#0e7a55', fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{eli}</div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Emotional Load (ELI)</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{eli >= 70 ? 'Very high emotional stress — nervous system significantly burdened' : eli >= 50 ? 'Elevated — emotional stress is affecting your physical health' : 'Manageable — emotional load within a healthy range'}</div>
+                  </div>
+                )}
+                {ari != null && (
+                  <div style={{ background: 'var(--bg)', border: `1px solid ${ari >= 60 ? '#0e7a5530' : '#c0392b30'}`, borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '22px', fontWeight: '700', color: ari >= 60 ? '#0e7a55' : '#c0392b', fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{ari}</div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Resilience (ARI)</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{ari >= 70 ? 'Strong — your body is regulating well under stress' : ari >= 50 ? 'Moderate — some capacity to regulate, but room to improve' : 'Low — recovery and stress buffering need support'}</div>
+                  </div>
+                )}
+                {r.adrenalUrineDrops != null && (
+                  <div style={{ background: 'var(--bg)', border: '1px solid rgba(180,83,9,.25)', borderRadius: '8px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '22px', fontWeight: '700', color: '#b45309', fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{r.adrenalUrineDrops} <span style={{ fontSize: '13px' }}>drops</span></div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Adrenal (Urine Test)</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{r.adrenalInterpretation || (r.adrenalUrineDrops <= 3 ? 'Low adrenal output — fatigue pattern likely' : r.adrenalUrineDrops <= 7 ? 'Moderate adrenal function' : 'Normal to high adrenal activity')}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Nervous system plain-language */}
+          {r.hrvSummary && (
+            <div style={{ background: 'var(--blue-lt)', border: '1px solid rgba(26,111,181,.18)', borderLeft: '4px solid var(--blue)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--blue)', marginBottom: '8px' }}>🫀 Your Nervous System</div>
+              <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{r.hrvSummary}</div>
+            </div>
+          )}
+
+          {/* Polyvagal plain-language */}
+          {r.polyvagalInterpretation && (
+            <div style={{ background: r.polyvagalRuleOf3Met ? '#fef2f2' : '#fffbeb', border: `1px solid ${r.polyvagalRuleOf3Met ? 'rgba(192,57,43,.2)' : 'rgba(180,83,9,.2)'}`, borderLeft: `4px solid ${r.polyvagalRuleOf3Met ? 'var(--red)' : 'var(--amber)'}`, borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: r.polyvagalRuleOf3Met ? 'var(--red)' : '#b45309', marginBottom: '8px' }}>
+                {r.polyvagalRuleOf3Met ? '⚠️ Stress Response Pattern Detected' : '⚡ Stress & Recovery Balance'}
+              </div>
+              <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{r.polyvagalInterpretation}</div>
+            </div>
+          )}
+
+          {/* Brain Gauge plain-language */}
+          {r.brainGaugeSummary && (
+            <div style={{ background: '#f5f3ff', border: '1px solid rgba(109,40,217,.15)', borderLeft: '4px solid #7c3aed', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: '#7c3aed', marginBottom: '8px' }}>🧠 Brain & Cognitive Performance</div>
+              <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{r.brainGaugeSummary}</div>
+            </div>
+          )}
+
+          {/* NeuroVIZR recommendations */}
+          {r.neuroVizrPrograms && (r.neuroVizrPrograms.brainGymFoundation?.length > 0 || r.neuroVizrPrograms.quadrantPrograms?.length > 0) && (
+            <div style={{ background: 'var(--teal-lt)', border: '1px solid rgba(14,138,122,.18)', borderLeft: '4px solid var(--teal)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--teal)', marginBottom: '10px' }}>🎧 Your NeuroVIZR Brain Programs</div>
+              {r.neuroVizrPrograms.brainGymFoundation?.length > 0 && (
+                <div style={{ marginBottom: '10px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginBottom: '6px' }}>Foundation Sequence</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {r.neuroVizrPrograms.brainGymFoundation.map((p, i) => (
+                      <span key={i} style={{ fontSize: '12px', background: 'var(--bg)', border: '1px solid rgba(14,138,122,.25)', borderRadius: '20px', padding: '3px 10px', color: 'var(--teal)' }}>{p}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {r.neuroVizrPrograms.quadrantPrograms?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginBottom: '6px' }}>Recommended for Your Quadrant</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {r.neuroVizrPrograms.quadrantPrograms.map((p, i) => (
+                      <span key={i} style={{ fontSize: '12px', background: 'var(--bg)', border: '1px solid rgba(14,138,122,.25)', borderRadius: '20px', padding: '3px 10px', color: 'var(--teal)' }}>{p}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {r.therapeuticSelections && (
             <div className="card" style={{ marginBottom: '16px' }}>
               <div className="card-hdr"><span className="card-title">💊 Your Recommended Supplements</span></div>
