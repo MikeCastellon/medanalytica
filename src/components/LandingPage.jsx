@@ -128,7 +128,7 @@ export default function LandingPage() {
         @media (max-width: 900px) {
           .lp-feat-grid { grid-template-columns: 1fr 1fr !important; }
           .lp-steps-grid { grid-template-columns: 1fr !important; }
-          .lp-price-grid { grid-template-columns: 1fr !important; }
+          .lp-price-grid { grid-template-columns: 1fr 1fr !important; }
           .lp-footer-grid { grid-template-columns: 1fr 1fr !important; }
           .lp-hero-h1 { font-size: 38px !important; }
           .lp-test-grid { grid-template-columns: 1fr !important; }
@@ -371,32 +371,100 @@ export default function LandingPage() {
 
       {/* ── PRICING ────────────────────────────────────────────────────────── */}
       <section id="pricing" style={{ background: C.bg, padding: '80px 24px', borderTop: `1px solid ${C.border}` }}>
-        <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: C.teal, marginBottom: 10 }}>Pricing</div>
             <h2 style={{ fontFamily: serif, fontSize: 36, fontWeight: 700, color: C.navy, marginBottom: 12 }}>Simple, Transparent Pricing</h2>
             <p style={{ fontSize: 16, color: C.text2, maxWidth: 420, margin: '0 auto', lineHeight: 1.7 }}>
-              Plans designed for solo practitioners and multi-provider clinics. Pricing details coming soon.
+              Plans designed for solo practitioners to enterprise clinics. Cancel anytime.
             </p>
           </div>
-          <div className="lp-price-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 }}>
+          <div className="lp-price-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 18 }}>
             {[
-              { tier: 'Starter',      desc: 'Perfect for solo practitioners exploring AI-assisted reporting.',      featured: false, cta: 'Contact Us' },
-              { tier: 'Professional', desc: 'For active clinics generating reports daily. Full feature access.',    featured: true,  cta: 'Contact Us' },
-              { tier: 'Enterprise',   desc: 'Multi-provider clinics and health systems. Custom integrations.',     featured: false, cta: 'Contact Us' },
+              {
+                tier: 'Starter',
+                subtitle: 'Basic ERM + Limited AI Reports',
+                price: '$97',
+                period: '/ month',
+                featured: false,
+                cta: 'Get Started',
+                features: [
+                  'Basic ERM access',
+                  'Limited AI report generation',
+                  'HRV & autonomic analysis',
+                  'HIPAA compliant',
+                  'Email support',
+                ],
+              },
+              {
+                tier: 'Professional',
+                subtitle: 'Full ERM + HQP + AI Report Generator',
+                price: '$197',
+                period: '/ month',
+                featured: true,
+                cta: 'Get Started',
+                features: [
+                  'Full ERM access',
+                  'Unlimited AI reports',
+                  'HQP device integration',
+                  'Rubimed PSE full mapping',
+                  'Brain Gauge + NeuroVIZR',
+                  'Priority support',
+                ],
+              },
+              {
+                tier: 'Clinic',
+                subtitle: 'Multi-Practitioner + White Label',
+                price: '$497',
+                period: '/ month',
+                featured: false,
+                cta: 'Get Started',
+                features: [
+                  'Up to 5 practitioners',
+                  'White label reports',
+                  'All Professional features',
+                  'Team dashboard',
+                  'Dedicated onboarding',
+                  'Phone support',
+                ],
+              },
+              {
+                tier: 'Enterprise',
+                subtitle: 'Custom AI Build + API + Dedicated Support',
+                price: 'Custom',
+                period: 'contract',
+                featured: false,
+                cta: 'Contact Us',
+                features: [
+                  'Unlimited practitioners',
+                  'Custom AI build',
+                  'Full API access',
+                  'EHR integrations',
+                  'SLA & compliance docs',
+                  'Dedicated support manager',
+                ],
+              },
             ].map((p, i) => (
-              <div key={i} className={`price-card${p.featured ? ' featured' : ''}`}>
+              <div key={i} className={`price-card${p.featured ? ' featured' : ''}`} style={{ display: 'flex', flexDirection: 'column' }}>
                 {p.featured && (
                   <div style={{ display: 'inline-block', background: C.blue, color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 12px', borderRadius: 99, letterSpacing: '.05em', marginBottom: 14 }}>
                     MOST POPULAR
                   </div>
                 )}
-                <h3 style={{ fontFamily: serif, fontSize: 22, fontWeight: 700, color: C.navy, marginBottom: 10 }}>{p.tier}</h3>
-                <p style={{ fontSize: 13.5, color: C.text2, lineHeight: 1.7, marginBottom: 24, minHeight: 52 }}>{p.desc}</p>
-                <div style={{ fontFamily: serif, fontSize: 28, fontWeight: 700, color: C.text3, marginBottom: 8 }}>
-                  —
+                <h3 style={{ fontFamily: serif, fontSize: 20, fontWeight: 700, color: C.navy, marginBottom: 6 }}>{p.tier}</h3>
+                <p style={{ fontSize: 12, color: C.text3, marginBottom: 20, minHeight: 32, lineHeight: 1.5 }}>{p.subtitle}</p>
+                <div style={{ marginBottom: 6 }}>
+                  <span style={{ fontFamily: serif, fontSize: 36, fontWeight: 700, color: C.navy }}>{p.price}</span>
+                  <span style={{ fontSize: 13, color: C.text3, marginLeft: 4 }}>{p.period}</span>
                 </div>
-                <p style={{ fontSize: 12, color: C.text3, marginBottom: 28 }}>Pricing coming soon</p>
+                <div style={{ height: 1, background: C.border, margin: '20px 0' }} />
+                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28, flex: 1 }}>
+                  {p.features.map((f, fi) => (
+                    <li key={fi} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: C.text2 }}>
+                      <span style={{ color: C.green, fontWeight: 700, flexShrink: 0 }}>✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
                 <button
                   className={p.featured ? 'lp-btn-primary' : 'lp-btn-outline'}
                   style={{ width: '100%', justifyContent: 'center' }}
