@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './index.css';
 import App from './App.jsx';
 import LandingPage from './components/LandingPage.jsx';
+import ContactPage from './components/ContactPage.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -11,6 +12,7 @@ createRoot(document.getElementById('root')).render(
       <Routes>
         {/* Public marketing site */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         {/* Authenticated platform — all /dashboard/* handled by App internally */}
         <Route path="/dashboard" element={<App />} />
         <Route path="/dashboard/*" element={<App />} />

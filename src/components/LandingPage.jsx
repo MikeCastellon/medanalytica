@@ -539,7 +539,7 @@ export default function LandingPage() {
                 { label: 'About CRIS GOLD™', href: '#features'    },
                 { label: 'Rubimed PSE',       href: '#features'    },
                 { label: 'HRV Protocol',      href: '#how-it-works'},
-                { label: 'Contact',           href: '#pricing'     },
+                { label: 'Contact',           href: '/contact'     },
               ].map(({ label, href }) => (
                 <a key={label} href={href} className="footer-link">{label}</a>
               ))}
