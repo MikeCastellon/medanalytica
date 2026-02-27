@@ -29,13 +29,13 @@
     # Strict Transport Security — force HTTPS for 1 year, include subdomains
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
     # Content Security Policy — restrict resource origins
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co https://api.openai.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.paypal.com https://www.sandbox.paypal.com https://c.paypal.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://www.paypalobjects.com https://t.paypal.com; connect-src 'self' https://*.supabase.co https://api.openai.com https://www.paypal.com https://www.sandbox.paypal.com https://api.paypal.com https://api.sandbox.paypal.com; frame-src https://www.paypal.com https://www.sandbox.paypal.com https://c.paypal.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://www.paypal.com https://www.sandbox.paypal.com"
     # Permissions policy — disable unnecessary browser features
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=()"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(self), usb=(), bluetooth=()"
     # Cross-origin policies
-    Cross-Origin-Opener-Policy = "same-origin"
-    Cross-Origin-Resource-Policy = "same-origin"
-    Cross-Origin-Embedder-Policy = "require-corp"
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"
+    Cross-Origin-Resource-Policy = "cross-origin"
+    Cross-Origin-Embedder-Policy = "unsafe-none"
     # Cache control — never cache PHI
     Cache-Control = "no-store, no-cache, must-revalidate, private"
     Pragma = "no-cache"
