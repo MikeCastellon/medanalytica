@@ -30,6 +30,7 @@ const sans   = "'IBM Plex Sans', system-ui, sans-serif";
 export default function LandingPage() {
   const nav = useNavigate();
   const goToDashboard = () => nav('/dashboard');
+  const goToGetStarted = () => nav('/get-started');
   const [checkoutPlan, setCheckoutPlan] = useState(null);
 
   return (
@@ -176,7 +177,7 @@ export default function LandingPage() {
 
           {/* CTA */}
           <div className="lp-fade-up lp-delay-3" style={{ display: 'flex', gap: 14, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
-            <button className="lp-btn-primary" style={{ fontSize: 16, padding: '15px 32px' }} onClick={goToDashboard}>
+            <button className="lp-btn-primary" style={{ fontSize: 16, padding: '15px 32px' }} onClick={goToGetStarted}>
               Start Generating Reports →
             </button>
           </div>
@@ -468,7 +469,7 @@ export default function LandingPage() {
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,.6)', marginBottom: 36, lineHeight: 1.7 }}>
             Join practitioners using CRIS GOLD™ AI to deliver faster, deeper clinical insights to their patients.
           </p>
-          <button className="lp-btn-primary" style={{ fontSize: 16, padding: '15px 36px' }} onClick={goToDashboard}>
+          <button className="lp-btn-primary" style={{ fontSize: 16, padding: '15px 36px' }} onClick={goToGetStarted}>
             Start Generating Reports →
           </button>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,.3)', marginTop: 18 }}>
