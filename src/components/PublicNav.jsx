@@ -34,6 +34,16 @@ export default function PublicNav() {
         .pub-nav-ghost:hover {
           background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.5); color: #fff;
         }
+        .pub-nav-cta {
+          background: linear-gradient(135deg, #c8982c, #e6b84f);
+          color: #fff; padding: 10px 22px; border-radius: 7px; font-size: 14px; font-weight: 600;
+          font-family: ${C.sans}; border: none; cursor: pointer;
+          transition: all .18s; box-shadow: 0 2px 12px rgba(200,152,44,.3);
+        }
+        .pub-nav-cta:hover {
+          background: linear-gradient(135deg, #b8891f, #d4a63e);
+          transform: translateY(-1px); box-shadow: 0 4px 20px rgba(200,152,44,.45);
+        }
         @media (max-width: 600px) {
           .pub-nav-links { display: none !important; }
         }
@@ -53,9 +63,12 @@ export default function PublicNav() {
             <a key={href} href={href} className="pub-nav-link">{label}</a>
           ))}
         </div>
-        <div style={{ marginLeft: 'auto' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
           <button className="pub-nav-ghost" onClick={() => nav('/dashboard')}>
-            Log In →
+            Log In
+          </button>
+          <button className="pub-nav-cta" onClick={() => nav('/get-started')}>
+            Get Started →
           </button>
         </div>
       </div>

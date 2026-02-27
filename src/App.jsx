@@ -10,8 +10,13 @@ import NewPatient from './components/NewPatient';
 import Processing from './components/Processing';
 import PatientReport from './components/PatientReport';
 import Settings from './components/Settings';
+import AdminPanel from './components/AdminPanel';
+import PatientProfile from './components/PatientProfile';
+import TeamDashboard from './components/TeamDashboard';
+import TeamManagement from './components/TeamManagement';
 import Topbar from './components/Topbar';
 import { ini } from './lib/utils';
+import { TIER_LABELS, TIER_COLORS, hasTier } from './lib/tiers';
 import './App.css';
 
 // HIPAA: Auto-logout after 15 minutes of inactivity (900 000 ms)
@@ -89,18 +94,53 @@ export default function App() {
       try {
         const { data: profile } = await supabase
           .from('doctor_profiles')
-          .select('full_name, role, initials, clinic_name')
+          .select('full_name, role, initials, clinic_name, subscription_tier, subscription_status')
           .eq('id', supaUser.id)
           .single();
+        const tier   = (profile?.subscription_tier   || 'starter').toLowerCase();
+        const status = (profile?.subscription_status || 'active').toLowerCase();
+        const isAdmin = (profile?.role === 'super_admin') || (supaUser.email === 'mike.castellon5@gmail.com');
+        const finalTier = isAdmin ? 'clinic' : tier;
+
+        // Load team data for Clinic tier users
+        let teamData = null;
+        if (finalTier === 'clinic') {
+          try {
+            const { data: membership } = await supabase
+              .from('team_members')
+              .select('team_id, role')
+              .eq('user_id', supaUser.id)
+              .limit(1)
+              .maybeSingle();
+            if (membership) {
+              const { data: team } = await supabase
+                .from('teams')
+                .select('id, name, owner_id, max_members')
+                .eq('id', membership.team_id)
+                .single();
+              if (team) {
+                teamData = { ...team, userRole: membership.role, maxMembers: team.max_members };
+              }
+            }
+          } catch (teamErr) {
+            console.warn('Team data load failed:', teamErr);
+          }
+        }
+
         return {
-          id:         supaUser.id,
-          name:       profile?.full_name || supaUser.email,
-          role:       profile?.role      || 'Physician',
-          initials:   profile?.initials  || supaUser.email?.[0]?.toUpperCase() || 'DR',
-          clinicName: profile?.clinic_name || '',
+          id:                 supaUser.id,
+          name:               profile?.full_name || supaUser.email,
+          role:               profile?.role      || 'Physician',
+          initials:           profile?.initials  || supaUser.email?.[0]?.toUpperCase() || 'DR',
+          clinicName:         profile?.clinic_name || '',
+          tier:               finalTier,
+          subscriptionStatus: isAdmin ? 'active' : status,
+          isAdmin,
+          team:               teamData,
         };
       } catch {
-        return { id: supaUser.id, name: supaUser.email, role: 'Physician', initials: 'DR', clinicName: '' };
+        const isAdmin = supaUser.email === 'mike.castellon5@gmail.com';
+        return { id: supaUser.id, name: supaUser.email, role: 'Physician', initials: 'DR', clinicName: '', tier: isAdmin ? 'clinic' : 'starter', subscriptionStatus: 'active', isAdmin };
       }
     };
 
@@ -159,6 +199,13 @@ export default function App() {
   };
 
   const handleViewPatient = async (patient) => {
+    // Pro+ users with DB patients go to Patient Profile (history view)
+    if (hasTier(user.tier, 'professional') && user.id !== 'demo' && patient.id && !patient.id.toString().startsWith('demo-')) {
+      setResult({ patient });
+      setView('patient-profile');
+      return;
+    }
+
     // Session patient — has full report data already (just processed)
     if (patient.latestReport?.hrvMarkers || patient.latestReport?.therapeuticSelections) {
       setResult({ patient, report: patient.latestReport });
@@ -202,6 +249,12 @@ export default function App() {
     setView('patient-report');
   };
 
+  // Called from PatientProfile when user clicks a specific report
+  const handleViewReportFromProfile = ({ patient, report }) => {
+    setResult({ patient, report });
+    setView('patient-report');
+  };
+
   if (!user) return <Login onLogin={handleLogin} />;
 
   const isActive = (id) =>
@@ -228,10 +281,32 @@ export default function App() {
         );
       case 'patient-report':
         return result
-          ? <PatientReport patient={result.patient} report={result.report} saveError={result.saveError || null} onBack={() => setView('dashboard')} />
+          ? <PatientReport
+              patient={result.patient}
+              report={result.report}
+              saveError={result.saveError || null}
+              onBack={() => hasTier(user.tier, 'professional') && result?.patient?.id && !result.patient.id.toString().startsWith('demo-') ? setView('patient-profile') : setView('dashboard')}
+              user={user}
+              onViewHistory={hasTier(user.tier, 'professional') ? () => setView('patient-profile') : null}
+            />
           : <div style={{ padding: '32px', color: 'var(--text3)' }}>No report loaded.</div>;
+      case 'patient-profile':
+        return result?.patient
+          ? <PatientProfile
+              patient={result.patient}
+              user={user}
+              onViewReport={handleViewReportFromProfile}
+              onBack={() => setView('dashboard')}
+            />
+          : <div style={{ padding: '32px', color: 'var(--text3)' }}>No patient selected.</div>;
       case 'settings':
         return <Settings user={user} />;
+      case 'team-dashboard':
+        return <TeamDashboard user={user} onView={handleViewPatient} />;
+      case 'team-manage':
+        return <TeamManagement user={user} />;
+      case 'admin':
+        return <AdminPanel user={user} />;
       default:
         return null;
     }
@@ -258,6 +333,13 @@ export default function App() {
           { id: 'dashboard',   icon: '▦', label: 'Dashboard' },
           { id: 'new-patient', icon: '+', label: 'New Patient' },
           { id: 'settings',    icon: '⚙', label: 'Rules & Config' },
+          ...(hasTier(user.tier, 'clinic') ? [
+            { id: 'team-dashboard', icon: '👥', label: 'Team Dashboard' },
+            { id: 'team-manage',    icon: '🏥', label: 'Team Settings' },
+          ] : []),
+          ...(user.isAdmin ? [
+            { id: 'admin', icon: '🛡', label: 'Admin Panel' },
+          ] : []),
         ].map(n => (
           <button
             key={n.id}
@@ -273,6 +355,9 @@ export default function App() {
             <div style={{ flex: 1 }}>
               <div className="u-name">{user.name}</div>
               <div className="u-role">{user.role}</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: TIER_COLORS[user.tier] || '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: '1px' }}>
+                {user.isAdmin ? '⭐ Super Admin' : TIER_LABELS[user.tier] || 'Free'}
+              </div>
             </div>
             <button onClick={handleLogout} title="Sign out"
               style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,.3)', cursor: 'pointer', fontSize: '14px', padding: '4px' }}>

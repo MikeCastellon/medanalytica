@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { fileToBase64 } from '../lib/utils';
+import { hasTier } from '../lib/tiers';
 
 const STEPS = [
   'Uploading screenshots securely…',
@@ -47,24 +48,76 @@ export default function Processing({ user, form, files = [], customRules, onDone
       }
 
       advance(3);
-      // Create patient record in Supabase
-      let patientId = null;
-      if (user.id !== 'demo') {
-        const { data: pat, error: patError } = await supabase.from('patients').insert({
-          doctor_id:  user.id,
-          first_name: form.firstName,
-          last_name:  form.lastName,
-          dob:        form.dob || null,
-          gender:     form.gender || null,
-          mrn:        form.mrn || null,
-          phone:      form.phone || null,
-          notes:      form.notes || null,
-        }).select().single();
-        if (patError) {
-          console.error('Patient insert failed:', patError);
-          saveError = `Patient record could not be created: ${patError.message}`;
+
+      // Starter tier: enforce 50 stored reports limit
+      if (user.id !== 'demo' && user.tier === 'starter') {
+        const { count: reportCount } = await supabase
+          .from('reports')
+          .select('id', { count: 'exact', head: true })
+          .eq('doctor_id', user.id);
+        if (reportCount != null && reportCount >= 50) {
+          throw new Error('REPORT_LIMIT_REACHED');
         }
-        patientId = pat?.id ?? null;
+      }
+
+      // Create or reuse patient record in Supabase
+      let patientId = null;
+      let isReturningPatient = false;
+      if (user.id !== 'demo') {
+        // All tiers: look up existing patient by MRN or name+DOB to accumulate reports
+        try {
+          // Prefer MRN match first (most reliable)
+          if (form.mrn) {
+            const { data: byMrn } = await supabase
+              .from('patients')
+              .select('id')
+              .eq('doctor_id', user.id)
+              .eq('mrn', form.mrn)
+              .limit(1)
+              .maybeSingle();
+            if (byMrn) {
+              patientId = byMrn.id;
+              isReturningPatient = true;
+            }
+          }
+          // Fallback: match by name + DOB
+          if (!patientId && form.firstName && form.lastName && form.dob) {
+            const { data: byName } = await supabase
+              .from('patients')
+              .select('id')
+              .eq('doctor_id', user.id)
+              .eq('first_name', form.firstName)
+              .eq('last_name', form.lastName)
+              .eq('dob', form.dob)
+              .limit(1)
+              .maybeSingle();
+            if (byName) {
+              patientId = byName.id;
+              isReturningPatient = true;
+            }
+          }
+        } catch (lookupErr) {
+          console.warn('Patient lookup failed, will create new:', lookupErr);
+        }
+
+        // Create new patient if none found
+        if (!patientId) {
+          const { data: pat, error: patError } = await supabase.from('patients').insert({
+            doctor_id:  user.id,
+            first_name: form.firstName,
+            last_name:  form.lastName,
+            dob:        form.dob || null,
+            gender:     form.gender || null,
+            mrn:        form.mrn || null,
+            phone:      form.phone || null,
+            notes:      form.notes || null,
+          }).select().single();
+          if (patError) {
+            console.error('Patient insert failed:', patError);
+            saveError = `Patient record could not be created: ${patError.message}`;
+          }
+          patientId = pat?.id ?? null;
+        }
       }
 
       advance(4);
@@ -173,6 +226,13 @@ export default function Processing({ user, form, files = [], customRules, onDone
 
     } catch (err) {
       console.error('Processing error:', err);
+
+      // Starter tier report limit reached
+      if (err.message === 'REPORT_LIMIT_REACHED') {
+        onError?.('You\'ve reached the 50 stored report limit on the Starter plan. Upgrade to Professional or Clinic for unlimited reports.');
+        return;
+      }
+
       // Only fall back to demo mock data in true demo mode or if AI service not configured
       if (user.id === 'demo' || err.message?.includes('not configured') || err.message?.includes('503')) {
         advance(6);

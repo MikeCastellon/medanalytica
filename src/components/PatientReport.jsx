@@ -166,7 +166,7 @@ const HRV_PATTERNS = [
   },
 ];
 
-export default function PatientReport({ patient, report, saveError, onBack, doctorName }) {
+export default function PatientReport({ patient, report, saveError, onBack, doctorName, user, onViewHistory }) {
   const [reportTab, setReportTab] = useState('clinician');
   if (!report) return null;
   const r = report;
@@ -214,6 +214,11 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
             <button key={id} onClick={() => setReportTab(id)} style={{ padding: '7px 16px', fontSize: '12.5px', fontWeight: '600', borderRadius: '6px', border: 'none', cursor: 'pointer', background: reportTab === id ? 'var(--navy)' : 'transparent', color: reportTab === id ? '#fff' : 'var(--text2)', transition: 'all .15s' }}>{label}</button>
           ))}
         </div>
+        {onViewHistory && (
+          <button className="btn btn-nv" style={{ fontSize: '12.5px', padding: '8px 18px', background: 'var(--teal, #0e8a7a)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }} onClick={onViewHistory}>
+            📋 View History
+          </button>
+        )}
         <button className="btn btn-nv" style={{ fontSize: '12.5px', padding: '8px 18px' }} onClick={() => window.print()}>
           ⬇ Export PDF
         </button>
@@ -222,13 +227,27 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       {/* ── CRIS GOLD™ Branded Report Header ── */}
       <div className="report-header" style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderTop: '4px solid #c9a227', borderRadius: '12px', padding: '28px 32px', marginBottom: '16px', color: 'var(--navy)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '24px', boxShadow: '0 2px 8px rgba(10,22,40,.08)' }}>
         <div style={{ flex: 1 }}>
-          {/* Brand line */}
+          {/* Brand line — White label for Clinic tier */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#7a5209', border: '2px solid #c9a227', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>❤</div>
-            <div>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.14em', color: '#7a5209', lineHeight: 1 }}>CRIS GOLD™</div>
-              <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Clinical Report Intelligence System · v1.0</div>
-            </div>
+            {user?.tier === 'clinic' && user?.clinicName ? (
+              <>
+                {(() => { try { const logo = localStorage.getItem('medanalytica_custom_logo'); return logo ? <img src={logo} alt="" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} /> : null; } catch { return null; } })() || (
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#7a5209', border: '2px solid #c9a227', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>🏥</div>
+                )}
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--navy)', lineHeight: 1 }}>{user.clinicName}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Clinical Report · Powered by CRIS GOLD™</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#7a5209', border: '2px solid #c9a227', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>❤</div>
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.14em', color: '#7a5209', lineHeight: 1 }}>CRIS GOLD™</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Clinical Report Intelligence System · v1.0</div>
+                </div>
+              </>
+            )}
             {doctorName && (
               <span style={{ fontSize: '11px', color: 'var(--text2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '20px', padding: '3px 10px', marginLeft: 'auto' }}>
                 Attending: {doctorName}

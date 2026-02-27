@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CrisLogo from './CrisLogo';
 import PublicNav from './PublicNav';
+import CheckoutModal from './CheckoutModal';
 
 /* ─── Inline style tokens matching index.css variables exactly ──────────── */
 const C = {
@@ -28,6 +30,7 @@ const sans   = "'IBM Plex Sans', system-ui, sans-serif";
 export default function LandingPage() {
   const nav = useNavigate();
   const goToDashboard = () => nav('/dashboard');
+  const [checkoutPlan, setCheckoutPlan] = useState(null);
 
   return (
     <div style={{ fontFamily: sans, color: C.text, background: C.white, overflowX: 'hidden' }}>
@@ -442,7 +445,11 @@ export default function LandingPage() {
                 <button
                   className={p.featured ? 'lp-btn-primary' : 'lp-btn-outline'}
                   style={{ width: '100%', justifyContent: 'center' }}
-                  onClick={p.cta === 'Contact Us' ? () => nav('/contact') : goToDashboard}
+                  onClick={
+                    p.cta === 'Contact Us'
+                      ? () => nav('/contact')
+                      : () => setCheckoutPlan(p)
+                  }
                 >
                   {p.cta}
                 </button>
@@ -531,6 +538,11 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* ── Checkout Modal ── */}
+      {checkoutPlan && (
+        <CheckoutModal plan={checkoutPlan} onClose={() => setCheckoutPlan(null)} />
+      )}
     </div>
   );
 }

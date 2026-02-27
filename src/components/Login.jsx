@@ -14,7 +14,7 @@ export default function Login({ onLogin }) {
     try {
       // Demo mode: always allow demo credentials regardless of Supabase config
       if (email === 'doctor@clinic.com' && pass === 'demo1234') {
-        const demoUser = { id: 'demo', name: 'Dr. Sarah Chen', role: 'Chief of Medicine', initials: 'SC' };
+        const demoUser = { id: 'demo', name: 'Dr. Sarah Chen', role: 'Chief of Medicine', initials: 'SC', tier: 'professional', subscriptionStatus: 'active', isAdmin: false };
         sessionStorage.setItem('cris_demo_session', JSON.stringify(demoUser));
         onLogin(demoUser);
         return;
@@ -30,12 +30,18 @@ export default function Login({ onLogin }) {
           .select('*')
           .eq('id', data.user.id)
           .single();
+        const tier   = (profile?.subscription_tier   || 'starter').toLowerCase();
+        const status = (profile?.subscription_status || 'active').toLowerCase();
+        const isAdmin = (profile?.role === 'super_admin') || (data.user.email === 'mike.castellon5@gmail.com');
         onLogin({
           id: data.user.id,
           name: profile?.full_name || data.user.email,
           role: profile?.role || 'Physician',
           initials: profile?.initials || data.user.email?.[0]?.toUpperCase() || 'DR',
           clinicName: profile?.clinic_name || '',
+          tier: isAdmin ? 'clinic' : tier,
+          subscriptionStatus: isAdmin ? 'active' : status,
+          isAdmin,
         });
       } else {
         setErr('Invalid credentials. (Demo: doctor@clinic.com / demo1234)');
