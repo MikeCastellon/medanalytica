@@ -39,7 +39,7 @@ flag_low:  eGFR < 60           => "Reduced kidney function"`;
 export default function Settings({ user }) {
   const [rules, setRules]     = useState(DEFAULT_RULES);
   const [saved, setSaved]     = useState(false);
-  const [profile, setProfile] = useState({ clinicName: '', fullName: '' });
+  const [profile, setProfile] = useState({ clinicName: '', fullName: '', title: '' });
   const [logoUrl, setLogoUrl] = useState(() => localStorage.getItem(LOGO_KEY) || '');
   const [logoSaved, setLogoSaved] = useState(false);
 
@@ -48,7 +48,7 @@ export default function Settings({ user }) {
     const load = async () => {
       const { data } = await supabase.from('doctor_profiles').select('*').eq('id', user.id).single();
       if (data) {
-        setProfile({ clinicName: data.clinic_name || '', fullName: data.full_name || '' });
+        setProfile({ clinicName: data.clinic_name || '', fullName: data.full_name || '', title: data.title || '' });
         if (data.custom_rules) setRules(data.custom_rules);
       }
     };
@@ -62,6 +62,7 @@ export default function Settings({ user }) {
         custom_rules: rules,
         clinic_name:  profile.clinicName,
         full_name:    profile.fullName,
+        title:        profile.title,
       });
     }
     setSaved(true);
@@ -91,12 +92,20 @@ export default function Settings({ user }) {
       </div>
 
       <div className="fc">
-        <div className="fc-hdr"><div className="fc-title">Practice Configuration</div><div className="fc-badge">Optional</div></div>
+        <div className="fc-hdr"><div className="fc-title">Your Profile</div><div className="fc-badge">Required</div></div>
+        <p style={{ fontSize: '13px', color: 'var(--text2)', marginBottom: '14px', lineHeight: '1.7' }}>
+          Your display name and title appear in the sidebar, on reports, and in team views.
+        </p>
         <div className="fg2">
           <div className="fg">
-            <label className="fl">Physician Name</label>
+            <label className="fl">Display Name</label>
             <input className="fi" placeholder="Dr. Sarah Chen" value={profile.fullName}
               onChange={e => setProfile(p => ({ ...p, fullName: e.target.value }))} />
+          </div>
+          <div className="fg">
+            <label className="fl">Professional Title</label>
+            <input className="fi" placeholder="Physician, NP, DO, DC, ND, etc." value={profile.title}
+              onChange={e => setProfile(p => ({ ...p, title: e.target.value }))} />
           </div>
           <div className="fg">
             <label className="fl">Institution / Clinic Name</label>
@@ -104,7 +113,7 @@ export default function Settings({ user }) {
               onChange={e => setProfile(p => ({ ...p, clinicName: e.target.value }))} />
           </div>
         </div>
-        <div className="fa"><button className="btn btn-nv" onClick={save}>Save Configuration</button></div>
+        <div className="fa"><button className="btn btn-nv" onClick={save}>Save Profile</button></div>
       </div>
 
       {/* ── LOGO BRANDING ──────────────────────────────────────────────── */}

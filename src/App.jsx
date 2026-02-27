@@ -130,6 +130,7 @@ export default function App() {
         return {
           id:                 supaUser.id,
           name:               profile?.full_name || supaUser.email,
+          title:              profile?.title     || '',
           role:               profile?.role      || 'Physician',
           initials:           profile?.initials  || supaUser.email?.[0]?.toUpperCase() || 'DR',
           clinicName:         profile?.clinic_name || '',
@@ -352,9 +353,9 @@ export default function App() {
         <div className="sb-bot">
           <div className="u-chip">
             <div className="u-av">{ini(user.name)}</div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div className="u-name">{user.name}</div>
-              <div className="u-role">{user.role}</div>
+              <div className="u-role">{user.title || (user.role === 'super_admin' ? 'Administrator' : 'Physician')}</div>
               <div style={{ fontSize: '10px', fontWeight: 700, color: TIER_COLORS[user.tier] || '#9ca3af', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: '1px' }}>
                 {user.isAdmin ? '⭐ Super Admin' : TIER_LABELS[user.tier] || 'Free'}
               </div>
