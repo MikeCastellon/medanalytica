@@ -43,7 +43,7 @@ export default function AdminPanel({ user }) {
   const [msgType, setMsgType] = useState('success');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateUser, setShowCreateUser] = useState(false);
-  const [newUser, setNewUser] = useState({ email: '', password: '', fullName: '', clinicName: '', tier: 'starter', role: 'Physician' });
+  const [newUser, setNewUser] = useState({ email: '', password: '', fullName: '', clinicName: '', tier: 'none', role: 'Physician' });
   const [creating, setCreating] = useState(false);
   const [selectedClinic, setSelectedClinic] = useState('all');
 
@@ -512,6 +512,7 @@ export default function AdminPanel({ user }) {
                       <select value={newUser.tier}
                         onChange={e => setNewUser(u => ({ ...u, tier: e.target.value }))}
                         style={formInputStyle}>
+                        <option value="none">No Subscription</option>
                         <option value="starter">Starter ($97/mo)</option>
                         <option value="professional">Professional ($197/mo)</option>
                         <option value="clinic">Clinic ($497/mo)</option>
