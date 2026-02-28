@@ -10,6 +10,7 @@ import {
   BRAIN_GAUGE_METRICS,
 } from '../lib/utils';
 import { MASTER_PROTOCOL_LIST } from '../lib/protocols';
+import { CHAVITA_DESCRIPTIONS, EMVITA_DESCRIPTIONS } from '../lib/rubimed';
 import Badge from './Badge';
 
 // ── PSE: 28 Emvita Conflict Definitions (VERBATIM from Rubimed Practitioner Guide by Dr. Reimar Banis) ──
@@ -916,10 +917,51 @@ function BrainGaugeCard({ brainGauge, summary }) {
   );
 }
 
+/* ── Expandable Text — "Read more / Read less" toggle ────────────────────── */
+function ExpandableText({ subtitle, description, previewLength = 120 }) {
+  const [expanded, setExpanded] = useState(false);
+  const full = [subtitle, description].filter(Boolean).join(' ');
+  const needsToggle = full.length > previewLength;
+
+  return (
+    <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75' }}>
+      {subtitle && (
+        <div style={{ fontWeight: '600', fontStyle: 'italic', marginBottom: expanded ? '6px' : '0', color: 'var(--navy)' }}>
+          {subtitle}
+        </div>
+      )}
+      {expanded ? (
+        <div style={{ marginTop: subtitle ? '0' : undefined }}>{description}</div>
+      ) : (
+        !subtitle && <span>{full.slice(0, previewLength)}{needsToggle ? '...' : ''}</span>
+      )}
+      {needsToggle && (
+        <button
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--blue)', fontWeight: '600', fontSize: '11.5px',
+            padding: '2px 0', marginLeft: expanded ? '0' : '4px',
+            marginTop: expanded ? '4px' : '0', display: expanded ? 'block' : 'inline',
+            textDecoration: 'none',
+          }}
+          onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+          onMouseLeave={e => e.target.style.textDecoration = 'none'}
+        >
+          {expanded ? '▲ Read less' : '▼ Read more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ── Psychosomatic Energetics — Rubimed Card (PSE Guide verbatim) ─────────── */
 function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRemedies, acuteRemedyTexts }) {
   const chavitaInfo = chavita ? CHAVITA_CHAKRAS[chavita] : null;
   const emvitaInfo  = emvita  ? EMVITA_CONFLICTS[emvita]  : null;
+  // Full descriptions from rubimed.js (longer + subtitles)
+  const chavitaFull = chavita ? CHAVITA_DESCRIPTIONS[chavita] : null;
+  const emvitaFull  = emvita  ? EMVITA_DESCRIPTIONS[emvita]  : null;
   const chakraColor = chavitaInfo?.color || 'var(--teal)';
 
   return (
@@ -957,7 +999,9 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
                     <div style={{ fontWeight: '600', color: 'var(--navy)' }}>Chakra {chavita}: {CHAVITA_CHAKRAS[chavita].name}</div>
                     <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Chakra Remedy · {method || 'Questionnaire'}</div>
                   </td>
-                  <td style={{ padding: '10px 12px', color: 'var(--text2)', lineHeight: '1.6', verticalAlign: 'top', fontSize: '12px' }}>{CHAVITA_CHAKRAS[chavita].description}</td>
+                  <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
+                    <ExpandableText subtitle={chavitaFull?.theme} description={chavitaFull?.description || CHAVITA_CHAKRAS[chavita].description} previewLength={100} />
+                  </td>
                 </tr>
               )}
               {emvita && EMVITA_CONFLICTS[emvita] && (
@@ -967,7 +1011,9 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
                     <div style={{ fontWeight: '600', color: 'var(--navy)' }}>Conflict: {EMVITA_CONFLICTS[emvita].name}</div>
                     <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Chakra {EMVITA_CONFLICTS[emvita].chakra} pattern · Emotional Conflict</div>
                   </td>
-                  <td style={{ padding: '10px 12px', color: 'var(--text2)', lineHeight: '1.6', verticalAlign: 'top', fontSize: '12px' }}>{EMVITA_CONFLICTS[emvita].description}</td>
+                  <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
+                    <ExpandableText subtitle={emvitaFull?.subtitle} description={emvitaFull?.description || EMVITA_CONFLICTS[emvita].description} previewLength={100} />
+                  </td>
                 </tr>
               )}
               {acuteRemedies?.map((remedy, i) => (
@@ -1005,15 +1051,8 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
               </div>
             </div>
             <div style={{ background: 'var(--bg3)', padding: '12px 14px' }}>
-              {chavitaInfo && (
-                <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75', marginBottom: '8px' }}>
-                  {chavitaInfo.description}
-                </div>
-              )}
-              {chavitaText && chavitaText !== chavitaInfo?.description && (
-                <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75', borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '4px' }}>
-                  {chavitaText}
-                </div>
+              {chavitaFull && (
+                <ExpandableText subtitle={chavitaFull.theme} description={chavitaFull.description} previewLength={140} />
               )}
             </div>
           </div>
@@ -1032,15 +1071,8 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
               </div>
             </div>
             <div style={{ background: 'var(--bg3)', padding: '12px 14px' }}>
-              {emvitaInfo && (
-                <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75', marginBottom: '8px' }}>
-                  {emvitaInfo.description}
-                </div>
-              )}
-              {emvitaText && emvitaText !== emvitaInfo?.description && (
-                <div style={{ fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75', borderTop: '1px solid var(--border)', paddingTop: '8px', marginTop: '4px' }}>
-                  {emvitaText}
-                </div>
+              {emvitaFull && (
+                <ExpandableText subtitle={emvitaFull.subtitle} description={emvitaFull.description} previewLength={140} />
               )}
             </div>
           </div>
