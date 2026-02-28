@@ -105,9 +105,6 @@ export default function Login({ onLogin }) {
           <button className="btn-login" onClick={go} disabled={loading}>
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
-          <div className="demo-hint">
-            <strong>Demo mode:</strong> doctor@clinic.com &nbsp;/&nbsp; demo1234
-          </div>
         </div>
       </div>
     </div>

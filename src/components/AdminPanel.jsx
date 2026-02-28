@@ -55,13 +55,18 @@ export default function AdminPanel({ user }) {
     setLoading(true);
     const [docRes, patRes, repRes, teamRes, tmRes] = await Promise.all([
       supabase.from('doctor_profiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('patients').select('id, name, dob, mrn, doctor_id, created_at').order('created_at', { ascending: false }),
+      supabase.from('patients').select('id, first_name, last_name, dob, mrn, doctor_id, created_at').order('created_at', { ascending: false }),
       supabase.from('reports').select('id, patient_id, doctor_id, created_at').order('created_at', { ascending: false }),
       supabase.from('teams').select('*').order('created_at', { ascending: false }),
       supabase.from('team_members').select('*'),
     ]);
+    if (docRes.error) console.error('AdminPanel: doctor_profiles error:', docRes.error);
+    if (patRes.error) console.error('AdminPanel: patients error:', patRes.error);
+    if (tmRes.error) console.warn('AdminPanel: team_members error (non-fatal):', tmRes.error);
+    // Map patient names for display
+    const pats = (patRes.data || []).map(p => ({ ...p, name: [p.first_name, p.last_name].filter(Boolean).join(' ') || '—' }));
     setDoctors(docRes.data || []);
-    setPatients(patRes.data || []);
+    setPatients(pats);
     setReports(repRes.data || []);
     setTeams(teamRes.data || []);
     setTeamMembers(tmRes.data || []);

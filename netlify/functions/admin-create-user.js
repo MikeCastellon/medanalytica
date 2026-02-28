@@ -89,26 +89,25 @@ export default async (req) => {
     return new Response(JSON.stringify({ error: createError.message }), { status: 400 });
   }
 
-  // ── Update doctor_profiles (auto-created by trigger, update tier/role/clinic) ──
-  // Small delay to let the trigger fire
-  await new Promise(r => setTimeout(r, 500));
+  // ── Upsert doctor_profiles (don't rely on trigger timing) ──
+  const profileData = {
+    id: newUser.user.id,
+    full_name: fullName || 'Doctor',
+    clinic_name: clinicName || null,
+    role: role || 'Physician',
+    subscription_tier: tier || 'starter',
+    subscription_status: 'active',
+    billing_email: email,
+    initials: (fullName || 'DR').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2),
+  };
 
-  const { error: updateError } = await supabaseAdmin
+  const { error: upsertError } = await supabaseAdmin
     .from('doctor_profiles')
-    .update({
-      full_name: fullName || 'Doctor',
-      clinic_name: clinicName || null,
-      role: role || 'Physician',
-      subscription_tier: tier || 'starter',
-      subscription_status: 'active',
-      billing_email: email,
-      initials: (fullName || 'DR').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2),
-    })
-    .eq('id', newUser.user.id);
+    .upsert(profileData, { onConflict: 'id' });
 
-  if (updateError) {
-    console.error('Profile update error:', updateError);
-    // User was created but profile update failed — not fatal
+  if (upsertError) {
+    console.error('Profile upsert error:', upsertError);
+    // User was created in auth but profile failed — log it
   }
 
   return new Response(JSON.stringify({

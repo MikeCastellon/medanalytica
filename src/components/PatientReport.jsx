@@ -920,7 +920,8 @@ function BrainGaugeCard({ brainGauge, summary }) {
 /* ── Expandable Text — "Read more / Read less" toggle ────────────────────── */
 function ExpandableText({ subtitle, description, previewLength = 120 }) {
   const [expanded, setExpanded] = useState(false);
-  const full = [subtitle, description].filter(Boolean).join(' ');
+  const previewBody = description || '';
+  const full = [subtitle, previewBody].filter(Boolean).join(' ');
   const needsToggle = full.length > previewLength;
 
   return (
@@ -931,9 +932,9 @@ function ExpandableText({ subtitle, description, previewLength = 120 }) {
         </div>
       )}
       {expanded ? (
-        <div style={{ marginTop: subtitle ? '0' : undefined }}>{description}</div>
+        <div style={{ marginTop: subtitle ? '0' : undefined }}>{previewBody}</div>
       ) : (
-        !subtitle && <span>{full.slice(0, previewLength)}{needsToggle ? '...' : ''}</span>
+        <span>{full.slice(0, previewLength)}{needsToggle ? '...' : ''}</span>
       )}
       {needsToggle && (
         <button
@@ -962,6 +963,8 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
   // Full descriptions from rubimed.js (longer + subtitles)
   const chavitaFull = chavita ? CHAVITA_DESCRIPTIONS[chavita] : null;
   const emvitaFull  = emvita  ? EMVITA_DESCRIPTIONS[emvita]  : null;
+  const resolvedChavitaText = chavitaFull?.description || chavitaText || CHAVITA_CHAKRAS[chavita]?.description;
+  const resolvedEmvitaText = emvitaFull?.description || emvitaText || EMVITA_CONFLICTS[emvita]?.description;
   const chakraColor = chavitaInfo?.color || 'var(--teal)';
 
   return (
@@ -1000,7 +1003,7 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
                     <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Chakra Remedy · {method || 'Questionnaire'}</div>
                   </td>
                   <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
-                    <ExpandableText subtitle={chavitaFull?.theme} description={chavitaFull?.description || CHAVITA_CHAKRAS[chavita].description} previewLength={100} />
+                    <ExpandableText subtitle={chavitaFull?.theme} description={resolvedChavitaText} previewLength={100} />
                   </td>
                 </tr>
               )}
@@ -1012,7 +1015,7 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
                     <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Chakra {EMVITA_CONFLICTS[emvita].chakra} pattern · Emotional Conflict</div>
                   </td>
                   <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
-                    <ExpandableText subtitle={emvitaFull?.subtitle} description={emvitaFull?.description || EMVITA_CONFLICTS[emvita].description} previewLength={100} />
+                    <ExpandableText subtitle={emvitaFull?.subtitle} description={resolvedEmvitaText} previewLength={100} />
                   </td>
                 </tr>
               )}
@@ -1051,8 +1054,8 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
               </div>
             </div>
             <div style={{ background: 'var(--bg3)', padding: '12px 14px' }}>
-              {chavitaFull && (
-                <ExpandableText subtitle={chavitaFull.theme} description={chavitaFull.description} previewLength={140} />
+              {chavita && (
+                <ExpandableText subtitle={chavitaFull?.theme} description={resolvedChavitaText} previewLength={140} />
               )}
             </div>
           </div>
@@ -1071,8 +1074,8 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
               </div>
             </div>
             <div style={{ background: 'var(--bg3)', padding: '12px 14px' }}>
-              {emvitaFull && (
-                <ExpandableText subtitle={emvitaFull.subtitle} description={emvitaFull.description} previewLength={140} />
+              {emvita && (
+                <ExpandableText subtitle={emvitaFull?.subtitle} description={resolvedEmvitaText} previewLength={140} />
               )}
             </div>
           </div>

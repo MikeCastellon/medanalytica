@@ -60,13 +60,13 @@ export const EMVITA_DESCRIPTIONS = {
     name: 'Independence',
     chakra: 1,
     subtitle: 'A feeling of "not being good enough", feelings of inferiority, disrupted basic trust, often puberty conflicts.',
-    description: 'One feels not good enough, has identity problems. Primary emotional orientation, in the sense of sufficient self-confidence is lacking. Basic trust has been lost or was never there. A frequent tendency to melancholy. The world is experienced as threatening and unreliable.',
+    description: 'One feels not good enough, has identity problems. Primary emotional orientation, in the sense of sufficient self-confidence is lacking. Basic trust has been lost or was never there. A frequent tendency to melancholy. The world is experienced as bad. Frequent among children with early-childhood shocks such as divorce, death of a parent, neglect, unplanned child. An unhappy childhood, when, for example, a daughter was born when the parents were actually hoping for a son and heir. A lack of inner strength with which to deal with externally-imposed stresses. Incapable of perceiving one\'s own strength. One feels smaller than one is and has a tendency to close oneself off from others and not to enter into meaningful relationships.',
   },
   2: {
     name: 'Lack of Concentration',
     chakra: 1,
     subtitle: 'Easily distracted, unable to concentrate, unfocused, daydreaming.',
-    description: 'One has difficulty staying focused and centered. The mind wanders easily and one is constantly distracted. There is a lack of grounding that makes sustained mental effort difficult. One tends to daydream and lose track of what one is doing.',
+    description: 'The person affected yearns to be somewhere else entirely. One is not really here, doesn\'t know one\'s purpose in life. This conflict also applies in the case of an inner resistance, of unwillingly having to be in this world. One lives one\'s life halfheartedly, lacking complete conviction. One doesn\'t trust oneself to show one\'s capabilities. In stress situations and when one\'s abilities and strengths would be put to the test, one tends to retreat. Inclination to postpone things or do them reluctantly. A person like this often feels unapproachable and flat in human encounters. One is not aware of one\'s strengths. Only a fraction of one\'s inner possibilities are realized. Deep inside, one is stubbornly stuck in a kind of passive resistance.',
   },
   3: {
     name: 'At the Mercy of, Helpless',
@@ -90,7 +90,7 @@ export const EMVITA_DESCRIPTIONS = {
     name: 'Perseverance',
     chakra: 2,
     subtitle: 'Wanting to be self-controlled and show no weakness despite a feeling of helplessness; tendency to express anxiety through physical symptoms.',
-    description: 'Tendency to clothe anxiety in physical symptoms. One tries to maintain control and show no weakness despite deep helplessness. The perseverance pattern masks underlying fear and vulnerability with stoic endurance.',
+    description: 'Tendency to clothe anxiety in physical symptoms (somatization). From the outside, one seems calm and controlled, yet is apprehensive inside. One worries about inner security, but does not want to admit it. One must act strong and courageous toward oneself and others. Feeling of constant overexertion, despite basically feeling much weaker and constantly exceeding one\'s limits. One is incapable of saying no to new demands, and therefore winds up being saddled with more than one can manage. One is too weak to get rid of the overload and grant oneself the necessary rest and relaxation. One is convinced of only being loved and appreciated when one fulfills one\'s duties. One believes that only strong and capable persons have any right to live. Showing weakness and being disheartened means having no right to live.',
   },
   7: {
     name: 'Show of Strength, Stubborn',
@@ -144,7 +144,7 @@ export const EMVITA_DESCRIPTIONS = {
     name: 'Apprehensive',
     chakra: 4,
     subtitle: 'Eerie-frightful, abandoned, extremely anxious, phobias, woebegone and full of sorrow.',
-    description: 'One feels abandoned and extremely anxious. The world feels eerie and frightful. Phobias and deep sorrow dominate the emotional landscape. One is full of apprehension about the future and feels woebegone, as if left alone to face overwhelming threats.',
+    description: 'One feels abandoned in a threatening-feeling world. Deep inside, one feels timorous and would desperately like to slink away. The threat can consist of a great worry which goes too much to heart and whose consequences cripple self-initiative. Because of one\'s weakness, one thinks that the heart might stop beating at any moment. One is uptight and constantly under tension. There is a very fundamental fear that can be directed at real objects, and yet is also experienced diffusely and quite generally. In this context, many people develop a fear of fear, which can be seen as a kind of emotional "echo" with an amplifying effect.',
   },
   16: {
     name: 'Panic',
@@ -168,7 +168,7 @@ export const EMVITA_DESCRIPTIONS = {
     name: 'Timid, Faint-hearted',
     chakra: 6,
     subtitle: 'Not wanting to see things clearly, diplomatic, undecided, poor decision-making ability; fear of making a mistake, unwilling to see things clearly.',
-    description: 'The actual underlying causes of indecisiveness are, one, the fear of making mistakes and, two, the hope that there might be a better option. Maneuvering and indecision dominate. One avoids clear positions and commitments out of fear that any decision could be wrong.',
+    description: 'The actual underlying causes of indecisiveness are, one, the fear of making mistakes and, two, the hope that there might be a better option. Maneuvering and indecision are based on the inability to weigh with a clear view the advantages of various possibilities relative to each other. One timidly attempts to do right by everyone and avoid any confrontation. One expends a lot of effort to behave diplomatically, while not noticing that one is suppressing one\'s own impulses and desires. One goes around in circles without making any real progress.',
   },
   20: {
     name: 'Self-sufficient',
@@ -198,7 +198,7 @@ export const EMVITA_DESCRIPTIONS = {
     name: 'Uneasiness, Discomfort',
     chakra: 6,
     subtitle: 'Disturbing malaise on the somatic level, hopelessness, depressive tendency.',
-    description: 'One feels unwell in one\'s own body, as if having to wear the wrong clothing, uncomfortable and annoying, which pinches and presses everywhere. The body is felt to be the source of indisposition, and in the extreme case, even of pain and suffering. There can be all manner of possible disruptive discomforts, such as feeling that the head or hands are too large, the neck muscles way too heavy, or the spinal column deformed. The prevailing mood varies from hopelessness all the way to distinct depression. One feels unbalanced, since everything is unpleasant and most of the body hurts. Due to the predominant somatic symptoms, the underlying depressive basic mood is often overlooked.',
+    description: 'One feels unwell in one\'s own body, as if having to wear the wrong clothing, uncomfortable and annoying, which pinches and presses everywhere. The body is felt to be the source of indisposition, and in the extreme case, even of pain and suffering. There can be all manner of possible disruptive discomforts, such as feeling that the head or hands are too large, the neck muscles way too heavy, or the spinal column deformed. The prevailing mood varies from hopelessness all the way to distinct depression. One feels unbalanced, since everything is unpleasant and most of the body hurts. Due to the predominant somatic symptoms, the underlying depressive basic mood is often overlooked. Nevertheless, it is the psychological malaise that generates the physiological symptoms. The basis of the discomfort is a deep-seated feeling of emotional frustration. One is dissatisfied or even hopeless. Deep inside, one feels unloved or even unlovable.',
   },
   25: {
     name: 'Mistrust',
