@@ -12,18 +12,22 @@ export default function Login({ onLogin }) {
     setErr('');
     setLoading(true);
     try {
-      // Demo mode: always allow demo credentials regardless of Supabase config
-      if (email === 'doctor@clinic.com' && pass === 'demo1234') {
-        const demoUser = { id: 'demo', name: 'Dr. Sarah Chen', role: 'Chief of Medicine', initials: 'SC', tier: 'professional', subscriptionStatus: 'active', isAdmin: false };
-        sessionStorage.setItem('cris_demo_session', JSON.stringify(demoUser));
-        onLogin(demoUser);
-        return;
-      }
+      const isDemo = email === 'doctor@clinic.com' && pass === 'demo1234';
+      const hasSupabase = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co';
 
-      // Try Supabase auth for real accounts
-      if (import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_URL !== 'https://placeholder.supabase.co') {
+      // Try Supabase auth for all accounts (including demo)
+      if (hasSupabase) {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+
+        // If demo creds fail Supabase (user not created yet), fall back to mock
+        if (error && isDemo) {
+          const demoUser = { id: 'demo', name: 'Dr. Sarah Chen', role: 'Chief of Medicine', initials: 'SC', tier: 'professional', subscriptionStatus: 'active', isAdmin: false };
+          sessionStorage.setItem('cris_demo_session', JSON.stringify(demoUser));
+          onLogin(demoUser);
+          return;
+        }
         if (error) { setErr(error.message); return; }
+
         // Fetch doctor profile
         const { data: profile } = await supabase
           .from('doctor_profiles')
@@ -36,6 +40,7 @@ export default function Login({ onLogin }) {
         onLogin({
           id: data.user.id,
           name: profile?.full_name || data.user.email,
+          title: profile?.title || '',
           role: profile?.role || 'Physician',
           initials: profile?.initials || data.user.email?.[0]?.toUpperCase() || 'DR',
           clinicName: profile?.clinic_name || '',
@@ -43,6 +48,11 @@ export default function Login({ onLogin }) {
           subscriptionStatus: isAdmin ? 'active' : status,
           isAdmin,
         });
+      } else if (isDemo) {
+        // No Supabase configured — pure offline demo mode
+        const demoUser = { id: 'demo', name: 'Dr. Sarah Chen', role: 'Chief of Medicine', initials: 'SC', tier: 'professional', subscriptionStatus: 'active', isAdmin: false };
+        sessionStorage.setItem('cris_demo_session', JSON.stringify(demoUser));
+        onLogin(demoUser);
       } else {
         setErr('Invalid credentials. (Demo: doctor@clinic.com / demo1234)');
       }
