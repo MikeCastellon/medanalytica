@@ -155,7 +155,17 @@ export default function Processing({ user, form, files = [], customRules, onDone
         }),
       });
 
-      const json = await res.json();
+      let json;
+      try {
+        json = await res.json();
+      } catch (parseErr) {
+        // Function returned non-JSON (HTML error page = timeout/crash)
+        throw new Error(
+          res.status === 502 || res.status === 504
+            ? 'The AI analysis timed out. Try uploading fewer screenshots or try again.'
+            : `Server error (${res.status}). The analysis function may have crashed or timed out.`
+        );
+      }
       if (!json.success) throw new Error(json.error || 'Analysis failed');
       const aiData = json.data;
 

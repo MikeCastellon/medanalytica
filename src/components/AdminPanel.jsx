@@ -132,7 +132,14 @@ export default function AdminPanel({ user }) {
           role: newUser.role,
         }),
       });
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        showMsg(`Server error (${res.status}). Check that SUPABASE_SERVICE_ROLE_KEY is set in Netlify env vars.`, 'error');
+        setCreating(false);
+        return;
+      }
       if (!res.ok) {
         showMsg(data.error || 'Failed to create user', 'error');
       } else {
