@@ -6,6 +6,7 @@ import App from './App.jsx';
 import LandingPage from './components/LandingPage.jsx';
 import ContactPage from './components/ContactPage.jsx';
 import PlansPage from './components/PlansPage.jsx';
+import ResetPassword from './components/ResetPassword.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -16,6 +17,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/plans" element={<PlansPage />} />
         <Route path="/get-started" element={<PlansPage />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         {/* Authenticated platform — all /dashboard/* handled by App internally */}
         <Route path="/dashboard" element={<App />} />
         <Route path="/dashboard/*" element={<App />} />

@@ -159,6 +159,31 @@ export default function AdminPanel({ user }) {
     setCreating(false);
   };
 
+  const handleDeleteUser = async (doc) => {
+    const confirmed = window.confirm(`Delete user "${doc.full_name || doc.billing_email || doc.id}"?\n\nThis will permanently remove their account, profile, and all data. This cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/.netlify/functions/admin-delete-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userId: doc.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showMsg(data.error || 'Failed to delete user', 'error');
+      } else {
+        showMsg('User deleted successfully');
+        await loadAll();
+      }
+    } catch (err) {
+      showMsg(`Error: ${err.message}`, 'error');
+    }
+  };
+
   const statusColor = (status) => {
     switch (status) {
       case 'active': return C.green;
@@ -459,10 +484,16 @@ export default function AdminPanel({ user }) {
                               </button>
                             </div>
                           ) : (
-                            <button onClick={() => startEdit(doc)}
-                              style={{ ...btnStyle, background: C.bg2, color: C.blue, border: `1px solid ${C.border}` }}>
-                              ✏️ Edit
-                            </button>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <button onClick={() => startEdit(doc)}
+                                style={{ ...btnStyle, background: C.bg2, color: C.blue, border: `1px solid ${C.border}` }}>
+                                ✏️ Edit
+                              </button>
+                              <button onClick={() => handleDeleteUser(doc)}
+                                style={{ ...btnStyle, background: C.bg2, color: C.red, border: `1px solid ${C.border}` }}>
+                                🗑
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>

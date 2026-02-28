@@ -270,7 +270,7 @@ export default function PlansPage() {
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '28px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: 28, marginBottom: 10 }}>📞</div>
             <h4 style={{ fontSize: 15, fontWeight: 700, color: C.navy, marginBottom: 6 }}>Call Us</h4>
-            <p style={{ fontSize: 13.5, color: C.text2, marginBottom: 4 }}>(555) 800-2024</p>
+            <p style={{ fontSize: 13.5, color: C.text2, marginBottom: 4 }}>+1 (415) 646-6112</p>
             <p style={{ fontSize: 12, color: C.text3 }}>Mon – Fri, 9am – 5pm EST</p>
           </div>
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: '28px 24px', textAlign: 'center' }}>

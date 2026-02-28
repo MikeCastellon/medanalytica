@@ -145,7 +145,7 @@ export default function ContactPage() {
                 <div style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>📞</div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, marginBottom: 3 }}>Phone</div>
-                  <div style={{ fontSize: 14, color: C.text2 }}>(555) 800-2024</div>
+                  <div style={{ fontSize: 14, color: C.text2 }}>+1 (415) 646-6112</div>
                   <div style={{ fontSize: 12, color: C.text3, marginTop: 2 }}>Mon – Fri, 9am – 5pm EST</div>
                 </div>
               </div>

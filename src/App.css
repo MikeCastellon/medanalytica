@@ -22,8 +22,9 @@
 .lf-title { font-family: 'Libre Baskerville', serif; font-size: 26px; color: var(--navy); margin-bottom: 6px; }
 .lf-sub { font-size: 14px; color: var(--text2); margin-bottom: 36px; }
 .l-err { background: var(--red-lt); border: 1px solid rgba(192,57,43,.2); border-radius: 8px; padding: 10px 14px; color: var(--red); font-size: 13px; margin-bottom: 18px; }
-.demo-hint { margin-top: 20px; font-size: 12px; color: var(--text3); text-align: center; padding: 12px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
-.demo-hint strong { color: var(--text2); }
+.l-msg { background: rgba(14,138,122,.08); border: 1px solid rgba(14,138,122,.2); border-radius: 8px; padding: 10px 14px; color: var(--teal); font-size: 13px; margin-bottom: 18px; }
+.btn-forgot { display: block; margin: 16px auto 0; background: none; border: none; color: var(--blue); font-size: 13px; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; padding: 4px 8px; transition: color .15s; }
+.btn-forgot:hover { color: var(--navy); text-decoration: underline; }
 
 /* ── Layout ── */
 .app-layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
