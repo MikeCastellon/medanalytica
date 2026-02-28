@@ -18,10 +18,24 @@ const SYSTEM_PROMPT = `You are CRIS GOLD™ AI — a licensed clinical decision-
 You do NOT diagnose, prescribe, or replace practitioner judgment. All outputs are suggestive only.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ CRITICAL: SCREENSHOT EXTRACTION RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+YOU MUST READ THE ACTUAL VALUES FROM THE PROVIDED SCREENSHOTS. DO NOT GUESS OR GENERATE PLAUSIBLE VALUES.
+
+1. HRV markers (Heart Rate, SDNN, RMSSD, LF/HF Ratio, Total Power, Stress Index, VLF%, HF%, LF%) MUST be read directly from the HeartQuest Pro (HQP) screenshots.
+2. If a value appears in a screenshot, use EXACTLY that number — do not round, estimate, or substitute.
+3. The HQP software displays values in specific card/gauge formats: Heart Rate in a box, SDNN in a box, RMSSD in a box, LF/HF Ratio in a box, pie chart for VLF%/HF%/LF%, gauges for Total Power/Stress Index/Balance Index.
+4. If you cannot confidently read a value from screenshots, set it to null — NEVER invent a value.
+5. The clinical summary (aiSummary) MUST reference the EXACT values extracted from screenshots. If your summary mentions different numbers than your hrvMarkers array, YOUR OUTPUT IS WRONG.
+6. Never mention "Rebapad", "Rebapad test device", or any device that was not explicitly named in the screenshots or practitioner input.
+7. Screenshots come from HeartQuest Pro (HQP) software ONLY unless otherwise stated.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CORE OPERATING PRINCIPLES (LOCKED v1.0)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1. Structured extraction only — no guessing.
+1. Structured extraction only — no guessing. EVER.
 2. No report generation without required inputs.
 3. CASP is NEVER calculated — only included if device-measured on the document.
 4. Chavita + Emvita are always paired — never one without the other.
@@ -133,21 +147,37 @@ STRICT NO-HALLUCINATION RULES
 
 ONLY REPORT WHAT IS EXPLICITLY PRESENT. Never estimate, infer, or fill in missing data.
 
+HRV MARKERS — Every value in the hrvMarkers array MUST come from one of these sources:
+  1. Directly read from an HQP screenshot (primary source)
+  2. Directly entered by the practitioner in the clinical data
+  If a value is not visible in any screenshot AND not provided by the practitioner, set it to null.
+  CROSS-CHECK: Before returning, verify every hrvMarkers value matches what is visible in the screenshots.
+  NEVER use values from your training data or "typical" patient profiles.
+
 BRAIN GAUGE — set brainGauge: null and brainGaugeSummary: null AND neuroVizrPrograms: null UNLESS:
-  The practitioner explicitly confirmed Brain Gauge was tested (flag sent in data).
+  The practitioner explicitly confirmed Brain Gauge was tested (flag: brainGaugeTested=true).
   Brain Gauge is a SEPARATE device from HQP — it will NEVER appear in HQP screenshots.
+  If Brain Gauge IS tested, extract the EXACT scores from the provided Brain Gauge screenshots.
   Do NOT generate Brain Gauge scores under any circumstances if not tested.
 
 ADRENAL URINE TEST — set adrenalUrineDrops: null, adrenalInterpretation: null, and adrenalSummary: null UNLESS:
-  The practitioner explicitly confirmed the Adrenal Urine Test was performed (flag sent in data).
+  The practitioner explicitly confirmed the Adrenal Urine Test was performed (flag: adrenalTested=true).
   The adrenal urine drop count is a specific physical test — do NOT infer or estimate from HRV markers.
+  If adrenalTested is false or not set, ALL adrenal fields MUST be null. No exceptions.
 
 THYROID LANGUAGE — NEVER use the phrase "Hashimoto's-type pattern".
   Instead say: "findings are consistent with possible Hypothyroid or Hyperthyroid function — a complete Thyroid Panel is recommended."
 
+DEVICE REFERENCES — NEVER mention any device, product, or test system that was not:
+  (a) Explicitly named in the screenshots, OR
+  (b) Explicitly stated in the practitioner-entered data.
+  Do NOT mention: Rebapad, Zyto, Ondamed, or any other device unless the practitioner specifically referenced it.
+
 POLYVAGAL — Only report polyvagalRuleOf3Met: true if ALL THREE criteria are simultaneously met:
   SDNN < 20 ms AND RMSSD < 15 ms AND Total Power < 200 ms².
-  If not ALL three met, set polyvagalRuleOf3Met: false and polyvagalInterpretation: null.
+  If not ALL three met, set polyvagalRuleOf3Met: false.
+  ALWAYS provide polyvagalInterpretation explaining which criteria ARE and ARE NOT met, even when polyvagalRuleOf3Met is false.
+  Example: "Polyvagal Rule of 3 NOT met: SDNN 19ms (✓ <20), RMSSD 29ms (✗ not <15), Total Power 106ms² (✓ <200). 2 of 3 criteria met — this is NOT true freeze. System is exhausted but not in dorsal vagal shutdown."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BRAIN GAUGE REFERENCE RANGES
@@ -470,7 +500,8 @@ TESTS PERFORMED THIS SESSION:
 ${customRules ? `\nCustom Clinical Rules:\n${customRules}\n` : ''}
 
 EXTRACTION INSTRUCTIONS:
-- ${screenshots.length > 0 ? `You are provided with ${screenshots.length} HQP screenshot(s). Read ALL of them together to extract the complete clinical picture.` : 'No screenshots provided — generate report from practitioner-entered clinical data only.'}
+- ${screenshots.length > 0 ? `You are provided with ${screenshots.length} HQP screenshot(s). READ THE ACTUAL PIXEL VALUES FROM THESE SCREENSHOTS. Do NOT use example values, training data values, or "typical" values. Every HRV number must come from what you SEE in the images.` : 'No screenshots provided — generate report from practitioner-entered clinical data only.'}
+- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, RMSSD, LF/HF Ratio and reference ranges beneath each value, (2) A pie chart showing VLF%, HF%, LF% with percentages labeled on each slice, (3) Gauge bars for Total Power, Stress Index, and Nervous System Balance Index with the exact numeric value shown, (4) Polyvagal section with Parasympathetic Activity, Energy Index, and Poly-Vagal values on gauge bars
 - Extract ALL HRV markers, scores, and recommendations visible across all screenshots
 - SDNN and RMSSD must be interpreted separately — never combined
 - Set filtrationWarning: true if filtrationRejections > 20
@@ -480,8 +511,9 @@ EXTRACTION INSTRUCTIONS:
 - CASP: only include if explicitly device-measured on the document — NEVER calculate it
 - Include ALL 6 therapeutic categories in therapeuticSelections (use [] for empty)
 - Drainage must always be populated first
-- If Chavita and Emvita numbers were provided, write the full Rubimed practitioner manual description for each
-- Write aiSummary as a clinician-facing summary (3-5 sentences, specific values)
+- If Chavita and Emvita numbers were provided, write the EXACT Rubimed practitioner manual description for each using the conflict names from the system prompt
+- CRITICAL: Your aiSummary MUST use the EXACT same numbers as your hrvMarkers array. If hrvMarkers shows Total Power: 106, your aiSummary must say "Total Power 106ms²" — not any other number.
+- Write aiSummary as a clinician-facing summary (3-5 sentences, specific values from screenshots)
 - Write patientFriendlySummary in plain language (2-3 sentences)
 - Return ONLY valid JSON, no other text`;
 
@@ -519,10 +551,8 @@ EXTRACTION INSTRUCTIONS:
       };
     }
 
-    // Enforce locked values from form data
-    if (lockedELI != null) { parsed.eli = lockedELI; parsed.hrqEli = lockedELI; }
+    // ── ENFORCE locked values from form data (server-side, AI cannot override) ──
     if (ariVal != null)    { parsed.ari = ariVal;    parsed.hrqAri = ariVal; }
-    if (lockedQuadrant)    { parsed.crisgoldQuadrant = lockedQuadrant; }
     if (pp != null)        { parsed.pulsePressure = pp; }
     if (clinicalData?.filtrationRejections != null) {
       parsed.filtrationRejections = clinicalData.filtrationRejections;
@@ -531,6 +561,56 @@ EXTRACTION INSTRUCTIONS:
     if (clinicalData?.chavita) parsed.chavita = clinicalData.chavita;
     if (clinicalData?.emvita)  parsed.emvita  = clinicalData.emvita;
     if (clinicalData?.ermMethod) parsed.ermMethod = clinicalData.ermMethod;
+
+    // ── FULL ELI FORMULA using extracted HRV data from screenshots ──────────
+    // ELI = (qScore × 4) + (VLF% × 3) + (Stress Index × 2) + Freeze Bonus
+    // Only use full formula if we have VLF% and Stress Index from AI extraction
+    if (qScore != null) {
+      const extractedVLF = parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value;
+      const extractedSI  = parsed.hrvMarkers?.find(m => m.name === 'Stress Index')?.value;
+      const extractedSDNNforELI  = parsed.hrvMarkers?.find(m => m.name === 'SDNN')?.value;
+      const extractedRMSSDforELI = parsed.hrvMarkers?.find(m => m.name === 'RMSSD')?.value;
+      const extractedTPforELI    = parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
+
+      let freezeBonus = 0;
+      if (extractedSDNNforELI != null && extractedRMSSDforELI != null && extractedTPforELI != null) {
+        if (extractedSDNNforELI < 20 && extractedRMSSDforELI < 15 && extractedTPforELI < 200) {
+          freezeBonus = 10;
+        }
+      }
+
+      let computedELI;
+      if (extractedVLF != null && extractedSI != null) {
+        // Full formula: (qScore × 4) + (VLF% × 3) + (stressIndex × 2) + freezeBonus
+        // Normalize stress index: cap at 500 for scoring, then scale to 0-100
+        const normalizedSI = Math.min(extractedSI, 500) / 5;
+        computedELI = Math.round((qScore * 4) + (extractedVLF * 3) + (normalizedSI * 2) + freezeBonus);
+        // Cap at 100
+        computedELI = Math.min(computedELI, 100);
+      } else {
+        // Simple formula: round((score / 40) × 100)
+        computedELI = Math.round((qScore / 40) * 100);
+      }
+
+      parsed.eli = computedELI;
+      parsed.hrqEli = computedELI;
+      parsed.questionnaireScore = qScore;
+      parsed.stressQuestionnaireScore = qScore;
+
+      // Re-compute quadrant with the final ELI
+      if (ariVal != null) {
+        const highELI = qScore >= 20;
+        const highARI = ariVal >= 60;
+        if (highELI && !highARI)       parsed.crisgoldQuadrant = 'Q1';
+        else if (highELI && highARI)   parsed.crisgoldQuadrant = 'Q2';
+        else if (!highELI && !highARI) parsed.crisgoldQuadrant = 'Q3';
+        else                           parsed.crisgoldQuadrant = 'Q4';
+      }
+    } else if (lockedELI != null) {
+      parsed.eli = lockedELI;
+      parsed.hrqEli = lockedELI;
+    }
+    if (lockedQuadrant && qScore == null) { parsed.crisgoldQuadrant = lockedQuadrant; }
 
     // ── STRICT ENFORCEMENT: null out sections not explicitly tested ───────
     if (!clinicalData?.brainGaugeTested) {
@@ -543,9 +623,25 @@ EXTRACTION INSTRUCTIONS:
       parsed.adrenalInterpretation = null;
       parsed.adrenalSummary        = null;
     }
-    // Polyvagal: only show if ALL THREE freeze markers simultaneously met
-    if (!parsed.polyvagalRuleOf3Met) {
-      parsed.polyvagalInterpretation = null;
+    // Polyvagal: server-side enforcement — check actual extracted marker values
+    const extractedSDNN = parsed.hrvMarkers?.find(m => m.name === 'SDNN')?.value;
+    const extractedRMSSD = parsed.hrvMarkers?.find(m => m.name === 'RMSSD')?.value;
+    const extractedTP = parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
+    if (extractedSDNN != null && extractedRMSSD != null && extractedTP != null) {
+      const allThreeMet = extractedSDNN < 20 && extractedRMSSD < 15 && extractedTP < 200;
+      parsed.polyvagalRuleOf3Met = allThreeMet;
+      // Always provide interpretation — never null it out
+      if (!parsed.polyvagalInterpretation) {
+        const checks = [
+          `SDNN ${extractedSDNN}ms (${extractedSDNN < 20 ? '✓ <20' : '✗ not <20'})`,
+          `RMSSD ${extractedRMSSD}ms (${extractedRMSSD < 15 ? '✓ <15' : '✗ not <15'})`,
+          `Total Power ${extractedTP}ms² (${extractedTP < 200 ? '✓ <200' : '✗ not <200'})`,
+        ].join(', ');
+        const metCount = [extractedSDNN < 20, extractedRMSSD < 15, extractedTP < 200].filter(Boolean).length;
+        parsed.polyvagalInterpretation = allThreeMet
+          ? `TRUE FREEZE — Polyvagal Rule of 3 MET: ${checks}. All three criteria simultaneously in red zone — dorsal vagal shutdown physiology.`
+          : `Polyvagal Rule of 3 NOT met: ${checks}. ${metCount} of 3 criteria met — this is NOT true freeze. System is exhausted/stressed but not in dorsal vagal shutdown. Focus on stabilization and energy restoration.`;
+      }
     }
 
     return {
