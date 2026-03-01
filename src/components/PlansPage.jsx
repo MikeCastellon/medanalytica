@@ -145,9 +145,13 @@ export default function PlansPage() {
         .footer-link:hover { color: rgba(255,255,255,.85); }
 
         @media (max-width: 768px) {
-          .plans-grid { grid-template-columns: 1fr !important; max-width: 420px; }
-          .plans-hero-h1 { font-size: 32px !important; }
-          .contact-row { grid-template-columns: 1fr !important; }
+          .plans-grid { grid-template-columns: 1fr !important; max-width: 420px; margin: 0 auto !important; }
+          .plans-hero-h1 { font-size: 28px !important; }
+          .contact-row { grid-template-columns: 1fr !important; max-width: 420px !important; margin: 0 auto !important; }
+          .plans-enterprise { flex-direction: column !important; text-align: center; }
+        }
+        @media (max-width: 400px) {
+          .plans-hero-h1 { font-size: 24px !important; }
         }
       `}</style>
 
@@ -218,7 +222,7 @@ export default function PlansPage() {
         </div>
 
         {/* Enterprise callout */}
-        <div style={{
+        <div className="plans-enterprise" style={{
           maxWidth: 1060, margin: '40px auto 0', background: C.white,
           border: `1.5px solid ${C.border}`, borderRadius: 14,
           padding: '28px 36px', display: 'flex', alignItems: 'center',

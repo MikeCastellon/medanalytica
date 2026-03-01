@@ -107,7 +107,11 @@ export default function ContactPage() {
 
         @media (max-width: 768px) {
           .contact-grid { grid-template-columns: 1fr !important; }
-          .contact-hero-h1 { font-size: 32px !important; }
+          .contact-hero-h1 { font-size: 28px !important; }
+          .contact-name-row { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 400px) {
+          .contact-hero-h1 { font-size: 24px !important; }
         }
       `}</style>
 
@@ -182,7 +186,7 @@ export default function ContactPage() {
           </div>
 
           {/* ── RIGHT: Contact Form ── */}
-          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: '36px 32px', boxShadow: '0 4px 24px rgba(15,39,68,.07)' }}>
+          <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 16, padding: 'clamp(20px, 4vw, 36px) clamp(16px, 3vw, 32px)', boxShadow: '0 4px 24px rgba(15,39,68,.07)' }}>
             {submitted ? (
               <div style={{ textAlign: 'center', padding: '48px 0' }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
@@ -199,7 +203,7 @@ export default function ContactPage() {
                 <h3 style={{ fontFamily: serif, fontSize: 22, fontWeight: 700, color: C.navy, marginBottom: 24 }}>Send Us a Message</h3>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div className="contact-name-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <label className="contact-label">Full Name *</label>
                       <input

@@ -133,6 +133,7 @@ export default function LandingPage() {
         @media (max-width: 900px) {
           .lp-feat-grid { grid-template-columns: 1fr 1fr !important; }
           .lp-steps-grid { grid-template-columns: 1fr !important; }
+          .lp-step-line { display: none !important; }
           .lp-price-grid { grid-template-columns: 1fr 1fr !important; }
           .lp-footer-grid { grid-template-columns: 1fr 1fr !important; }
           .lp-hero-h1 { font-size: 38px !important; }
@@ -142,9 +143,16 @@ export default function LandingPage() {
         @media (max-width: 600px) {
           .lp-feat-grid { grid-template-columns: 1fr !important; }
           .lp-nav-links { display: none !important; }
-          .lp-hero-h1 { font-size: 30px !important; }
+          .lp-hero-h1 { font-size: 28px !important; }
           .lp-stats-grid { grid-template-columns: 1fr 1fr !important; }
+          .lp-price-grid { grid-template-columns: 1fr !important; max-width: 380px !important; margin: 0 auto !important; }
           .lp-footer-grid { grid-template-columns: 1fr !important; }
+          .lp-test-grid { grid-template-columns: 1fr !important; }
+          .lp-security-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 400px) {
+          .lp-hero-h1 { font-size: 24px !important; }
+          .lp-stats-grid { grid-template-columns: 1fr 1fr !important; }
         }
       `}</style>
 

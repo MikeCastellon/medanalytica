@@ -44,13 +44,19 @@ export default function PublicNav() {
           background: linear-gradient(135deg, #b8891f, #d4a63e);
           transform: translateY(-1px); box-shadow: 0 4px 20px rgba(200,152,44,.45);
         }
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
           .pub-nav-links { display: none !important; }
+          .pub-nav-ghost { font-size: 12px !important; padding: 8px 12px !important; }
+          .pub-nav-cta { font-size: 12px !important; padding: 8px 14px !important; }
+        }
+        @media (max-width: 400px) {
+          .pub-nav-ghost { font-size: 11px !important; padding: 7px 10px !important; }
+          .pub-nav-cta { font-size: 11px !important; padding: 7px 10px !important; white-space: nowrap; }
         }
       `}</style>
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', gap: 32 }}>
-        <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => nav('/')}>
-          <CrisLogo size={46} showSub={false} />
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }} onClick={() => nav('/')}>
+          <CrisLogo size={42} showSub={false} />
         </div>
         <div className="pub-nav-links">
           {[
