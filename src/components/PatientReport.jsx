@@ -402,11 +402,11 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
             </div>
           )}
 
-          {/* Polyvagal plain-language — only shown if Rule of 3 is truly MET */}
-          {r.polyvagalRuleOf3Met && r.polyvagalInterpretation && (
-            <div style={{ background: '#fef2f2', border: '1px solid rgba(192,57,43,.2)', borderLeft: '4px solid var(--red)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--red)', marginBottom: '8px' }}>
-                ⚠️ Stress Response Pattern Detected
+          {/* Polyvagal plain-language — always shown when interpretation exists */}
+          {r.polyvagalInterpretation && (
+            <div style={{ background: r.polyvagalRuleOf3Met ? '#fef2f2' : '#fff8e1', border: `1px solid ${r.polyvagalRuleOf3Met ? 'rgba(192,57,43,.2)' : 'rgba(180,83,9,.2)'}`, borderLeft: `4px solid ${r.polyvagalRuleOf3Met ? 'var(--red)' : '#b45309'}`, borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: r.polyvagalRuleOf3Met ? 'var(--red)' : '#b45309', marginBottom: '8px' }}>
+                {r.polyvagalRuleOf3Met ? '⚠️ Dorsal Vagal Freeze Detected' : '🟡 Polyvagal Rule of 3 Assessment'}
               </div>
               <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{r.polyvagalInterpretation}</div>
             </div>
@@ -621,16 +621,16 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       )}
 
       {/* ── §6 Polyvagal + Adrenal ── */}
-      {/* Polyvagal only shows if Rule of 3 is truly MET (all 3 freeze markers red) */}
-      {(r.polyvagalRuleOf3Met || r.adrenalSummary) && <SectionLabel number={6} title="Polyvagal & Adrenal Assessment" />}
-      {(r.polyvagalRuleOf3Met || r.adrenalSummary) && (
-        <div className="rg" style={{ gridTemplateColumns: r.polyvagalRuleOf3Met && r.adrenalSummary ? '1fr 1fr' : '1fr' }}>
-          {r.polyvagalRuleOf3Met && r.polyvagalInterpretation && (
+      {/* Polyvagal always shows when we have interpretation data — Rule of 3 met or not */}
+      {(r.polyvagalInterpretation || r.adrenalSummary) && <SectionLabel number={6} title="Polyvagal & Adrenal Assessment" />}
+      {(r.polyvagalInterpretation || r.adrenalSummary) && (
+        <div className="rg" style={{ gridTemplateColumns: r.polyvagalInterpretation && r.adrenalSummary ? '1fr 1fr' : '1fr' }}>
+          {r.polyvagalInterpretation && (
             <InfoCard
-              icon="🔴"
-              title="Polyvagal Rule of 3: MET — True Freeze Pattern"
-              color="var(--red)"
-              bg="var(--red-lt)"
+              icon={r.polyvagalRuleOf3Met ? '🔴' : '🟡'}
+              title={r.polyvagalRuleOf3Met ? 'Polyvagal Rule of 3: MET — True Freeze Pattern' : 'Polyvagal Rule of 3 Assessment'}
+              color={r.polyvagalRuleOf3Met ? 'var(--red)' : 'var(--orange, #b45309)'}
+              bg={r.polyvagalRuleOf3Met ? 'var(--red-lt)' : '#fff8e1'}
             >
               {r.polyvagalInterpretation}
             </InfoCard>
@@ -722,8 +722,8 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       )}
 
       {/* ── §9 Therapeutic Selections ── */}
-      {r.therapeuticSelections && <SectionLabel number={9} title="Therapeutic Selections" />}
-      {r.therapeuticSelections && <TherapeuticCard selections={r.therapeuticSelections} quadrant={r.crisgoldQuadrant} />}
+      <SectionLabel number={9} title="Therapeutic Selections" />
+      <TherapeuticCard selections={r.therapeuticSelections || {}} quadrant={r.crisgoldQuadrant} />
 
       {/* ── NeuroVIZR ── */}
       {r.neuroVizrPrograms && <NeuroVizrCard programs={r.neuroVizrPrograms} />}
@@ -980,7 +980,7 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
 
       {/* PSE Intro */}
       <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75' }}>
-        <strong>What is Psychosomatic Energetics (PSE)?</strong> PSE is a method that addresses repressed emotional traumas — called <em>conflicts</em> — that store life energy and block its normal flow. Using the RebaPad Test Device, four energy levels are tested: <strong>Vital</strong> (physical &amp; regenerative powers), <strong>Emotional</strong> (mood, resilience), <strong>Mental</strong> (concentration, focus), and <strong>Causal</strong> (intuition, inner sensitivity). Conflicts are treated with homeopathic compound remedies (Emvita 1–28), always paired with the corresponding Chakra remedy (Chavita 1–7).
+        <strong>What is Psychosomatic Energetics (PSE)?</strong> PSE is a diagnostic and therapeutic method developed by Dr. Reimar Banis that addresses repressed emotional traumas — called <em>conflicts</em> — which store life energy and block its normal flow. Four energy levels are tested: <strong>Vital</strong> (physical &amp; regenerative powers), <strong>Emotional</strong> (mood, resilience), <strong>Mental</strong> (concentration, focus), and <strong>Causal</strong> (intuition, inner sensitivity). Conflicts are identified and treated with homeopathic compound remedies (Emvita 1–28), always paired with the corresponding Chakra remedy (Chavita 1–7).
       </div>
 
       {/* Structured Clinical Table */}
@@ -1195,9 +1195,7 @@ function TherapeuticCard({ selections, quadrant }) {
   const isAdded = (catKey, p) =>
     editSels[catKey]?.some(x => x === `${p.product} — ${p.dose} (${p.brand})`);
 
-  const hasAny    = categories.some(c => editSels[c.key]?.length > 0);
-  const anyEditing = categories.some(c => isEditing(c.key));
-  if (!hasAny && !anyEditing) return null;
+  // Always show all 6 categories — even empty ones can be edited by practitioner
 
   return (
     <div className="card" style={{ marginBottom: '16px' }}>
@@ -1223,8 +1221,6 @@ function TherapeuticCard({ selections, quadrant }) {
           const tab        = addTab[key] || 'browse';
           const masterList = getMasterList(key);
           const editing    = isEditing(key);
-          if (!items?.length && !editing) return null;
-
           return (
             <div key={key}>
               {/* Category header with per-column edit button */}

@@ -47,7 +47,7 @@ YOU MUST READ THE ACTUAL VALUES FROM THE PROVIDED SCREENSHOTS. DO NOT GUESS OR G
 3. The HQP software displays values in specific card/gauge formats: Heart Rate in a box, SDNN in a box, RMSSD in a box, LF/HF Ratio in a box, pie chart for VLF%/HF%/LF%, gauges for Total Power/Stress Index/Balance Index.
 4. If you cannot confidently read a value from screenshots, set it to null — NEVER invent a value.
 5. The clinical summary (aiSummary) MUST reference the EXACT values extracted from screenshots. If your summary mentions different numbers than your hrvMarkers array, YOUR OUTPUT IS WRONG.
-6. Never mention "Rebapad", "Rebapad test device", or any device that was not explicitly named in the screenshots or practitioner input.
+6. NEVER mention "Rebapad", "RebaPad", "Reba Pad", "Rebapad test device", "Reba Test Device", or any PSE-related device name. PSE is simply a "method" — no device names.
 7. Screenshots come from HeartQuest Pro (HQP) software ONLY unless otherwise stated.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -135,30 +135,51 @@ If all 3 met → "TRUE FREEZE — dorsal vagal shutdown physiology"
 If NOT all 3 → "Exhausted/stressed system — NOT true freeze. Focus on stabilization."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-THERAPEUTIC CATEGORIES (6 REQUIRED — ALL DISPLAYED)
+THERAPEUTIC CATEGORIES (ALL 6 REQUIRED — NEVER LEAVE EMPTY)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ CRITICAL: You MUST populate ALL 6 therapeutic categories with at least 1-3 specific product recommendations each. NEVER return empty arrays. Use the quadrant to guide selections. Format each item as: "Product Name — Dose (Brand)"
 
 1. Drainage (ALWAYS first — foundational)
    Primary vendors: Bioresource/Pekana, Unda, Physica Energetics, Marco Pharma
-   - Q1: Mundipur 1-2 tsp; Stress Buster Kit if high ELI
-   - Q2: Stress Buster Kit + Detox Kit (Apo-HEPAT, RENELIX, ITIRES)
-   - Q3: Neu-regen 1-2 tsp 2x/day; JUVE-CAL 1 tsp 3-4x/day
-   - Q4: Full Detox Kit + TOXEX (start at 1-5 drops, work up)
+   - Q1: Mundipur 1-2 tsp in water (Bioresource/Pekana); Psy-Stabil ½-1 tsp BID (Stress Buster Kit); Dalectro ½-1 tsp BID (Stress Buster Kit)
+   - Q2: Psy-Stabil + Dalectro + Neu-Regen (Stress Buster Kit); Apo-HEPAT 15-20 drops 3x/day; RENELIX 15-20 drops 3x/day; ITIRES 15-20 drops 3x/day
+   - Q3: Neu-Regen 1-2 tsp 2x/day (Bioresource/Pekana); JUVE-CAL 1 tsp 3-4x/day (Bioresource/Pekana)
+   - Q4: Apo-HEPAT + RENELIX + ITIRES (Full Detox Kit); TOXEX start 1-5 drops, work up to 10-20/day (Bioresource/Pekana)
 
-2. Cell Membrane Support
-   Addresses: phospholipid integrity, receptor sensitivity, ion channel function
+2. Cell Membrane Support (phospholipid integrity, receptor sensitivity, ion channel function)
+   - The One — 1-2 tsp/day hold 30s (Quicksilver Scientific)
+   - Membrane Mend — 1 tsp 1-2x/day (Quicksilver Scientific)
+   - Nanoemulsified D3K2 — 1 pump/day (Quicksilver Scientific)
+   - OmegaAvail Ultra DHA — per label (Designs for Health)
+   - IntraMIN / IntraMAX — 1 fl oz/day (Drucker Labs)
 
-3. Mitochondrial Support
-   Addresses: ATP production, electron transport chain, NAD+/NADH, oxidative stress
+3. Mitochondrial Support (ATP production, electron transport chain, NAD+/NADH)
+   - NAD+ / NAD+ Platinum — ½ tsp by mouth (Quicksilver Scientific)
+   - CoQ10 Nanoemulsion — 2 pumps 2x/day (Quicksilver Scientific)
+   - ATP 360 — 3 caps once daily (Researched Nutritionals)
+   - Methyl B-Complex — 2 pumps/day (Quicksilver Scientific)
+   - BC-ATP — 2 caps/day (CellCore Bioscience)
 
-4. Neuro-Cognitive Support
-   Addresses: neurotransmitter balance, synaptic plasticity, BDNF, neuroinflammation
+4. Neuro-Cognitive Support (neurotransmitter balance, synaptic plasticity, BDNF)
+   - Brain DTX — 1 tsp/day (Quicksilver Scientific)
+   - Ultra Binder — 1 tsp in water (Quicksilver Scientific)
+   - Lion's Mane extract — per label (various)
+   - Cogniquil — 2 caps/day (Designs for Health)
 
-5. Oxidative Stress Support
-   Addresses: free radical burden, antioxidant capacity, membrane protection
+5. Oxidative Stress Support (free radical burden, antioxidant capacity)
+   - Tri-Fortify Liposomal Glutathione — 1 tsp (Researched Nutritionals)
+   - H2 Absorb — 1-2 tablets in water (Researched Nutritionals)
+   - SULFORAXYM — 2 caps/day (U.S. Enzymes)
+   - Ergo-Thione+ — 1 tsp by mouth (Quicksilver Scientific)
 
-6. Vascular / Cardiovascular Support
-   Addresses: endothelial NO signaling, arterial stiffness, microcirculation
+6. Vascular / Cardiovascular Support (endothelial NO signaling, arterial stiffness)
+   - Cardio Metal Detox — 1 tsp/day (Quicksilver Scientific)
+   - PADMA Basic — 2 caps 2x/day (EcoNugenics)
+   - CircuVein — 2 caps/day (Designs for Health)
+   - Arterosil HP — 2 caps/day (Calroy Health Sciences)
+
+Select products appropriate to the patient's quadrant and clinical presentation. Each category MUST have at least 1 recommendation.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STRICT NO-HALLUCINATION RULES
@@ -190,13 +211,16 @@ THYROID LANGUAGE — NEVER use the phrase "Hashimoto's-type pattern".
 DEVICE REFERENCES — NEVER mention any device, product, or test system that was not:
   (a) Explicitly named in the screenshots, OR
   (b) Explicitly stated in the practitioner-entered data.
-  Do NOT mention: Rebapad, Zyto, Ondamed, or any other device unless the practitioner specifically referenced it.
+  Do NOT mention: RebaPad, Reba Pad, Rebapad, Zyto, Ondamed, or any other device unless the practitioner specifically referenced it.
+  For PSE: NEVER use any device name. PSE is a "method" — simply say "PSE testing" or "Psychosomatic Energetics assessment".
 
 POLYVAGAL — Only report polyvagalRuleOf3Met: true if ALL THREE criteria are simultaneously met:
   SDNN < 20 ms AND RMSSD < 15 ms AND Total Power < 200 ms².
   If not ALL three met, set polyvagalRuleOf3Met: false.
-  ALWAYS provide polyvagalInterpretation explaining which criteria ARE and ARE NOT met, even when polyvagalRuleOf3Met is false.
-  Example: "Polyvagal Rule of 3 NOT met: SDNN 19ms (✓ <20), RMSSD 29ms (✗ not <15), Total Power 106ms² (✓ <200). 2 of 3 criteria met — this is NOT true freeze. System is exhausted but not in dorsal vagal shutdown."
+  ⚠️ CRITICAL: ALWAYS provide polyvagalInterpretation — NEVER set it to null. This field MUST contain a detailed explanation of which criteria ARE and ARE NOT met, regardless of whether Rule of 3 is met or not. The report ALWAYS displays this section.
+  Format: "Polyvagal Rule of 3 [MET/NOT met]: SDNN Xms (✓/✗ <20), RMSSD Xms (✓/✗ <15), Total Power Xms² (✓/✗ <200). N of 3 criteria met — [interpretation]."
+  Example when NOT met: "Polyvagal Rule of 3 NOT met: SDNN 19ms (✓ <20), RMSSD 29ms (✗ not <15), Total Power 106ms² (✓ <200). 2 of 3 criteria met — this is NOT true freeze. System is exhausted but not in dorsal vagal shutdown. Focus on stabilization and energy restoration."
+  Example when MET: "Polyvagal Rule of 3 MET: SDNN 15ms (✓ <20), RMSSD 12ms (✓ <15), Total Power 95ms² (✓ <200). All 3 criteria met — TRUE FREEZE: dorsal vagal shutdown physiology detected."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BRAIN GAUGE REFERENCE RANGES
@@ -215,7 +239,7 @@ BRAIN GAUGE REFERENCE RANGES
 RUBIMED / PSYCHOSOMATIC ENERGETICS (PSE) — ABSOLUTE RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PSE is a method developed by Dr. Reimar Banis & Dr. Birgitt Holschuh-Lorang addressing repressed emotional traumas (conflicts) that store life energy and block its normal flow. Four energy levels tested: Vital, Emotional, Mental, Causal.
+PSE is a diagnostic and therapeutic method developed by Dr. Reimar Banis that addresses repressed emotional traumas (conflicts) which store life energy and block its normal flow. Four energy levels are tested: Vital, Emotional, Mental, Causal. NEVER mention any test device name (RebaPad, Reba, etc.) — the method is simply called PSE.
 
 RULES:
 - Chavita (1–7) and Emvita (1–28) are ALWAYS paired.
@@ -528,8 +552,8 @@ EXTRACTION INSTRUCTIONS:
 - Set ari and hrqAri to the practitioner-entered ARI if provided
 - Set crisgoldQuadrant to the LOCKED value if provided above
 - CASP: only include if explicitly device-measured on the document — NEVER calculate it
-- Include ALL 6 therapeutic categories in therapeuticSelections (use [] for empty)
-- Drainage must always be populated first
+- CRITICAL: Include ALL 6 therapeutic categories in therapeuticSelections — EVERY category MUST have at least 1-3 product recommendations. Format each as "Product — Dose (Brand)". NEVER leave any category as an empty array []. Use the quadrant to guide product selection.
+- Drainage must always be populated first with quadrant-specific protocols
 - If Chavita and Emvita numbers were provided, write the EXACT Rubimed practitioner manual description for each using the conflict names from the system prompt
 - CRITICAL: Your aiSummary MUST use the EXACT same numbers as your hrvMarkers array. If hrvMarkers shows Total Power: 106, your aiSummary must say "Total Power 106ms²" — not any other number.
 - Write aiSummary as a clinician-facing summary (3-5 sentences, specific values from screenshots)
@@ -660,25 +684,23 @@ EXTRACTION INSTRUCTIONS:
         parsed.psychosomaticFindings = `${ct}\n\n${et}`;
       }
     }
-    // Polyvagal: server-side enforcement — check actual extracted marker values
+    // Polyvagal: server-side enforcement — ALWAYS compute from actual extracted marker values
     const extractedSDNN = parsed.hrvMarkers?.find(m => m.name === 'SDNN')?.value;
     const extractedRMSSD = parsed.hrvMarkers?.find(m => m.name === 'RMSSD')?.value;
     const extractedTP = parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
     if (extractedSDNN != null && extractedRMSSD != null && extractedTP != null) {
       const allThreeMet = extractedSDNN < 20 && extractedRMSSD < 15 && extractedTP < 200;
       parsed.polyvagalRuleOf3Met = allThreeMet;
-      // Always provide interpretation — never null it out
-      if (!parsed.polyvagalInterpretation) {
-        const checks = [
-          `SDNN ${extractedSDNN}ms (${extractedSDNN < 20 ? '✓ <20' : '✗ not <20'})`,
-          `RMSSD ${extractedRMSSD}ms (${extractedRMSSD < 15 ? '✓ <15' : '✗ not <15'})`,
-          `Total Power ${extractedTP}ms² (${extractedTP < 200 ? '✓ <200' : '✗ not <200'})`,
-        ].join(', ');
-        const metCount = [extractedSDNN < 20, extractedRMSSD < 15, extractedTP < 200].filter(Boolean).length;
-        parsed.polyvagalInterpretation = allThreeMet
-          ? `TRUE FREEZE — Polyvagal Rule of 3 MET: ${checks}. All three criteria simultaneously in red zone — dorsal vagal shutdown physiology.`
-          : `Polyvagal Rule of 3 NOT met: ${checks}. ${metCount} of 3 criteria met — this is NOT true freeze. System is exhausted/stressed but not in dorsal vagal shutdown. Focus on stabilization and energy restoration.`;
-      }
+      // ALWAYS generate server-side interpretation — override AI text to ensure accuracy
+      const checks = [
+        `SDNN ${extractedSDNN}ms (${extractedSDNN < 20 ? '✓ <20' : '✗ not <20'})`,
+        `RMSSD ${extractedRMSSD}ms (${extractedRMSSD < 15 ? '✓ <15' : '✗ not <15'})`,
+        `Total Power ${extractedTP}ms² (${extractedTP < 200 ? '✓ <200' : '✗ not <200'})`,
+      ].join(', ');
+      const metCount = [extractedSDNN < 20, extractedRMSSD < 15, extractedTP < 200].filter(Boolean).length;
+      parsed.polyvagalInterpretation = allThreeMet
+        ? `TRUE FREEZE — Polyvagal Rule of 3 MET: ${checks}. All three criteria simultaneously in red zone — dorsal vagal shutdown physiology.`
+        : `Polyvagal Rule of 3 NOT met: ${checks}. ${metCount} of 3 criteria met — this is NOT true freeze. System is exhausted/stressed but not in dorsal vagal shutdown. Focus on stabilization and energy restoration.`;
     }
 
     return {
