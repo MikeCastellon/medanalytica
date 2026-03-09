@@ -485,12 +485,11 @@ export const handler = async (event) => {
   try {
     const body = JSON.parse(event.body || '{}');
 
-    // ── ASYNC MODE: delegate to background function for unlimited processing time ──
+    // ── ASYNC MODE: create job record, client will call background function directly ──
     if (body.mode === 'async' && canRunAsync()) {
       const jobId = randomUUID();
       const supabaseAdmin = getSupabaseAdmin();
 
-      // Create job record
       const { error: insertError } = await supabaseAdmin.from('analysis_jobs').insert({
         job_id: jobId,
         doctor_id: body.doctorId || '00000000-0000-0000-0000-000000000000',
@@ -501,15 +500,6 @@ export const handler = async (event) => {
         console.error('Failed to create analysis job:', insertError);
         // Fall through to synchronous mode
       } else {
-        // Invoke background function via internal fetch
-        const siteUrl = process.env.URL || `https://${event.headers.host}`;
-        fetch(`${siteUrl}/.netlify/functions/analyze-report-background`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, jobId }),
-        }).catch(err => console.error('Background function invocation failed:', err));
-
-        // Return immediately with jobId
         return {
           statusCode: 202,
           headers,

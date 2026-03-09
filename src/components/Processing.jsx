@@ -152,50 +152,68 @@ export default function Processing({ user, form, files = [], customRules, onDone
         customRules,
       };
 
-      const res = await fetch(`${apiBase}/.netlify/functions/analyze-report`, {
+      // Step 1: Create job record (small request — no screenshots)
+      const jobRes = await fetch(`${apiBase}/.netlify/functions/analyze-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ mode: 'async', doctorId: user.id }),
       });
 
-      let json;
-      try {
-        json = await res.json();
-      } catch (parseErr) {
-        throw new Error(
-          res.status === 502 || res.status === 504
-            ? 'The AI analysis timed out. Try uploading fewer screenshots or try again.'
-            : `Server error (${res.status}). The analysis function may have crashed or timed out.`
-        );
-      }
+      let jobJson;
+      try { jobJson = await jobRes.json(); } catch { jobJson = null; }
 
       let aiData;
-      if (json.mode === 'async' && json.jobId) {
-        // ── ASYNC MODE: poll for results ──────────────────────────────────
-        const jobId = json.jobId;
-        const POLL_INTERVAL = 3000; // 3 seconds
-        const MAX_POLL_TIME = 180000; // 3 minutes max
+      if (jobJson?.mode === 'async' && jobJson?.jobId) {
+        // ── ASYNC MODE: call background function directly, then poll ──────
+        const jobId = jobJson.jobId;
+
+        // Fire background function (returns 202 immediately)
+        fetch(`${apiBase}/.netlify/functions/analyze-report-background`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, jobId }),
+        }).catch(() => {}); // fire-and-forget from client side
+
+        const POLL_INTERVAL = 3000;
+        const MAX_POLL_TIME = 180000; // 3 minutes
         const startTime = Date.now();
 
         while (Date.now() - startTime < MAX_POLL_TIME) {
           await new Promise(r => setTimeout(r, POLL_INTERVAL));
-          const statusRes = await fetch(`${apiBase}/.netlify/functions/analysis-status?jobId=${jobId}`);
-          const statusJson = await statusRes.json();
+          try {
+            const statusRes = await fetch(`${apiBase}/.netlify/functions/analysis-status?jobId=${jobId}`);
+            const statusJson = await statusRes.json();
 
-          if (statusJson.status === 'complete') {
-            aiData = statusJson.data;
-            break;
+            if (statusJson.status === 'complete') {
+              aiData = statusJson.data;
+              break;
+            }
+            if (statusJson.status === 'error') {
+              throw new Error(statusJson.error || 'Analysis failed');
+            }
+          } catch (pollErr) {
+            if (pollErr.message && !pollErr.message.includes('fetch')) throw pollErr;
+            // Network hiccup — keep polling
           }
-          if (statusJson.status === 'error') {
-            throw new Error(statusJson.error || 'Analysis failed');
-          }
-          // Still processing — continue polling
         }
         if (!aiData) {
           throw new Error('Analysis took too long. Please try again with fewer screenshots.');
         }
       } else {
-        // ── SYNC MODE (fallback) ──────────────────────────────────────────
+        // ── SYNC FALLBACK: send full payload directly ─────────────────────
+        const res = await fetch(`${apiBase}/.netlify/functions/analyze-report`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        let json;
+        try { json = await res.json(); } catch {
+          throw new Error(
+            res.status === 502 || res.status === 504
+              ? 'The AI analysis timed out. Try uploading fewer screenshots or try again.'
+              : `Server error (${res.status}). The analysis function may have crashed or timed out.`
+          );
+        }
         if (!json.success) throw new Error(json.error || 'Analysis failed');
         aiData = json.data;
       }
