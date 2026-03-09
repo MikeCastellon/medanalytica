@@ -1166,6 +1166,7 @@ function TherapeuticCard({ selections, quadrant }) {
   const [searchText, setSearchText]     = useState({});
 
   const isEditing  = (key) => !!editCols[key];
+  const anyEditing = Object.values(editCols).some(Boolean);
   const toggleEdit = (key) => setEditCols(prev => ({ ...prev, [key]: !prev[key] }));
 
   const removeItem = (catKey, idx) =>
