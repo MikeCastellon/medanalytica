@@ -123,51 +123,82 @@ export default function Processing({ user, form, files = [], customRules, onDone
       advance(4);
       // Call the Netlify AI analysis function
       const apiBase = import.meta.env.DEV ? 'http://localhost:8888' : '';
+      const payload = {
+        mode: 'async', // Request background processing (falls back to sync if unavailable)
+        doctorId: user.id,
+        screenshots: screenshotBase64s,
+        fileCount: screenshotBase64s.length,
+        reportType: form.reportType,
+        patientInfo: { firstName: form.firstName, lastName: form.lastName, dob: form.dob, gender: form.gender },
+        clinicalData: {
+          sbp:                  form.sbp ? Number(form.sbp) : null,
+          dbp:                  form.dbp ? Number(form.dbp) : null,
+          filtrationRejections: form.filtrationRejections ? Number(form.filtrationRejections) : null,
+          questionnaireScore:       form.questionnaireScore !== '' && form.questionnaireScore != null ? Number(form.questionnaireScore) : null,
+          stressQuestionnaireScore: form.stressQuestionnaireScore != null ? Number(form.stressQuestionnaireScore) : null,
+          ari:                      form.ari !== '' && form.ari != null ? Number(form.ari) : null,
+          chavita:              form.chavita ? Number(form.chavita) : null,
+          emvita:               form.emvita ? Number(form.emvita) : null,
+          ermMethod:            form.ermMethod || null,
+          acuteRemedies:        form.acuteRemedies || null,
+          rjlPhaseAngle:        form.rjlPhaseAngle || null,
+          rjlIcw:               form.rjlIcw || null,
+          rjlEcw:               form.rjlEcw || null,
+          rjlTbw:               form.rjlTbw || null,
+          oxidativeStressScore: form.oxidativeStressScore || null,
+          adrenalTested:        form.adrenalTested === true,
+          brainGaugeTested:     form.brainGaugeTested === true,
+        },
+        customRules,
+      };
+
       const res = await fetch(`${apiBase}/.netlify/functions/analyze-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          screenshots: screenshotBase64s,  // array of base64 image strings
-          fileCount: screenshotBase64s.length,
-          reportType: form.reportType,
-          patientInfo: { firstName: form.firstName, lastName: form.lastName, dob: form.dob, gender: form.gender },
-          clinicalData: {
-            sbp:                  form.sbp ? Number(form.sbp) : null,
-            dbp:                  form.dbp ? Number(form.dbp) : null,
-            filtrationRejections: form.filtrationRejections ? Number(form.filtrationRejections) : null,
-            questionnaireScore:       form.questionnaireScore !== '' && form.questionnaireScore != null ? Number(form.questionnaireScore) : null,
-            stressQuestionnaireScore: form.stressQuestionnaireScore != null ? Number(form.stressQuestionnaireScore) : null,
-            ari:                      form.ari !== '' && form.ari != null ? Number(form.ari) : null,
-            chavita:              form.chavita ? Number(form.chavita) : null,
-            emvita:               form.emvita ? Number(form.emvita) : null,
-            ermMethod:            form.ermMethod || null,
-            acuteRemedies:        form.acuteRemedies || null,
-            rjlPhaseAngle:        form.rjlPhaseAngle || null,
-            rjlIcw:               form.rjlIcw || null,
-            rjlEcw:               form.rjlEcw || null,
-            rjlTbw:               form.rjlTbw || null,
-            oxidativeStressScore: form.oxidativeStressScore || null,
-            // Explicit test flags — sections only appear if these are true
-            adrenalTested:        form.adrenalTested === true,
-            brainGaugeTested:     form.brainGaugeTested === true,
-          },
-          customRules,
-        }),
+        body: JSON.stringify(payload),
       });
 
       let json;
       try {
         json = await res.json();
       } catch (parseErr) {
-        // Function returned non-JSON (HTML error page = timeout/crash)
         throw new Error(
           res.status === 502 || res.status === 504
             ? 'The AI analysis timed out. Try uploading fewer screenshots or try again.'
             : `Server error (${res.status}). The analysis function may have crashed or timed out.`
         );
       }
-      if (!json.success) throw new Error(json.error || 'Analysis failed');
-      const aiData = json.data;
+
+      let aiData;
+      if (json.mode === 'async' && json.jobId) {
+        // ── ASYNC MODE: poll for results ──────────────────────────────────
+        const jobId = json.jobId;
+        const POLL_INTERVAL = 3000; // 3 seconds
+        const MAX_POLL_TIME = 180000; // 3 minutes max
+        const startTime = Date.now();
+
+        while (Date.now() - startTime < MAX_POLL_TIME) {
+          await new Promise(r => setTimeout(r, POLL_INTERVAL));
+          const statusRes = await fetch(`${apiBase}/.netlify/functions/analysis-status?jobId=${jobId}`);
+          const statusJson = await statusRes.json();
+
+          if (statusJson.status === 'complete') {
+            aiData = statusJson.data;
+            break;
+          }
+          if (statusJson.status === 'error') {
+            throw new Error(statusJson.error || 'Analysis failed');
+          }
+          // Still processing — continue polling
+        }
+        if (!aiData) {
+          throw new Error('Analysis took too long. Please try again with fewer screenshots.');
+        }
+      } else {
+        // ── SYNC MODE (fallback) ──────────────────────────────────────────
+        if (!json.success) throw new Error(json.error || 'Analysis failed');
+        aiData = json.data;
+      }
 
       advance(5);
       // Save report to Supabase

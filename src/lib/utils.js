@@ -27,8 +27,8 @@ export const fileToBase64 = (file) =>
     }
     const img = new Image();
     img.onload = () => {
-      const MAX_W = 1600;
-      const MAX_H = 1600;
+      const MAX_W = 1200;
+      const MAX_H = 1200;
       let w = img.width, h = img.height;
       if (w > MAX_W) { h = Math.round(h * MAX_W / w); w = MAX_W; }
       if (h > MAX_H) { w = Math.round(w * MAX_H / h); h = MAX_H; }
@@ -36,8 +36,8 @@ export const fileToBase64 = (file) =>
       canvas.width = w;
       canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      // Quality 0.85 balances readability with size
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      // Quality 0.7 — still readable for HQP values, much smaller payload
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
       resolve(dataUrl.split(',')[1]);
       URL.revokeObjectURL(img.src);
     };

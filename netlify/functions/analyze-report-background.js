@@ -1,35 +1,28 @@
 /**
- * MedAnalytica / CRIS GOLD™ — Netlify Serverless Function
- * POST /.netlify/functions/analyze-report
+ * MedAnalytica / CRIS GOLD™ — Netlify Background Function
+ * POST /.netlify/functions/analyze-report-background
  *
- * Receives a base64-encoded report file (PDF or image) plus manually
- * entered clinical data, sends to OpenAI GPT-4o with the full CRIS GOLD™
- * v1.0 locked operating system prompt, returns structured JSON.
- *
- * OPENAI_API_KEY never touches the browser.
+ * Runs for up to 15 minutes (background function).
+ * Receives jobId + report data, calls OpenAI GPT-4o, stores result in Supabase.
+ * Client polls /.netlify/functions/analysis-status?jobId=xxx for the result.
  */
 
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
-import { randomUUID } from 'crypto';
 import { CHAVITA_DESCRIPTIONS, EMVITA_DESCRIPTIONS } from '../../src/lib/rubimed.js';
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  timeout: 24000, // 24s — leave 2s buffer for Netlify's 26s function timeout
+  timeout: 120000, // 2 minutes — background functions have up to 15 min
 });
 
-// Background mode: if SUPABASE_SERVICE_ROLE_KEY is set, we can use async processing
-const canRunAsync = () => !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-const getSupabaseAdmin = () => createClient(
+// Supabase admin client (service role bypasses RLS)
+const supabaseAdmin = createClient(
   process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
 // ── HARDCODED RUBIMED PSE DESCRIPTIONS ──────────────────────────────────────
-// Source: "Practitioner's Guide — Psychosomatic Energetics" by Dr. Reimar Banis
-// These OVERRIDE any AI-generated text. The AI must never write its own Chavita/Emvita descriptions.
-
 const CHAVITA_TEXTS = Object.fromEntries(
   Object.entries(CHAVITA_DESCRIPTIONS).map(([key, value]) => [
     Number(key),
@@ -315,53 +308,42 @@ JSON SCHEMA (return ALL fields, null if unavailable)
   "chiefComplaints": string | null,
   "filtrationRejections": number | null,
   "filtrationWarning": boolean,
-
   "questionnaireScore": number | null,
   "stressQuestionnaireScore": number | null,
   "eli": number | null,
   "ari": number | null,
   "hrqEli": number | null,
   "hrqAri": number | null,
-
   "criScore": number | null,
   "criCategory": "Low Vascular Load" | "Mild Strain" | "High Cardiovascular Stress Pattern" | "Critical Cardiovascular Risk" | null,
-
   "crisgoldQuadrant": "Q1" | "Q2" | "Q3" | "Q4" | null,
   "crisgoldQuadrantLabel": string | null,
   "crisgoldQuadrantDescription": string | null,
-
   "cvQuadrant": "Q1" | "Q2" | "Q3" | "Q4" | null,
   "cvQuadrantLabel": string | null,
   "cvQuadrantDescription": string | null,
-
   "hrvMarkers": [
     { "name": string, "value": number, "unit": string, "low": number, "high": number, "status": "normal"|"high"|"low", "clinicalNote": string }
   ],
   "hrvSummary": string | null,
-
   "polyvagalRuleOf3Met": boolean | null,
   "polyvagalInterpretation": string | null,
-
   "adrenalUrineDrops": number | null,
   "adrenalInterpretation": string | null,
   "thyroidFunctionalIndex": number | null,
   "adrenalSummary": string | null,
-
   "brainGauge": {
     "speed": number|null, "accuracy": number|null, "timeOrderJudgment": number|null,
     "timePerception": number|null, "plasticity": number|null, "fatigue": number|null,
     "focus": number|null, "overallCorticalMetric": number|null
   } | null,
   "brainGaugeSummary": string | null,
-
   "rjlBia": {
     "phaseAngle": number|null, "icw": number|null, "ecw": number|null, "tbw": number|null
   } | null,
   "rjlBiaSummary": string | null,
-
   "oxidativeStressScore": number | null,
   "oxidativeStressSummary": string | null,
-
   "chavita": number | null,
   "emvita": number | null,
   "ermMethod": string | null,
@@ -369,7 +351,6 @@ JSON SCHEMA (return ALL fields, null if unavailable)
   "emvitaText": string | null,
   "acuteRemedies": string[] | null,
   "acuteRemedyTexts": string[] | null,
-
   "therapeuticSelections": {
     "drainage": string[],
     "cellMembraneSupport": string[],
@@ -378,41 +359,20 @@ JSON SCHEMA (return ALL fields, null if unavailable)
     "oxidativeStressSupport": string[],
     "cardiovascularSupport": string[]
   } | null,
-
   "neuroVizrPrograms": {
     "brainGymFoundation": string[],
     "quadrantPrograms": string[]
   } | null,
-
   "psychosomaticFindings": string | null,
-
   "markers": [
     { "name": string, "value": number, "unit": string, "low": number, "high": number, "status": "normal"|"high"|"low", "clinicalNote": string }
   ],
-
   "aiSummary": string,
   "patientFriendlySummary": string | null,
   "overallStatus": "normal" | "warning" | "critical",
   "recommendedFollowUp": string | null,
   "extractionConfidence": "high" | "medium" | "low"
 }`;
-
-// ── In-memory rate limiter (per IP, resets on cold start) ─────────────────
-const rateLimitMap = new Map();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX       = 10;        // max 10 requests per minute per IP
-
-function checkRateLimit(ip) {
-  const now   = Date.now();
-  const entry = rateLimitMap.get(ip) || { count: 0, start: now };
-  if (now - entry.start > RATE_LIMIT_WINDOW_MS) {
-    rateLimitMap.set(ip, { count: 1, start: now });
-    return true;
-  }
-  entry.count += 1;
-  rateLimitMap.set(ip, entry);
-  return entry.count <= RATE_LIMIT_MAX;
-}
 
 // ── Input sanitization ─────────────────────────────────────────────────────
 function sanitizeString(val, maxLen = 500) {
@@ -427,98 +387,30 @@ function sanitizeNumber(val, min = 0, max = 99999) {
 }
 
 export const handler = async (event) => {
-  // Allow requests from both the custom domain and the Netlify subdomain
-  const requestOrigin = event.headers['origin'] || '';
-  const allowedOrigins = [
-    'https://kesslercris.com',
-    'https://www.kesslercris.com',
-    'https://medanalytica-cris.netlify.app',
-    ...(process.env.ALLOWED_ORIGIN ? [process.env.ALLOWED_ORIGIN] : []),
-  ];
-  const allowedOrigin = allowedOrigins.includes(requestOrigin)
-    ? requestOrigin
-    : allowedOrigins[0];
-
-  const securityHeaders = {
-    'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json',
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'Referrer-Policy': 'no-referrer',
-  };
-  const headers = securityHeaders;
-
-  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
-  }
-
-  // ── Rate limiting ────────────────────────────────────────────────────────
-  const clientIP = event.headers['x-forwarded-for']?.split(',')[0]?.trim()
-                || event.headers['client-ip']
-                || 'unknown';
-  if (!checkRateLimit(clientIP)) {
-    return { statusCode: 429, headers, body: JSON.stringify({ error: 'Too many requests. Please wait before submitting again.' }) };
-  }
-
-  // ── API key guard ─────────────────────────────────────────────────────────
-  if (!process.env.OPENAI_API_KEY) {
-    return { statusCode: 503, headers, body: JSON.stringify({ error: 'AI service not configured. Contact your administrator.' }) };
-  }
-
-  // ── Body size guard (max 20 MB) ──────────────────────────────────────────
-  const bodyLen = event.body ? Buffer.byteLength(event.body, 'utf8') : 0;
-  if (bodyLen > 20 * 1024 * 1024) {
-    return { statusCode: 413, headers, body: JSON.stringify({ error: 'Request too large. Maximum file size is 20 MB.' }) };
-  }
-
-  // ── HIPAA audit log (server-side only — never returned to client) ─────────
-  console.log(JSON.stringify({
-    event: 'analyze-report-request',
-    timestamp: new Date().toISOString(),
-    ip: clientIP,
-    bodyBytes: bodyLen,
-  }));
-
+  // Background functions return 202 immediately — this code runs asynchronously
+  let jobId;
   try {
     const body = JSON.parse(event.body || '{}');
+    jobId = body.jobId;
 
-    // ── ASYNC MODE: delegate to background function for unlimited processing time ──
-    if (body.mode === 'async' && canRunAsync()) {
-      const jobId = randomUUID();
-      const supabaseAdmin = getSupabaseAdmin();
-
-      // Create job record
-      const { error: insertError } = await supabaseAdmin.from('analysis_jobs').insert({
-        job_id: jobId,
-        doctor_id: body.doctorId || '00000000-0000-0000-0000-000000000000',
-        status: 'processing',
-      });
-
-      if (insertError) {
-        console.error('Failed to create analysis job:', insertError);
-        // Fall through to synchronous mode
-      } else {
-        // Invoke background function via internal fetch
-        const siteUrl = process.env.URL || `https://${event.headers.host}`;
-        fetch(`${siteUrl}/.netlify/functions/analyze-report-background`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, jobId }),
-        }).catch(err => console.error('Background function invocation failed:', err));
-
-        // Return immediately with jobId
-        return {
-          statusCode: 202,
-          headers,
-          body: JSON.stringify({ mode: 'async', jobId }),
-        };
-      }
+    if (!jobId) {
+      console.error('No jobId provided to background function');
+      return;
     }
 
-    // ── SYNCHRONOUS MODE (fallback) ──────────────────────────────────────────
+    if (!process.env.OPENAI_API_KEY) {
+      await supabaseAdmin.from('analysis_jobs').update({
+        status: 'error',
+        error: 'AI service not configured. Contact your administrator.',
+        updated_at: new Date().toISOString(),
+      }).eq('job_id', jobId);
+      return;
+    }
+
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY not set — cannot store results');
+      return;
+    }
 
     // ── Sanitize clinical inputs ───────────────────────────────────────────
     if (body.clinicalData) {
@@ -543,11 +435,9 @@ export const handler = async (event) => {
       body.screenshots = body.screenshots.slice(0, 10);
     }
     const { screenshots = [], reportType, patientInfo, clinicalData, customRules } = body;
-    // screenshots: array of base64 image strings (PNG/JPG/TIFF)
 
     // Pre-compute ELI and quadrant from form data (LOCKED logic)
     let lockedELI = null, lockedQuadrant = null;
-    // Prefer stressQuestionnaireScore (from ELI questionnaire) over manual questionnaireScore
     const qScore = clinicalData?.stressQuestionnaireScore ?? clinicalData?.questionnaireScore;
     const ariVal = clinicalData?.ari;
     if (qScore != null) {
@@ -608,8 +498,6 @@ EXTRACTION INSTRUCTIONS:
 - Return ONLY valid JSON, no other text`;
 
     // Build image content blocks for each screenshot
-    // Use 'auto' detail — GPT-4o picks low/high based on image size.
-    // Images are pre-compressed to 1200px client-side for faster processing.
     const imageBlocks = screenshots.map(b64 => ({
       type: 'image_url',
       image_url: { url: `data:image/jpeg;base64,${b64}`, detail: 'auto' },
@@ -636,11 +524,12 @@ EXTRACTION INSTRUCTIONS:
       const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
       parsed = JSON.parse(cleaned);
     } catch {
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ success: false, error: 'Failed to parse AI response as JSON', rawResponse: rawText }),
-      };
+      await supabaseAdmin.from('analysis_jobs').update({
+        status: 'error',
+        error: 'Failed to parse AI response as JSON',
+        updated_at: new Date().toISOString(),
+      }).eq('job_id', jobId);
+      return;
     }
 
     // ── ENFORCE locked values from form data (server-side, AI cannot override) ──
@@ -655,8 +544,6 @@ EXTRACTION INSTRUCTIONS:
     if (clinicalData?.ermMethod) parsed.ermMethod = clinicalData.ermMethod;
 
     // ── FULL ELI FORMULA using extracted HRV data from screenshots ──────────
-    // ELI = (qScore × 4) + (VLF% × 3) + (Stress Index × 2) + Freeze Bonus
-    // Only use full formula if we have VLF% and Stress Index from AI extraction
     if (qScore != null) {
       const extractedVLF = parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value;
       const extractedSI  = parsed.hrvMarkers?.find(m => m.name === 'Stress Index')?.value;
@@ -673,14 +560,10 @@ EXTRACTION INSTRUCTIONS:
 
       let computedELI;
       if (extractedVLF != null && extractedSI != null) {
-        // Full formula: (qScore × 4) + (VLF% × 3) + (stressIndex × 2) + freezeBonus
-        // Normalize stress index: cap at 500 for scoring, then scale to 0-100
         const normalizedSI = Math.min(extractedSI, 500) / 5;
         computedELI = Math.round((qScore * 4) + (extractedVLF * 3) + (normalizedSI * 2) + freezeBonus);
-        // Cap at 100
         computedELI = Math.min(computedELI, 100);
       } else {
-        // Simple formula: round((score / 40) × 100)
         computedELI = Math.round((qScore / 40) * 100);
       }
 
@@ -689,7 +572,6 @@ EXTRACTION INSTRUCTIONS:
       parsed.questionnaireScore = qScore;
       parsed.stressQuestionnaireScore = qScore;
 
-      // Re-compute quadrant with the final ELI
       if (ariVal != null) {
         const highELI = qScore >= 20;
         const highARI = ariVal >= 60;
@@ -725,7 +607,6 @@ EXTRACTION INSTRUCTIONS:
       parsed.emvita = clinicalData.emvita;
       parsed.emvitaText = EMVITA_TEXTS[clinicalData.emvita] || parsed.emvitaText;
     }
-    // Build psychosomaticFindings from hardcoded texts
     if (clinicalData?.chavita && clinicalData?.emvita) {
       const ct = CHAVITA_TEXTS[clinicalData.chavita];
       const et = EMVITA_TEXTS[clinicalData.emvita];
@@ -733,14 +614,14 @@ EXTRACTION INSTRUCTIONS:
         parsed.psychosomaticFindings = `${ct}\n\n${et}`;
       }
     }
-    // Polyvagal: server-side enforcement — ALWAYS compute from actual extracted marker values
+
+    // Polyvagal: server-side enforcement
     const extractedSDNN = parsed.hrvMarkers?.find(m => m.name === 'SDNN')?.value;
     const extractedRMSSD = parsed.hrvMarkers?.find(m => m.name === 'RMSSD')?.value;
     const extractedTP = parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
     if (extractedSDNN != null && extractedRMSSD != null && extractedTP != null) {
       const allThreeMet = extractedSDNN < 20 && extractedRMSSD < 15 && extractedTP < 200;
       parsed.polyvagalRuleOf3Met = allThreeMet;
-      // ALWAYS generate server-side interpretation — override AI text to ensure accuracy
       const checks = [
         `SDNN ${extractedSDNN}ms (${extractedSDNN < 20 ? '✓ <20' : '✗ not <20'})`,
         `RMSSD ${extractedRMSSD}ms (${extractedRMSSD < 15 ? '✓ <15' : '✗ not <15'})`,
@@ -752,17 +633,26 @@ EXTRACTION INSTRUCTIONS:
         : `Polyvagal Rule of 3 NOT met: ${checks}. ${metCount} of 3 criteria met — this is NOT true freeze. System is exhausted/stressed but not in dorsal vagal shutdown. Focus on stabilization and energy restoration.`;
     }
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ success: true, data: parsed }),
-    };
+    // ── Store result in Supabase ──────────────────────────────────────────
+    const { error: updateError } = await supabaseAdmin.from('analysis_jobs').update({
+      status: 'complete',
+      result: parsed,
+      updated_at: new Date().toISOString(),
+    }).eq('job_id', jobId);
+
+    if (updateError) {
+      console.error('Failed to store analysis result:', updateError);
+    }
+
+    console.log(`Job ${jobId} completed successfully`);
   } catch (err) {
-    console.error('analyze-report error:', err);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: err.message || 'Internal server error' }),
-    };
+    console.error('Background analysis error:', err);
+    if (jobId) {
+      await supabaseAdmin.from('analysis_jobs').update({
+        status: 'error',
+        error: err.message || 'Internal server error',
+        updated_at: new Date().toISOString(),
+      }).eq('job_id', jobId).catch(e => console.error('Failed to update job error:', e));
+    }
   }
 };
