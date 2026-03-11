@@ -29,6 +29,17 @@ export default function Processing({ user, form, files = [], customRules, onDone
   const run = async () => {
     let saveError = null;
     try {
+      // Force-refresh the Supabase session before any DB operations.
+      // getSession() can return a cached/expired JWT that passes the null check
+      // but fails RLS. Always refreshSession() to get a valid token.
+      if (user.id !== 'demo') {
+        const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+        if (refreshErr || !refreshed?.session) {
+          onError?.('Your session has expired. Please sign out and sign back in.');
+          return;
+        }
+      }
+
       advance(1);
       // Convert all screenshots to base64
       const screenshotBase64s = files.length > 0
@@ -37,88 +48,92 @@ export default function Processing({ user, form, files = [], customRules, onDone
 
       advance(2);
       // Upload screenshots to Supabase Storage (if not demo)
+      // Uses a 10s timeout per file so a hanging upload never blocks the analysis.
       let filePaths = [];
       if (user.id !== 'demo' && files.length > 0) {
-        filePaths = await Promise.all(files.map(async (f) => {
-          const ext = f.name.split('.').pop();
+        const uploadWithTimeout = (f) => {
           const path = `${user.id}/${Date.now()}-${f.name}`;
-          await supabase.storage.from('reports').upload(path, f);
-          return path;
-        }));
+          const uploadPromise = supabase.storage.from('reports').upload(path, f)
+            .then(() => path)
+            .catch(() => null);
+          const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 10000));
+          return Promise.race([uploadPromise, timeoutPromise]);
+        };
+        const results = await Promise.all(files.map(uploadWithTimeout));
+        filePaths = results.filter(Boolean);
       }
 
       advance(3);
 
-      // Starter tier: enforce 50 stored reports limit
-      if (user.id !== 'demo' && user.tier === 'starter') {
-        const { count: reportCount } = await supabase
-          .from('reports')
-          .select('id', { count: 'exact', head: true })
-          .eq('doctor_id', user.id);
-        if (reportCount != null && reportCount >= 50) {
-          throw new Error('REPORT_LIMIT_REACHED');
-        }
-      }
-
-      // Create or reuse patient record in Supabase
+      // All Supabase DB operations are wrapped in a 12s timeout.
+      // If the connection hangs (CORS/network issue), the AI analysis still proceeds.
       let patientId = null;
       let isReturningPatient = false;
-      if (user.id !== 'demo') {
-        // All tiers: look up existing patient by MRN or name+DOB to accumulate reports
-        try {
-          // Prefer MRN match first (most reliable)
-          if (form.mrn) {
-            const { data: byMrn } = await supabase
-              .from('patients')
-              .select('id')
-              .eq('doctor_id', user.id)
-              .eq('mrn', form.mrn)
-              .limit(1)
-              .maybeSingle();
-            if (byMrn) {
-              patientId = byMrn.id;
-              isReturningPatient = true;
-            }
-          }
-          // Fallback: match by name + DOB
-          if (!patientId && form.firstName && form.lastName && form.dob) {
-            const { data: byName } = await supabase
-              .from('patients')
-              .select('id')
-              .eq('doctor_id', user.id)
-              .eq('first_name', form.firstName)
-              .eq('last_name', form.lastName)
-              .eq('dob', form.dob)
-              .limit(1)
-              .maybeSingle();
-            if (byName) {
-              patientId = byName.id;
-              isReturningPatient = true;
-            }
-          }
-        } catch (lookupErr) {
-          console.warn('Patient lookup failed, will create new:', lookupErr);
-        }
 
-        // Create new patient if none found
-        if (!patientId) {
-          const { data: pat, error: patError } = await supabase.from('patients').insert({
-            doctor_id:  user.id,
-            first_name: form.firstName,
-            last_name:  form.lastName,
-            dob:        form.dob || null,
-            gender:     form.gender || null,
-            mrn:        form.mrn || null,
-            phone:      form.phone || null,
-            notes:      form.notes || null,
-          }).select().single();
-          if (patError) {
-            console.error('Patient insert failed:', patError);
-            saveError = `Patient record could not be created: ${patError.message}`;
+      await Promise.race([
+        (async () => {
+          // Starter tier: enforce 50 stored reports limit
+          if (user.id !== 'demo' && user.tier === 'starter') {
+            const { count: reportCount } = await supabase
+              .from('reports')
+              .select('id', { count: 'exact', head: true })
+              .eq('doctor_id', user.id);
+            if (reportCount != null && reportCount >= 50) {
+              throw new Error('REPORT_LIMIT_REACHED');
+            }
           }
-          patientId = pat?.id ?? null;
-        }
-      }
+
+          // Create or reuse patient record in Supabase
+          if (user.id !== 'demo') {
+            try {
+              if (form.mrn) {
+                const { data: byMrn } = await supabase
+                  .from('patients')
+                  .select('id')
+                  .eq('doctor_id', user.id)
+                  .eq('mrn', form.mrn)
+                  .limit(1)
+                  .maybeSingle();
+                if (byMrn) { patientId = byMrn.id; isReturningPatient = true; }
+              }
+              if (!patientId && form.firstName && form.lastName && form.dob) {
+                const { data: byName } = await supabase
+                  .from('patients')
+                  .select('id')
+                  .eq('doctor_id', user.id)
+                  .eq('first_name', form.firstName)
+                  .eq('last_name', form.lastName)
+                  .eq('dob', form.dob)
+                  .limit(1)
+                  .maybeSingle();
+                if (byName) { patientId = byName.id; isReturningPatient = true; }
+              }
+            } catch (lookupErr) {
+              console.warn('Patient lookup failed, will create new:', lookupErr);
+            }
+
+            if (!patientId) {
+              const { data: pat, error: patError } = await supabase.from('patients').insert({
+                doctor_id:  user.id,
+                first_name: form.firstName,
+                last_name:  form.lastName,
+                dob:        form.dob || null,
+                gender:     form.gender || null,
+                mrn:        form.mrn || null,
+                phone:      form.phone || null,
+                notes:      form.notes || null,
+              }).select().single();
+              if (patError) {
+                console.error('Patient insert failed:', patError);
+                saveError = `Patient record could not be created: ${patError.message}`;
+              }
+              patientId = pat?.id ?? null;
+            }
+          }
+        })(),
+        // Safety valve: if Supabase hangs for any reason, continue after 12s
+        new Promise(resolve => setTimeout(resolve, 12000)),
+      ]);
 
       advance(4);
       // Call the Netlify AI analysis function

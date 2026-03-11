@@ -110,6 +110,32 @@ HRV MARKER REFERENCE RANGES
 - LF%:          30–50%        (>55% = elevated sympathetic drive; used as baroreflex indicator)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HRV CLINICAL NOTE LANGUAGE (use these exact explanations in clinicalNote fields)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use these explanations verbatim when writing clinicalNote for each HRV marker:
+
+SDNN (when low): "Low indicates reduced overall heart rate variability, reflecting lower autonomic nervous system flexibility and diminished physiologic resilience."
+
+RMSSD (when low): "Low suggests reduced parasympathetic (Vagal) influence, indicating impaired recovery capacity and reduced nervous system regulation."
+
+LF/HF Ratio (when high): "High indicates sympathetic dominance or stress activation."
+
+Total Power (when low, short version): "Low indicates reduced overall autonomic nervous system energy and adaptability, suggesting the body has limited physiological reserve to respond to stress and recover effectively."
+Total Power (when low, extended version): "Low indicates reduced overall autonomic nervous system energy and adaptability, suggesting the body has limited physiologic reserve to respond to stress and recovery efficiently. When Total Power is reduced, the nervous system has less capacity to adapt to changing demands, contributing to fatigue and reduced resilience."
+
+Stress Index (when high, short version): "High indicates high autonomic nervous system strain with persistent sympathetic ('fight-or-flight') activation and reduced recovery capacity."
+Stress Index (when high, extended version): "High indicates the body is operating in a persistent sympathetic 'fight-or-flight' state. The nervous system becomes overloaded and less adaptable, recovery (parasympathetic activity) becomes reduced, the body shifts toward higher cortisol, inflammation, and metabolic stress, and energy systems become less efficient, contributing to fatigue and reduced resilience. Restoring autonomic balance is a key therapeutic goal."
+
+VLF% (when high, short version): "High indicates a significant chronic load on the nervous system, often reflecting long-standing physiologic or emotional stress, inflammatory burden, and central nervous system influence."
+VLF% (when high, extended version): "Elevated VLF% suggests a significant chronic load on the nervous system. This portion of the HRV spectrum is strongly influenced by the central nervous system and long-term regulatory systems, including the HPA axis and neuro-hormonal stress pathways. Elevated VLF% may reflect emotional stress, chronic inflammatory or metabolic load, stored emotional or traumatic patterns influencing the autonomic nervous system, and reduced ability to shift efficiently between stress and recovery states. Improving nervous system regulation becomes an important therapeutic focus."
+
+HF% (when low): "Low indicates reduced parasympathetic (vagal) activity, meaning the body may have difficulty entering rest, recovery, and repair states."
+
+LF% (when low): "Low may indicate reduced autonomic nervous system regulatory activity related to the baroreflex system, suggesting possible diminished blood pressure and vascular tone regulation and reduced physiological adaptation."
+LF% (when elevated): "Elevated LF% reflects increased autonomic nervous system regulatory activity related to the baroreflex system, which controls blood pressure and vascular tone. LF activity represents a mixed sympathetic and parasympathetic influence and may increase during physiologic stress or regulatory compensation."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CARDIOVASCULAR STRESS INDEX (CRI-HQP)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -243,11 +269,9 @@ DEVICE REFERENCES — NEVER mention any device, product, or test system that was
 
 POLYVAGAL — Only report polyvagalRuleOf3Met: true if ALL THREE criteria are simultaneously met:
   SDNN < 20 ms AND RMSSD < 15 ms AND Total Power < 200 ms².
-  If not ALL three met, set polyvagalRuleOf3Met: false.
-  ⚠️ CRITICAL: ALWAYS provide polyvagalInterpretation — NEVER set it to null. This field MUST contain a detailed explanation of which criteria ARE and ARE NOT met, regardless of whether Rule of 3 is met or not. The report ALWAYS displays this section.
-  Format: "Polyvagal Rule of 3 [MET/NOT met]: SDNN Xms (✓/✗ <20), RMSSD Xms (✓/✗ <15), Total Power Xms² (✓/✗ <200). N of 3 criteria met — [interpretation]."
-  Example when NOT met: "Polyvagal Rule of 3 NOT met: SDNN 19ms (✓ <20), RMSSD 29ms (✗ not <15), Total Power 106ms² (✓ <200). 2 of 3 criteria met — this is NOT true freeze. System is exhausted but not in dorsal vagal shutdown. Focus on stabilization and energy restoration."
-  Example when MET: "Polyvagal Rule of 3 MET: SDNN 15ms (✓ <20), RMSSD 12ms (✓ <15), Total Power 95ms² (✓ <200). All 3 criteria met — TRUE FREEZE: dorsal vagal shutdown physiology detected."
+  ⚠️ CRITICAL: DO NOT mention the Polyvagal Rule of 3 AT ALL unless all 3 criteria are simultaneously in the red zone.
+  If NOT all 3 met: set polyvagalRuleOf3Met: false AND polyvagalInterpretation: null. The report will NOT display this section.
+  If ALL 3 met: set polyvagalRuleOf3Met: true and write: "TRUE FREEZE — Polyvagal Rule of 3 MET: SDNN Xms (✓ <20), RMSSD Xms (✓ <15), Total Power Xms² (✓ <200). All three criteria simultaneously in red zone — dorsal vagal shutdown physiology."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BRAIN GAUGE REFERENCE RANGES
@@ -266,7 +290,9 @@ BRAIN GAUGE REFERENCE RANGES
 RUBIMED / PSYCHOSOMATIC ENERGETICS (PSE) — ABSOLUTE RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PSE is a diagnostic and therapeutic method developed by Dr. Reimar Banis that addresses repressed emotional traumas (conflicts) which store life energy and block its normal flow. Four energy levels are tested: Vital, Emotional, Mental, Causal. NEVER mention any test device name (RebaPad, Reba, etc.) — the method is simply called PSE.
+PSE is a diagnostic and therapeutic method developed by Dr. Reimar Banis that addresses repressed emotional traumas — called conflicts — which store life energy and block its normal Life flow. Conflicts are identified and treated with homeopathic compound remedies (Emvita 1-28), always paired with the corresponding chakra remedy (Chavita 1-7). NEVER mention any test device name (RebaPad, Reba, etc.) — the method is simply called PSE.
+
+Disclaimer (include when writing PSE section): "Psychosomatic Energetics (PSE) assessments are intended to help identify potential energetic and emotional stress patterns that may influence overall well-being. These findings are not intended to diagnose or treat medical or psychological conditions and should be used as supportive information within a comprehensive healthcare program directed by a qualified health care professional."
 
 RULES:
 - Chavita (1–7) and Emvita (1–28) are ALWAYS paired.
@@ -657,10 +683,9 @@ EXTRACTION INSTRUCTIONS:
         `RMSSD ${extractedRMSSD}ms (${extractedRMSSD < 15 ? '✓ <15' : '✗ not <15'})`,
         `Total Power ${extractedTP}ms² (${extractedTP < 200 ? '✓ <200' : '✗ not <200'})`,
       ].join(', ');
-      const metCount = [extractedSDNN < 20, extractedRMSSD < 15, extractedTP < 200].filter(Boolean).length;
       parsed.polyvagalInterpretation = allThreeMet
         ? `TRUE FREEZE — Polyvagal Rule of 3 MET: ${checks}. All three criteria simultaneously in red zone — dorsal vagal shutdown physiology.`
-        : `Polyvagal Rule of 3 NOT met: ${checks}. ${metCount} of 3 criteria met — this is NOT true freeze. System is exhausted/stressed but not in dorsal vagal shutdown. Focus on stabilization and energy restoration.`;
+        : null;
     }
 
     // ── Store result in Supabase ──────────────────────────────────────────
