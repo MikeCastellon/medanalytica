@@ -45,14 +45,24 @@ export const fileToBase64 = (file) =>
     img.src = URL.createObjectURL(file);
   });
 
-/** CRI score → color + category */
+/** CRI-HQP score → color + category */
 export const criMeta = (score) => {
   if (score === null || score === undefined) return { color: '#8896aa', bg: '#eef1f5', label: 'N/A' };
   if (score <= 2)  return { color: '#0e7a55', bg: '#e6f5ef', label: 'Low Vascular Load' };
-  if (score <= 5)  return { color: '#b45309', bg: '#fef3e2', label: 'Mild Strain' };
-  if (score <= 8)  return { color: '#c0392b', bg: '#fdecea', label: 'High Cardiovascular Stress' };
-  return            { color: '#7b1111', bg: '#fdecea', label: 'Critical Cardiovascular Risk' };
+  if (score <= 5)  return { color: '#b45309', bg: '#fef3e2', label: 'Mild Autonomic/Vascular Strain' };
+  if (score <= 8)  return { color: '#c0392b', bg: '#fdecea', label: 'Moderate Cardiovascular Risk Pattern' };
+  return            { color: '#7b1111', bg: '#fdecea', label: 'High Cardiovascular Stress Pattern' };
 };
+
+/** CRI-HQP per-parameter breakdown labels */
+export const CRI_BREAKDOWN_PARAMS = [
+  { key: 'pulsePressure', label: 'Pulse Pressure',    unit: 'mmHg' },
+  { key: 'lfPercent',     label: 'LF%',               unit: '%' },
+  { key: 'vlfPercent',    label: 'VLF%',              unit: '%' },
+  { key: 'stressIndex',   label: 'Stress Index',      unit: '' },
+  { key: 'totalPower',    label: 'Total Power',       unit: 'ms²' },
+  { key: 'sdnn',          label: 'SDNN',              unit: 'ms' },
+];
 
 export const STATUS_COLOR = { high: '#c0392b', low: '#b45309', normal: '#0e7a55' };
 

@@ -109,11 +109,13 @@ HRV MARKER REFERENCE RANGES
 - LF%:          30–50%        (>55% = elevated sympathetic drive; used as baroreflex indicator)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CARDIOVASCULAR ANALYSIS
+CARDIOVASCULAR STRESS INDEX (CRI-HQP)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Pulse Pressure (PP) = SBP − DBP
+Purpose: Estimate vascular strain, arterial stiffness risk, autonomic load, and RAAS tension using HQP and blood pressure metrics.
 CASP: NEVER calculate — only record if explicitly device-measured on the document.
+
+Pulse Pressure (PP) = SBP − DBP
 
 CV Quadrant (based on PP, LF%, vascular markers):
 - Q1: Parasympathetic dominant, low vascular load
@@ -121,12 +123,56 @@ CV Quadrant (based on PP, LF%, vascular markers):
 - Q3: Energy Reserve / Resilience-Fatigue (depleted, low load)
 - Q4: Autonomic-Stress pattern (sympathetic overdrive)
 
-CRI Score (Cardiovascular Risk Index, 0–12):
+CRI-HQP SCORING MODEL (0–12 Points)
+Each of the 6 parameters scores 0–2 points based on severity:
+
+1. Pulse Pressure (PP = SBP − DBP):
+   0 pts: < 40 (Normal)
+   1 pt:  40–60 (Elevated)
+   2 pts: > 60 (High)
+   Note: > 80 = Very High — flag in clinical note
+
+2. LF% (Baroreflex Load):
+   0 pts: 25–40% (Normal)
+   1 pt:  40–50% (Increased vascular sympathetic stabilization effort)
+   2 pts: > 50% (Significant baroreflex strain)
+
+3. VLF% (RAAS / Vascular Tension):
+   0 pts: 20–30% (Normal)
+   1 pt:  35–45% (Increased vascular/renal-hormonal tension)
+   2 pts: > 45% (Strong RAAS involvement)
+
+4. Stress Index (HRV Sympathetic Load):
+   0 pts: 10–40 (Low)
+   1 pt:  40–80 (Moderate)
+   2 pts: > 80 (High sympathetic dominance)
+
+5. Total Power (Autonomic Reserve):
+   0 pts: 1500–3500 (Balanced)
+   1 pt:  1000–1500 (Reduced resilience)
+   2 pts: < 1000 (Significant autonomic fatigue)
+
+6. SDNN (Adaptability):
+   0 pts: 49–70 (Balanced)
+   1 pt:  40–49 (Reduced adaptability)
+   2 pts: < 40 (High cardiovascular risk marker)
+
+CRI-HQP Interpretation:
   0–2:  Low Vascular Load
-  3–5:  Mild Strain
-  6–8:  High Cardiovascular Stress Pattern
-  9–12: Critical Cardiovascular Risk
-  Derive from: Pulse Pressure, LF%, SDNN, Stress Index, Resting HR, Total Power.
+  3–5:  Mild Autonomic/Vascular Strain
+  6–8:  Moderate Cardiovascular Risk Pattern
+  9–12: High Cardiovascular Stress Pattern
+
+You MUST calculate each parameter's individual score AND the total.
+Return the per-parameter breakdown in criBreakdown (see JSON schema).
+
+GPT Output Language Rules for CRI-HQP:
+- Use "Pulse Pressure suggests arterial stiffness" (when elevated)
+- Use "Elevated LF% indicates baroreflex strain"
+- Use "Elevated VLF% suggests RAAS-mediated vascular tension"
+- Use "Reduced Total Power reflects decreased autonomic reserve"
+- Use "Low SDNN is associated with increased cardiovascular mortality risk in longitudinal studies"
+- Do NOT reference CASP unless directly measured
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 POLYVAGAL RULE OF 3
@@ -315,7 +361,15 @@ JSON SCHEMA (return ALL fields, null if unavailable)
   "hrqEli": number | null,
   "hrqAri": number | null,
   "criScore": number | null,
-  "criCategory": "Low Vascular Load" | "Mild Strain" | "High Cardiovascular Stress Pattern" | "Critical Cardiovascular Risk" | null,
+  "criCategory": "Low Vascular Load" | "Mild Autonomic/Vascular Strain" | "Moderate Cardiovascular Risk Pattern" | "High Cardiovascular Stress Pattern" | null,
+  "criBreakdown": {
+    "pulsePressure": { "value": number|null, "score": 0|1|2, "note": string },
+    "lfPercent":     { "value": number|null, "score": 0|1|2, "note": string },
+    "vlfPercent":    { "value": number|null, "score": 0|1|2, "note": string },
+    "stressIndex":   { "value": number|null, "score": 0|1|2, "note": string },
+    "totalPower":    { "value": number|null, "score": 0|1|2, "note": string },
+    "sdnn":          { "value": number|null, "score": 0|1|2, "note": string }
+  } | null,
   "crisgoldQuadrant": "Q1" | "Q2" | "Q3" | "Q4" | null,
   "crisgoldQuadrantLabel": string | null,
   "crisgoldQuadrantDescription": string | null,

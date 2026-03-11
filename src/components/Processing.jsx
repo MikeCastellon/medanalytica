@@ -339,7 +339,15 @@ function getMockReport(form) {
     questionnaireScore, eli, ari,
     hrqEli: eli, hrqAri: ari,
     criScore: 7,
-    criCategory: 'High Cardiovascular Stress Pattern',
+    criCategory: 'Moderate Cardiovascular Risk Pattern',
+    criBreakdown: {
+      pulsePressure: { value: 62, score: 2, note: 'High — suggests arterial stiffness' },
+      lfPercent:     { value: 48, score: 1, note: 'Increased vascular sympathetic stabilization effort' },
+      vlfPercent:    { value: 38, score: 1, note: 'Increased vascular/renal-hormonal tension' },
+      stressIndex:   { value: 85, score: 2, note: 'High sympathetic dominance' },
+      totalPower:    { value: 1320, score: 1, note: 'Reduced resilience' },
+      sdnn:          { value: 52, score: 0, note: 'Balanced' },
+    },
     // CRIS GOLD™ quadrant (LOCKED: high ELI score 31≥20 + low ARI 22<60 → Q1)
     crisgoldQuadrant: 'Q1',
     crisgoldQuadrantLabel: 'Overloaded & Dysregulated',

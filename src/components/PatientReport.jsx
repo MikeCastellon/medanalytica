@@ -7,7 +7,7 @@ import {
   ini, age, fmtDate,
   criMeta, STATUS_COLOR,
   CRISGOLD_QUADRANTS, CV_QUADRANTS,
-  BRAIN_GAUGE_METRICS,
+  BRAIN_GAUGE_METRICS, CRI_BREAKDOWN_PARAMS,
 } from '../lib/utils';
 import { MASTER_PROTOCOL_LIST } from '../lib/protocols';
 import { CHAVITA_DESCRIPTIONS, EMVITA_DESCRIPTIONS } from '../lib/rubimed';
@@ -96,13 +96,15 @@ const QUADRANT_CLINICAL_FOCUS = {
   ],
 };
 
-// ── CV Protocol Objectives by CRI Category ───────────────────────────────────
+// ── CV Protocol Objectives by CRI-HQP Category ──────────────────────────────
 const CV_PROTOCOL_OBJECTIVES = {
-  'Low Vascular Load':              ['Maintain endothelial function', 'Support nitric oxide production', 'Continue cardiovascular wellness routine'],
-  'Mild Strain':                    ['Reduce arterial stiffness progression', 'Improve baroreflex sensitivity', 'Lifestyle modifications + periodic monitoring'],
-  'High Cardiovascular Stress':     ['Reduce Pulse Pressure', 'Support endothelial NO signaling', 'Lower cardiac workload', 'Close monitoring recommended'],
-  'High Cardiovascular Stress Pattern': ['Reduce Pulse Pressure', 'Support endothelial NO signaling', 'Lower cardiac workload', 'Close monitoring recommended'],
-  'Critical Cardiovascular Risk':   ['Urgent cardiovascular evaluation', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair', 'Referral to cardiologist'],
+  'Low Vascular Load':                    ['Maintain endothelial function', 'Support nitric oxide production', 'Continue cardiovascular wellness routine'],
+  'Mild Strain':                          ['Reduce arterial stiffness progression', 'Improve baroreflex sensitivity', 'Lifestyle modifications + periodic monitoring'],
+  'Mild Autonomic/Vascular Strain':       ['Reduce arterial stiffness progression', 'Improve baroreflex sensitivity', 'Lifestyle modifications + periodic monitoring'],
+  'Moderate Cardiovascular Risk Pattern': ['Reduce Pulse Pressure', 'Support endothelial NO signaling', 'Lower cardiac workload', 'Close monitoring recommended'],
+  'High Cardiovascular Stress':           ['Reduce Pulse Pressure', 'Support endothelial NO signaling', 'Lower cardiac workload', 'Close monitoring recommended'],
+  'High Cardiovascular Stress Pattern':   ['Urgent cardiovascular evaluation', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair', 'Referral to cardiologist'],
+  'Critical Cardiovascular Risk':         ['Urgent cardiovascular evaluation', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair', 'Referral to cardiologist'],
 };
 
 // ── Therapeutic Category Rationale ───────────────────────────────────────────
@@ -311,7 +313,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       {/* ── Quick Score Bar ── */}
       {(eli != null || ari != null || r.criScore != null || cgQ) && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-          {r.criScore != null && <ScorePill label="CRI Score" value={`${r.criScore}/12`} sub={cri.label} color={cri.color} />}
+          {r.criScore != null && <ScorePill label="CRI-HQP" value={`${r.criScore}/12`} sub={cri.label} color={cri.color} />}
           {eli != null && <ScorePill label="ELI" value={eli} sub={eli >= 50 ? 'High Emotional Load' : 'Low Emotional Load'} color={eli >= 50 ? '#c0392b' : '#0e7a55'} />}
           {ari != null && <ScorePill label="ARI" value={ari} sub={ari >= 60 ? 'High Regulation' : 'Low Regulation'} color={ari >= 60 ? '#0e7a55' : '#c0392b'} />}
           {cgQ && <ScorePill label="CRIS GOLD™ Quadrant" value={r.crisgoldQuadrant} sub={cgQ.label} color={cgQ.color} />}
@@ -365,8 +367,8 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
                 {r.criScore != null && (
                   <div style={{ background: 'var(--bg)', border: `1px solid ${cri.color}30`, borderRadius: '8px', padding: '12px 14px' }}>
                     <div style={{ fontSize: '22px', fontWeight: '700', color: cri.color, fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{r.criScore}<span style={{ fontSize: '13px', color: 'var(--text3)', fontFamily: 'inherit' }}>/12</span></div>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Cardiovascular Risk</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{r.criScore <= 3 ? 'Low risk — heart and vessels under minimal strain' : r.criScore <= 6 ? 'Moderate — some cardiovascular stress present' : r.criScore <= 9 ? 'Elevated — cardiovascular system under significant load' : 'High — priority cardiovascular support needed'}</div>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Cardiovascular Stress Index</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{r.criScore <= 2 ? 'Low vascular load — balanced cardiovascular stress' : r.criScore <= 5 ? 'Mild strain — increased autonomic/vascular effort' : r.criScore <= 8 ? 'Moderate risk — cardiovascular system under significant load' : 'High stress pattern — priority cardiovascular support needed'}</div>
                   </div>
                 )}
                 {eli != null && (
@@ -511,7 +513,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
           <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--navy)' }}>🤖 AI Clinical Summary</div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {cgQ && <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: cgQ.bg, color: cgQ.color, border: `1px solid ${cgQ.color}40` }}>{r.crisgoldQuadrant}: {cgQ.sub || cgQ.label}</span>}
-            {cri.label !== 'N/A' && <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: cri.bg, color: cri.color, border: `1px solid ${cri.color}40` }}>CRI {r.criScore} — {cri.label}</span>}
+            {cri.label !== 'N/A' && <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: cri.bg, color: cri.color, border: `1px solid ${cri.color}40` }}>CRI-HQP {r.criScore} — {cri.label}</span>}
             <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: overallStatus === 'critical' ? '#fdecea' : overallStatus === 'warning' ? '#fef3e2' : '#e6f5ef', color: overallStatus === 'critical' ? '#c0392b' : overallStatus === 'warning' ? '#b45309' : '#0e7a55', border: '1px solid currentColor' }}>
               {overallStatus === 'critical' ? '⚠ Critical' : overallStatus === 'warning' ? '⚠ Review' : '✓ Normal'}
             </span>
@@ -529,7 +531,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       </div>
 
       {/* ── §2 CRI Score ── */}
-      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Risk Index (CRI)" /><CRICard cri={cri} score={r.criScore} category={r.criCategory} /><CVPatternPanel report={r} markers={markers} criLabel={cri.label} /></>}
+      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Stress Index (CRI-HQP)" /><CRICard cri={cri} score={r.criScore} category={r.criCategory} breakdown={r.criBreakdown} /><CVPatternPanel report={r} markers={markers} criLabel={cri.label} /></>}
 
       {/* ── §3 CRIS GOLD™ Quadrant + CV Quadrant ── */}
       {(cgQ || cvQ) && <SectionLabel number={3} title="Quadrant Placement" />}
@@ -759,7 +761,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
 }
 
 /* ── CRI Score Card ─────────────────────────────────────── */
-function CRICard({ cri, score, category }) {
+function CRICard({ cri, score, category, breakdown }) {
   const bands = [
     { label: '9–12', color: '#7b1111', range: [9, 12] },
     { label: '6–8',  color: '#c0392b', range: [6, 8]  },
@@ -767,6 +769,7 @@ function CRICard({ cri, score, category }) {
     { label: '0–2',  color: '#0e7a55', range: [0, 2]  },
   ];
   const pct = Math.min((score / 12) * 100, 100);
+  const scoreColor = (s) => s === 0 ? '#0e7a55' : s === 1 ? '#b45309' : '#c0392b';
 
   return (
     <div className="cc" style={{ marginBottom: '16px' }}>
@@ -787,7 +790,7 @@ function CRICard({ cri, score, category }) {
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--text3)', marginBottom: '6px' }}>
-            Cardiovascular Risk Index (CRI)
+            Cardiovascular Stress Index (CRI-HQP)
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '52px', color: cri.color, lineHeight: 1 }}>{score}</span>
@@ -800,7 +803,7 @@ function CRICard({ cri, score, category }) {
             <div style={{ width: `${pct}%`, height: '100%', background: cri.color, borderRadius: '6px', transition: 'width .5s ease' }} />
           </div>
           <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: '1.7' }}>
-            CRI of <strong>{score}</strong> — <strong style={{ color: cri.color }}>{category || cri.label}</strong>.
+            CRI-HQP of <strong>{score}</strong> — <strong style={{ color: cri.color }}>{category || cri.label}</strong>.
             {score >= 9 && ' Urgent cardiovascular evaluation recommended.'}
             {score >= 6 && score < 9 && ' Cardiovascular intervention and close monitoring recommended.'}
             {score >= 3 && score < 6 && ' Lifestyle modifications and periodic monitoring advised.'}
@@ -808,6 +811,33 @@ function CRICard({ cri, score, category }) {
           </div>
         </div>
       </div>
+      {/* ── CRI-HQP Per-Parameter Breakdown ── */}
+      {breakdown && (
+        <div style={{ marginTop: '18px', borderTop: '1px solid var(--border)', paddingTop: '14px' }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--text3)', marginBottom: '10px' }}>
+            Parameter Breakdown
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px' }}>
+            {CRI_BREAKDOWN_PARAMS.map(({ key, label, unit }) => {
+              const p = breakdown[key];
+              if (!p) return null;
+              return (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'var(--bg3)', borderRadius: '6px', borderLeft: `3px solid ${scoreColor(p.score)}` }}>
+                  <div style={{ minWidth: '28px', height: '28px', borderRadius: '50%', background: scoreColor(p.score) + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', color: scoreColor(p.score) }}>
+                    {p.score}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text1)' }}>
+                      {label}{p.value != null && <span style={{ fontWeight: '400', color: 'var(--text2)', marginLeft: '6px' }}>{p.value}{unit ? ` ${unit}` : ''}</span>}
+                    </div>
+                    {p.note && <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: '1.4', marginTop: '2px' }}>{p.note}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
