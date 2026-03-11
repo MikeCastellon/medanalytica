@@ -10,6 +10,7 @@
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import { CHAVITA_DESCRIPTIONS, EMVITA_DESCRIPTIONS } from '../../src/lib/rubimed.js';
+import { generatePromptReference } from './nutrient-protocols.js';
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -186,51 +187,26 @@ If all 3 met → "TRUE FREEZE — dorsal vagal shutdown physiology"
 If NOT all 3 → "Exhausted/stressed system — NOT true freeze. Focus on stabilization."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-THERAPEUTIC CATEGORIES (ALL 6 REQUIRED — NEVER LEAVE EMPTY)
+THERAPEUTIC CATEGORIES (ALL 5 REQUIRED — NEVER LEAVE EMPTY)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⚠️ CRITICAL: You MUST populate ALL 6 therapeutic categories with at least 1-3 specific product recommendations each. NEVER return empty arrays. Use the quadrant to guide selections. Format each item as: "Product Name — Dose (Brand)"
+⚠️ CRITICAL: You MUST populate ALL 5 therapeutic categories with specific product recommendations. NEVER return empty arrays. Use the patient's CRIS GOLD™ quadrant (Q1-Q4) to guide selections.
 
-1. Drainage (ALWAYS first — foundational)
-   Primary vendors: Bioresource/Pekana, Unda, Physica Energetics, Marco Pharma
-   - Q1: Mundipur 1-2 tsp in water (Bioresource/Pekana); Psy-Stabil ½-1 tsp BID (Stress Buster Kit); Dalectro ½-1 tsp BID (Stress Buster Kit)
-   - Q2: Psy-Stabil + Dalectro + Neu-Regen (Stress Buster Kit); Apo-HEPAT 15-20 drops 3x/day; RENELIX 15-20 drops 3x/day; ITIRES 15-20 drops 3x/day
-   - Q3: Neu-Regen 1-2 tsp 2x/day (Bioresource/Pekana); JUVE-CAL 1 tsp 3-4x/day (Bioresource/Pekana)
-   - Q4: Apo-HEPAT + RENELIX + ITIRES (Full Detox Kit); TOXEX start 1-5 drops, work up to 10-20/day (Bioresource/Pekana)
+Format each item as: "Product Name — Dose (Company)" and include relevant clinical notes.
 
-2. Cell Membrane Support (phospholipid integrity, receptor sensitivity, ion channel function)
-   - The One — 1-2 tsp/day hold 30s (Quicksilver Scientific)
-   - Membrane Mend — 1 tsp 1-2x/day (Quicksilver Scientific)
-   - Nanoemulsified D3K2 — 1 pump/day (Quicksilver Scientific)
-   - OmegaAvail Ultra DHA — per label (Designs for Health)
-   - IntraMIN / IntraMAX — 1 fl oz/day (Drucker Labs)
+The 5 categories are:
+1. drainage (ALWAYS first — foundational, quadrant-specific products)
+2. cellMembraneSupport (same core products all quadrants, add Stress Buster Kit for Q1/Q2)
+3. mitochondrialSupport (same core products all quadrants)
+4. neurocognitiveSupport (same core products all quadrants)
+5. cardiovascularSupport (quadrant-specific products based on CRI-HQP findings)
 
-3. Mitochondrial Support (ATP production, electron transport chain, NAD+/NADH)
-   - NAD+ / NAD+ Platinum — ½ tsp by mouth (Quicksilver Scientific)
-   - CoQ10 Nanoemulsion — 2 pumps 2x/day (Quicksilver Scientific)
-   - ATP 360 — 3 caps once daily (Researched Nutritionals)
-   - Methyl B-Complex — 2 pumps/day (Quicksilver Scientific)
-   - BC-ATP — 2 caps/day (CellCore Bioscience)
+Health providers want OPTIONS — recommend 3-6 products per category so they can choose. Include company name and exact dosage for every product.
 
-4. Neuro-Cognitive Support (neurotransmitter balance, synaptic plasticity, BDNF)
-   - Brain DTX — 1 tsp/day (Quicksilver Scientific)
-   - Ultra Binder — 1 tsp in water (Quicksilver Scientific)
-   - Lion's Mane extract — per label (various)
-   - Cogniquil — 2 caps/day (Designs for Health)
+FULL PRODUCT REFERENCE BY CATEGORY AND QUADRANT:
+${generatePromptReference()}
 
-5. Oxidative Stress Support (free radical burden, antioxidant capacity)
-   - Tri-Fortify Liposomal Glutathione — 1 tsp (Researched Nutritionals)
-   - H2 Absorb — 1-2 tablets in water (Researched Nutritionals)
-   - SULFORAXYM — 2 caps/day (U.S. Enzymes)
-   - Ergo-Thione+ — 1 tsp by mouth (Quicksilver Scientific)
-
-6. Vascular / Cardiovascular Support (endothelial NO signaling, arterial stiffness)
-   - Cardio Metal Detox — 1 tsp/day (Quicksilver Scientific)
-   - PADMA Basic — 2 caps 2x/day (EcoNugenics)
-   - CircuVein — 2 caps/day (Designs for Health)
-   - Arterosil HP — 2 caps/day (Calroy Health Sciences)
-
-Select products appropriate to the patient's quadrant and clinical presentation. Each category MUST have at least 1 recommendation.
+Select products appropriate to the patient's quadrant and clinical presentation. Each category MUST have at least 3 recommendations with company and dosage.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 STRICT NO-HALLUCINATION RULES

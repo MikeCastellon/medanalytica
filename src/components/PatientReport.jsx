@@ -1279,7 +1279,18 @@ function TherapeuticCard({ selections, quadrant }) {
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {items.map((item, i) => (
                   <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '12.5px', color: 'var(--navy)', padding: '4px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <span style={{ flex: 1, lineHeight: '1.5' }}>• {item}</span>
+                    {editing ? (
+                      <input
+                        value={item}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setEditSels(prev => ({ ...prev, [key]: prev[key].map((x, j) => j === i ? val : x) }));
+                        }}
+                        style={{ flex: 1, fontSize: '12px', padding: '3px 6px', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg3)', color: 'var(--navy)', lineHeight: '1.5', fontFamily: 'inherit' }}
+                      />
+                    ) : (
+                      <span style={{ flex: 1, lineHeight: '1.5' }}>• {item}</span>
+                    )}
                     {editing && (
                       <button
                         onClick={() => removeItem(key, i)}
@@ -1352,6 +1363,7 @@ function TherapeuticCard({ selections, quadrant }) {
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: '600', color: added ? 'var(--text3)' : 'var(--navy)', lineHeight: '1.3' }}>{p.product}</div>
                                 <div style={{ color: 'var(--text3)', fontSize: '10.5px', marginTop: '1px' }}>{p.dose} · {p.brand}</div>
+                                {p.indication && <div style={{ color: 'var(--text3)', fontSize: '10px', marginTop: '2px', fontStyle: 'italic', lineHeight: '1.3' }}>{p.indication}</div>}
                               </div>
                               {added
                                 ? <span style={{ fontSize: '10px', color: 'var(--green)', fontWeight: '700', flexShrink: 0 }}>✓</span>
