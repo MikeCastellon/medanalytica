@@ -6,7 +6,7 @@ import {
 import {
   ini, age, fmtDate,
   criMeta, STATUS_COLOR,
-  CRISGOLD_QUADRANTS, CV_QUADRANTS,
+  CRISGOLD_QUADRANTS,
   BRAIN_GAUGE_METRICS, CRI_BREAKDOWN_PARAMS,
 } from '../lib/utils';
 import { MASTER_PROTOCOL_LIST } from '../lib/protocols';
@@ -178,7 +178,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
   const overallStatus = r.overallStatus || (r.criScore >= 6 ? 'critical' : r.criScore >= 3 ? 'warning' : 'normal');
   const cri = criMeta(r.criScore);
   const cgQ = r.crisgoldQuadrant ? CRISGOLD_QUADRANTS[r.crisgoldQuadrant] : null;
-  const cvQ = r.cvQuadrant       ? CV_QUADRANTS[r.cvQuadrant]             : null;
+  const polyFreeze = r.polyvagalAll3Red === 1 || r.polyvagalRuleOf3Met;
   const eli = r.eli ?? r.hrqEli;
   const ari = r.ari ?? r.hrqAri;
 
@@ -317,7 +317,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
           {eli != null && <ScorePill label="ELI" value={eli} sub={eli >= 50 ? 'High Emotional Load' : 'Low Emotional Load'} color={eli >= 50 ? '#c0392b' : '#0e7a55'} />}
           {ari != null && <ScorePill label="ARI" value={ari} sub={ari >= 60 ? 'High Regulation' : 'Low Regulation'} color={ari >= 60 ? '#0e7a55' : '#c0392b'} />}
           {cgQ && <ScorePill label="CRIS GOLD™ Quadrant" value={r.crisgoldQuadrant} sub={cgQ.label} color={cgQ.color} />}
-          {cvQ && <ScorePill label="CV Quadrant" value={r.cvQuadrant} sub={cvQ.label} color={cvQ.color} />}
+          {/* CV Quadrant removed per doctor's request — only CRIS GOLD™ Quadrant shown */}
           {r.adrenalUrineDrops != null && <ScorePill label="Adrenal (Urine)" value={`${r.adrenalUrineDrops} drops`} sub={r.adrenalInterpretation} color="var(--amber)" />}
         </div>
       )}
@@ -404,13 +404,13 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
             </div>
           )}
 
-          {/* Polyvagal plain-language — only shown when Rule of 3 is met (polyvagalInterpretation is null otherwise) */}
-          {r.polyvagalInterpretation && (
-            <div style={{ background: r.polyvagalRuleOf3Met ? '#fef2f2' : '#fff8e1', border: `1px solid ${r.polyvagalRuleOf3Met ? 'rgba(192,57,43,.2)' : 'rgba(180,83,9,.2)'}`, borderLeft: `4px solid ${r.polyvagalRuleOf3Met ? 'var(--red)' : '#b45309'}`, borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: r.polyvagalRuleOf3Met ? 'var(--red)' : '#b45309', marginBottom: '8px' }}>
-                {r.polyvagalRuleOf3Met ? '⚠️ Dorsal Vagal Freeze Detected' : '🟡 Polyvagal Rule of 3 Assessment'}
+          {/* Polyvagal — ONLY shown when ALL 3 sections are red (binary freeze detection) */}
+          {(r.polyvagalAll3Red === 1 || r.polyvagalRuleOf3Met) && (
+            <div style={{ background: '#fef2f2', border: '1px solid rgba(192,57,43,.2)', borderLeft: '4px solid var(--red)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--red)', marginBottom: '8px' }}>
+                ⚠️ Dorsal Vagal Freeze Detected — All 3 Polyvagal Sections in Red Zone
               </div>
-              <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{r.polyvagalInterpretation}</div>
+              {r.polyvagalInterpretation && <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{r.polyvagalInterpretation}</div>}
             </div>
           )}
 
@@ -533,31 +533,20 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       {/* ── §2 CRI Score ── */}
       {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Stress Index (CRI-HQP)" /><CRICard cri={cri} score={r.criScore} category={r.criCategory} breakdown={r.criBreakdown} /><CVPatternPanel report={r} markers={markers} criLabel={cri.label} /></>}
 
-      {/* ── §3 CRIS GOLD™ Quadrant + CV Quadrant ── */}
-      {(cgQ || cvQ) && <SectionLabel number={3} title="Quadrant Placement" />}
-      {(cgQ || cvQ) && (
-        <div className="rg" style={{ gridTemplateColumns: cgQ && cvQ ? '1fr 1fr' : '1fr' }}>
-          {cgQ && (
-            <QuadrantCard
-              title="CRIS GOLD™ Quadrant"
-              subtitle="Emotional Load Index (ELI) vs Autonomic Regulation Index (ARI)"
-              quadrant={r.crisgoldQuadrant}
-              meta={cgQ}
-              qDefs={CRISGOLD_QUADRANTS}
-              ari={ari}
-              eli={eli}
-              qScore={r.questionnaireScore}
-            />
-          )}
-          {cvQ && (
-            <QuadrantCard
-              title="Cardiovascular Risk Quadrant"
-              subtitle="Cardiovascular system classification"
-              quadrant={r.cvQuadrant}
-              meta={cvQ}
-              qDefs={CV_QUADRANTS}
-            />
-          )}
+      {/* ── §3 CRIS GOLD™ Quadrant (CV Quadrant removed per doctor) ── */}
+      {cgQ && <SectionLabel number={3} title="Quadrant Placement" />}
+      {cgQ && (
+        <div className="rg">
+          <QuadrantCard
+            title="CRIS GOLD™ Quadrant"
+            subtitle="Emotional Load Index (ELI) vs Autonomic Regulation Index (ARI)"
+            quadrant={r.crisgoldQuadrant}
+            meta={cgQ}
+            qDefs={CRISGOLD_QUADRANTS}
+            ari={ari}
+            eli={eli}
+            qScore={r.questionnaireScore}
+          />
         </div>
       )}
 
@@ -622,19 +611,18 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
         </InfoCard>
       )}
 
-      {/* ── §6 Polyvagal + Adrenal ── */}
-      {/* Polyvagal only shows when Rule of 3 is met (all 3 criteria in red zone) — polyvagalInterpretation is null otherwise */}
-      {(r.polyvagalInterpretation || r.adrenalSummary) && <SectionLabel number={6} title={r.polyvagalInterpretation ? 'Polyvagal & Adrenal Assessment' : 'Adrenal Assessment'} />}
-      {(r.polyvagalInterpretation || r.adrenalSummary) && (
-        <div className="rg" style={{ gridTemplateColumns: r.polyvagalInterpretation && r.adrenalSummary ? '1fr 1fr' : '1fr' }}>
-          {r.polyvagalInterpretation && (
+      {/* ── §6 Polyvagal (only when ALL 3 red) + Adrenal ── */}
+      {(polyFreeze || r.adrenalSummary) && <SectionLabel number={6} title={polyFreeze ? 'Polyvagal Freeze & Adrenal Assessment' : 'Adrenal Assessment'} />}
+      {(polyFreeze || r.adrenalSummary) && (
+        <div className="rg" style={{ gridTemplateColumns: polyFreeze && r.adrenalSummary ? '1fr 1fr' : '1fr' }}>
+          {polyFreeze && (
             <InfoCard
-              icon={r.polyvagalRuleOf3Met ? '🔴' : '🟡'}
-              title={r.polyvagalRuleOf3Met ? 'Polyvagal Rule of 3: MET — True Freeze Pattern' : 'Polyvagal Rule of 3 Assessment'}
-              color={r.polyvagalRuleOf3Met ? 'var(--red)' : 'var(--orange, #b45309)'}
-              bg={r.polyvagalRuleOf3Met ? 'var(--red-lt)' : '#fff8e1'}
+              icon="🔴"
+              title="Polyvagal Freeze Detected — All 3 Sections Red"
+              color="var(--red)"
+              bg="var(--red-lt)"
             >
-              {r.polyvagalInterpretation}
+              {r.polyvagalInterpretation || 'All three Polyvagal gauge sections (Parasympathetic Activity, Energy Index, Poly-Vagal) are in the red zone, indicating a freeze physiology state. This contributes 30 points to the ELI score.'}
             </InfoCard>
           )}
           {r.adrenalSummary && (

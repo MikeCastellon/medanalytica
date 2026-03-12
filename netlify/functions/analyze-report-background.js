@@ -276,11 +276,18 @@ DEVICE REFERENCES — NEVER mention any device, product, or test system that was
   Do NOT mention: RebaPad, Reba Pad, Rebapad, Zyto, Ondamed, or any other device unless the practitioner specifically referenced it.
   For PSE: NEVER use any device name. PSE is a "method" — simply say "PSE testing" or "Psychosomatic Energetics assessment".
 
-POLYVAGAL — Only report polyvagalRuleOf3Met: true if ALL THREE criteria are simultaneously met:
-  SDNN < 20 ms AND RMSSD < 15 ms AND Total Power < 200 ms².
-  ⚠️ CRITICAL: DO NOT mention the Polyvagal Rule of 3 AT ALL unless all 3 criteria are simultaneously in the red zone.
-  If NOT all 3 met: set polyvagalRuleOf3Met: false AND polyvagalInterpretation: null. The report will NOT display this section.
-  If ALL 3 met: set polyvagalRuleOf3Met: true and write: "TRUE FREEZE — Polyvagal Rule of 3 MET: SDNN Xms (✓ <20), RMSSD Xms (✓ <15), Total Power Xms² (✓ <200). All three criteria simultaneously in red zone — dorsal vagal shutdown physiology."
+POLYVAGAL FREEZE SCREEN (BINARY ONLY):
+  The Polyvagal screen is based on the 3 Polyvagal gauge sections from the HQP device:
+  (1) Parasympathetic Activity, (2) Energy Index, (3) Poly-Vagal value.
+  ⚠️ CRITICAL: SDNN, RMSSD, Total Power have NOTHING to do with the Polyvagal screen. Do NOT reference them.
+
+  Set polyvagalAll3Red: 1 if ALL 3 Polyvagal gauge sections are in the RED zone, else 0.
+  Set polyvagalRuleOf3Met: true if polyvagalAll3Red is 1, false otherwise.
+
+  If NOT all 3 are red → set polyvagalInterpretation: null (do not show anything).
+  If ALL 3 are red → set polyvagalInterpretation to a brief explanation: "All three Polyvagal gauge sections are in the red zone — true dorsal vagal freeze physiology detected. This contributes 30 points to the ELI score."
+
+  Do NOT list individual HRV parameters (SDNN, RMSSD, etc.) in the Polyvagal section.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BRAIN GAUGE REFERENCE RANGES
@@ -391,6 +398,7 @@ JSON SCHEMA (return ALL fields, null if unavailable)
     { "name": string, "value": number, "unit": string, "low": number, "high": number, "status": "normal"|"high"|"low", "clinicalNote": string }
   ],
   "hrvSummary": string | null,
+  "polyvagalAll3Red": 0 | 1,
   "polyvagalRuleOf3Met": boolean | null,
   "polyvagalInterpretation": string | null,
   "adrenalUrineDrops": number | null,
@@ -673,21 +681,14 @@ EXTRACTION INSTRUCTIONS:
       }
     }
 
-    // Polyvagal: server-side enforcement
-    const extractedSDNN = parsed.hrvMarkers?.find(m => m.name === 'SDNN')?.value;
-    const extractedRMSSD = parsed.hrvMarkers?.find(m => m.name === 'RMSSD')?.value;
-    const extractedTP = parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
-    if (extractedSDNN != null && extractedRMSSD != null && extractedTP != null) {
-      const allThreeMet = extractedSDNN < 20 && extractedRMSSD < 15 && extractedTP < 200;
-      parsed.polyvagalRuleOf3Met = allThreeMet;
-      const checks = [
-        `SDNN ${extractedSDNN}ms (${extractedSDNN < 20 ? '✓ <20' : '✗ not <20'})`,
-        `RMSSD ${extractedRMSSD}ms (${extractedRMSSD < 15 ? '✓ <15' : '✗ not <15'})`,
-        `Total Power ${extractedTP}ms² (${extractedTP < 200 ? '✓ <200' : '✗ not <200'})`,
-      ].join(', ');
-      parsed.polyvagalInterpretation = allThreeMet
-        ? `TRUE FREEZE — Polyvagal Rule of 3 MET: ${checks}. All three criteria simultaneously in red zone — dorsal vagal shutdown physiology.`
-        : null;
+    // Polyvagal: BINARY ONLY — based on 3 Polyvagal gauge sections from HQP (NOT SDNN/RMSSD/TP)
+    const polyAll3RedFinal = parsed.polyvagalAll3Red ?? 0;
+    parsed.polyvagalRuleOf3Met = polyAll3RedFinal === 1;
+    if (!parsed.polyvagalRuleOf3Met) {
+      parsed.polyvagalInterpretation = null;
+    } else {
+      parsed.polyvagalInterpretation = parsed.polyvagalInterpretation ||
+        'All three Polyvagal gauge sections (Parasympathetic Activity, Energy Index, Poly-Vagal) are in the red zone — true dorsal vagal freeze physiology detected. This contributes 30 points to the ELI score.';
     }
 
     // ── Store result in Supabase ──────────────────────────────────────────

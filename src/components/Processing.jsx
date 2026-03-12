@@ -369,9 +369,7 @@ function getMockReport(form) {
     crisgoldQuadrant: 'Q3',
     crisgoldQuadrantLabel: 'Physiological Exhaustion',
     crisgoldQuadrantDescription: 'Emotional load is not the primary issue, but autonomic regulation is weak. Focus is on building resilience, energy reserves, and recovery capacity.',
-    cvQuadrant: 'Q2',
-    cvQuadrantLabel: 'Vascular-Cardio Stress',
-    cvQuadrantDescription: 'Cardiovascular system is under strain consistent with elevated pulse pressure and sympathetic dominance. Vascular support and stress reduction recommended.',
+    // CV Quadrant removed — only CRIS GOLD™ Quadrant shown
     // Rubimed (demo)
     chavita: 7, emvita: 27, ermMethod: 'Questionnaire',
     chavitaText: 'Chavita 7 — Crown Chakra: Themes of meaning, purpose, and spiritual integration. Chronic stress related to existential questions, safety, and deep life meaning. Supports reconnection with inner purpose and systemic nervous system regulation.',
