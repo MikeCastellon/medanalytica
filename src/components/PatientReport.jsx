@@ -7,7 +7,7 @@ import {
   ini, age, fmtDate,
   criMeta, STATUS_COLOR,
   CRISGOLD_QUADRANTS,
-  BRAIN_GAUGE_METRICS, CRI_BREAKDOWN_PARAMS,
+  BRAIN_GAUGE_METRICS, CRI_BREAKDOWN_PARAMS, computeCRI,
 } from '../lib/utils';
 import { MASTER_PROTOCOL_LIST } from '../lib/protocols';
 import { CHAVITA_DESCRIPTIONS, EMVITA_DESCRIPTIONS } from '../lib/rubimed';
@@ -175,19 +175,24 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
   const r = report;
   const markers = r.hrvMarkers?.length ? r.hrvMarkers : (r.markers || []);
   const patName = `${patient.first_name} ${patient.last_name}`;
-  // Recompute CRI total from breakdown to avoid AI arithmetic errors
-  // Only sum the 6 known CRI parameters (ignore any extra keys AI might add)
-  const CRI_KEYS = ['pulsePressure', 'lfPercent', 'vlfPercent', 'stressIndex', 'totalPower', 'sdnn'];
-  const correctedCriScore = r.criBreakdown
-    ? CRI_KEYS.reduce((sum, k) => sum + (r.criBreakdown[k]?.score ?? 0), 0)
-    : r.criScore;
-  // DEBUG: log CRI data to console for troubleshooting
-  console.log('[CRI DEBUG]', {
-    hasCriBreakdown: !!r.criBreakdown,
-    rawCriScore: r.criScore,
-    correctedCriScore,
-    breakdownScores: r.criBreakdown ? CRI_KEYS.map(k => ({ key: k, score: r.criBreakdown[k]?.score, value: r.criBreakdown[k]?.value })) : 'NO BREAKDOWN',
-  });
+  // Recompute CRI from raw VALUES using deterministic scoring (not AI scores which can be wrong)
+  // This ensures the total AND individual scores are always correct, even for old reports
+  const criRecomputed = r.criBreakdown ? computeCRI({
+    pulsePressure: r.criBreakdown.pulsePressure?.value ?? r.pulsePressure,
+    lfPercent:     r.criBreakdown.lfPercent?.value,
+    vlfPercent:    r.criBreakdown.vlfPercent?.value,
+    stressIndex:   r.criBreakdown.stressIndex?.value,
+    totalPower:    r.criBreakdown.totalPower?.value,
+    sdnn:          r.criBreakdown.sdnn?.value,
+  }) : null;
+  const correctedCriScore = criRecomputed ? criRecomputed.score : r.criScore;
+  // Build corrected breakdown with deterministic scores + AI notes
+  const correctedBreakdown = criRecomputed ? Object.fromEntries(
+    Object.entries(criRecomputed.breakdown).map(([k, v]) => [k, {
+      ...v,
+      note: r.criBreakdown?.[k]?.note || '',
+    }])
+  ) : r.criBreakdown;
   const overallStatus = r.overallStatus || (correctedCriScore >= 6 ? 'critical' : correctedCriScore >= 3 ? 'warning' : 'normal');
   const cri = criMeta(correctedCriScore);
   const cgQ = r.crisgoldQuadrant ? CRISGOLD_QUADRANTS[r.crisgoldQuadrant] : null;
@@ -544,7 +549,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       </div>
 
       {/* ── §2 CRI Score ── */}
-      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Stress Index (CRI-HQP)" /><CRICard cri={cri} score={correctedCriScore} category={r.criCategory} breakdown={r.criBreakdown} /><CVPatternPanel report={r} markers={markers} criLabel={cri.label} /></>}
+      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Stress Index (CRI-HQP)" /><CRICard cri={cri} score={correctedCriScore} category={r.criCategory} breakdown={correctedBreakdown} /><CVPatternPanel report={r} markers={markers} criLabel={cri.label} /></>}
 
       {/* ── §3 CRIS GOLD™ Quadrant (CV Quadrant removed per doctor) ── */}
       {cgQ && <SectionLabel number={3} title="Quadrant Placement" />}
@@ -762,13 +767,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
 }
 
 /* ── CRI Score Card ─────────────────────────────────────── */
-function CRICard({ cri: criProp, score: rawScore, category, breakdown }) {
-  // Always recompute total from the 6 known CRI parameters to avoid AI arithmetic errors
-  const CRI_KEYS = ['pulsePressure', 'lfPercent', 'vlfPercent', 'stressIndex', 'totalPower', 'sdnn'];
-  const score = breakdown
-    ? CRI_KEYS.reduce((sum, k) => sum + (breakdown[k]?.score ?? 0), 0)
-    : rawScore;
-  const cri = criMeta(score); // Recompute color/label from corrected score
+function CRICard({ cri, score, category, breakdown }) {
   const bands = [
     { label: '9–12', color: '#7b1111', range: [9, 12] },
     { label: '6–8',  color: '#c0392b', range: [6, 8]  },
@@ -1618,7 +1617,7 @@ function CVPatternPanel({ report: r, markers, criLabel }) {
     { key: 'stiff',   label: 'Arterial Stiffness',      color: '#7b1111', active: r?.pulsePressure >= 70 },
     { key: 'autoLoad',label: 'Elevated Autonomic Load', color: '#b45309', active: stressMarker?.status === 'high' },
     { key: 'baro',    label: 'Baroreflex Dysfunction',  color: '#b45309', active: lfMarker?.status === 'high' },
-    { key: 'endo',    label: 'Endothelial Concern',     color: '#c0392b', active: (r?.criBreakdown ? Object.values(r.criBreakdown).reduce((s, p) => s + (p?.score ?? 0), 0) : r?.criScore) >= 6 },
+    { key: 'endo',    label: 'Endothelial Concern',     color: '#c0392b', active: correctedCriScore >= 6 },
   ].filter(f => f.active);
 
   const objectives = CV_PROTOCOL_OBJECTIVES[criLabel] || CV_PROTOCOL_OBJECTIVES['Mild Strain'];
