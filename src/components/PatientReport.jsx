@@ -181,6 +181,13 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
   const correctedCriScore = r.criBreakdown
     ? CRI_KEYS.reduce((sum, k) => sum + (r.criBreakdown[k]?.score ?? 0), 0)
     : r.criScore;
+  // DEBUG: log CRI data to console for troubleshooting
+  console.log('[CRI DEBUG]', {
+    hasCriBreakdown: !!r.criBreakdown,
+    rawCriScore: r.criScore,
+    correctedCriScore,
+    breakdownScores: r.criBreakdown ? CRI_KEYS.map(k => ({ key: k, score: r.criBreakdown[k]?.score, value: r.criBreakdown[k]?.value })) : 'NO BREAKDOWN',
+  });
   const overallStatus = r.overallStatus || (correctedCriScore >= 6 ? 'critical' : correctedCriScore >= 3 ? 'warning' : 'normal');
   const cri = criMeta(correctedCriScore);
   const cgQ = r.crisgoldQuadrant ? CRISGOLD_QUADRANTS[r.crisgoldQuadrant] : null;
