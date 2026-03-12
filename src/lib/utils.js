@@ -71,7 +71,7 @@ export const CRI_BREAKDOWN_PARAMS = [
  */
 export const computeCRI = ({ pulsePressure, lfPercent, vlfPercent, stressIndex, totalPower, sdnn } = {}) => {
   const scorePP = (v) => { if (v == null) return null; if (v < 40) return 0; if (v <= 60) return 1; return 2; };
-  const scoreLF = (v) => { if (v == null) return null; if (v < 40) return 0; if (v <= 50) return 1; return 2; };
+  const scoreLF = (v) => { if (v == null) return null; if (v >= 50) return 0; if (v >= 40) return 1; return 2; };
   const scoreVLF = (v) => { if (v == null) return null; if (v < 35) return 0; if (v <= 45) return 1; return 2; };
   const scoreSI = (v) => { if (v == null) return null; if (v < 40) return 0; if (v <= 80) return 1; return 2; };
   const scoreTP = (v) => { if (v == null) return null; if (v >= 1500) return 0; if (v >= 1000) return 1; return 2; };

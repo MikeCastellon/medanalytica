@@ -549,7 +549,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       </div>
 
       {/* ── §2 CRI Score ── */}
-      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Stress Index (CRI-HQP)" /><CRICard cri={cri} score={correctedCriScore} category={r.criCategory} breakdown={correctedBreakdown} /><CVPatternPanel report={r} markers={markers} criLabel={cri.label} /></>}
+      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Stress Index (CRI-HQP)" /><CRICard cri={cri} score={correctedCriScore} category={r.criCategory} breakdown={correctedBreakdown} /><CVPatternPanel report={r} markers={markers} criLabel={cri.label} criScore={correctedCriScore} /></>}
 
       {/* ── §3 CRIS GOLD™ Quadrant (CV Quadrant removed per doctor) ── */}
       {cgQ && <SectionLabel number={3} title="Quadrant Placement" />}
@@ -1608,7 +1608,7 @@ function HRVPatternCard({ markers }) {
 }
 
 /* ── CV Pattern Flags Panel ─────────────────────────────── */
-function CVPatternPanel({ report: r, markers, criLabel }) {
+function CVPatternPanel({ report: r, markers, criLabel, criScore }) {
   const stressMarker = markers.find(m => /Stress Index/i.test(m.name));
   const lfMarker     = markers.find(m => /LF%/i.test(m.name));
 
@@ -1617,7 +1617,7 @@ function CVPatternPanel({ report: r, markers, criLabel }) {
     { key: 'stiff',   label: 'Arterial Stiffness',      color: '#7b1111', active: r?.pulsePressure >= 70 },
     { key: 'autoLoad',label: 'Elevated Autonomic Load', color: '#b45309', active: stressMarker?.status === 'high' },
     { key: 'baro',    label: 'Baroreflex Dysfunction',  color: '#b45309', active: lfMarker?.status === 'high' },
-    { key: 'endo',    label: 'Endothelial Concern',     color: '#c0392b', active: correctedCriScore >= 6 },
+    { key: 'endo',    label: 'Endothelial Concern',     color: '#c0392b', active: criScore >= 6 },
   ].filter(f => f.active);
 
   const objectives = CV_PROTOCOL_OBJECTIVES[criLabel] || CV_PROTOCOL_OBJECTIVES['Mild Strain'];
