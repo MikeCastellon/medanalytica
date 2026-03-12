@@ -64,6 +64,36 @@ export const CRI_BREAKDOWN_PARAMS = [
   { key: 'sdnn',          label: 'SDNN',              unit: 'ms' },
 ];
 
+/**
+ * Server-side CRI-HQP scoring (deterministic — no AI ambiguity).
+ * Each parameter scores 0–2 pts. Total 0–12.
+ * Boundary values go to the HIGHER severity score (conservative for patient safety).
+ */
+export const computeCRI = ({ pulsePressure, lfPercent, vlfPercent, stressIndex, totalPower, sdnn } = {}) => {
+  const scorePP = (v) => { if (v == null) return null; if (v < 40) return 0; if (v <= 60) return 1; return 2; };
+  const scoreLF = (v) => { if (v == null) return null; if (v < 40) return 0; if (v <= 50) return 1; return 2; };
+  const scoreVLF = (v) => { if (v == null) return null; if (v < 35) return 0; if (v <= 45) return 1; return 2; };
+  const scoreSI = (v) => { if (v == null) return null; if (v < 40) return 0; if (v <= 80) return 1; return 2; };
+  const scoreTP = (v) => { if (v == null) return null; if (v >= 1500) return 0; if (v >= 1000) return 1; return 2; };
+  const scoreSDNN = (v) => { if (v == null) return null; if (v >= 49) return 0; if (v >= 40) return 1; return 2; };
+
+  const params = {
+    pulsePressure: { value: pulsePressure, score: scorePP(pulsePressure) },
+    lfPercent:     { value: lfPercent,     score: scoreLF(lfPercent) },
+    vlfPercent:    { value: vlfPercent,    score: scoreVLF(vlfPercent) },
+    stressIndex:   { value: stressIndex,   score: scoreSI(stressIndex) },
+    totalPower:    { value: totalPower,    score: scoreTP(totalPower) },
+    sdnn:          { value: sdnn,          score: scoreSDNN(sdnn) },
+  };
+
+  // Sum only non-null scores
+  const scores = Object.values(params).map(p => p.score).filter(s => s !== null);
+  if (scores.length === 0) return null;
+  const total = scores.reduce((a, b) => a + b, 0);
+
+  return { score: total, breakdown: params };
+};
+
 export const STATUS_COLOR = { high: '#c0392b', low: '#b45309', normal: '#0e7a55' };
 
 /** CRIS GOLD™ Quadrant definitions — v1.0 LOCKED (from CRIS GPT Operating System Block) */

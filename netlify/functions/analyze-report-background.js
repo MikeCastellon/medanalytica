@@ -160,47 +160,16 @@ CV Quadrant (based on PP, LF%, vascular markers):
 - Q4: Autonomic-Stress pattern (sympathetic overdrive)
 
 CRI-HQP SCORING MODEL (0–12 Points)
-Each of the 6 parameters scores 0–2 points based on severity:
+Each of the 6 parameters scores 0–2 points. The server computes the final CRI score deterministically, but you should still provide criBreakdown with clinical notes for each parameter.
 
-1. Pulse Pressure (PP = SBP − DBP):
-   0 pts: < 40 (Normal)
-   1 pt:  40–60 (Elevated)
-   2 pts: > 60 (High)
-   Note: > 80 = Very High — flag in clinical note
+1. Pulse Pressure (PP = SBP − DBP):   0 pts: <40 | 1 pt: 40–60 | 2 pts: >60
+2. LF% (Baroreflex Load):             0 pts: <40 | 1 pt: 40–50 | 2 pts: >50
+3. VLF% (RAAS / Vascular Tension):    0 pts: <35 | 1 pt: 35–45 | 2 pts: >45
+4. Stress Index (Sympathetic Load):    0 pts: <40 | 1 pt: 40–80 | 2 pts: >80
+5. Total Power (Autonomic Reserve):    0 pts: ≥1500 | 1 pt: 1000–1499 | 2 pts: <1000
+6. SDNN (Adaptability):               0 pts: ≥49 | 1 pt: 40–48 | 2 pts: <40
 
-2. LF% (Baroreflex Load):
-   0 pts: 25–40% (Normal)
-   1 pt:  40–50% (Increased vascular sympathetic stabilization effort)
-   2 pts: > 50% (Significant baroreflex strain)
-
-3. VLF% (RAAS / Vascular Tension):
-   0 pts: 20–30% (Normal)
-   1 pt:  35–45% (Increased vascular/renal-hormonal tension)
-   2 pts: > 45% (Strong RAAS involvement)
-
-4. Stress Index (HRV Sympathetic Load):
-   0 pts: 10–40 (Low)
-   1 pt:  40–80 (Moderate)
-   2 pts: > 80 (High sympathetic dominance)
-
-5. Total Power (Autonomic Reserve):
-   0 pts: 1500–3500 (Balanced)
-   1 pt:  1000–1500 (Reduced resilience)
-   2 pts: < 1000 (Significant autonomic fatigue)
-
-6. SDNN (Adaptability):
-   0 pts: 49–70 (Balanced)
-   1 pt:  40–49 (Reduced adaptability)
-   2 pts: < 40 (High cardiovascular risk marker)
-
-CRI-HQP Interpretation:
-  0–2:  Low Vascular Load
-  3–5:  Mild Autonomic/Vascular Strain
-  6–8:  Moderate Cardiovascular Risk Pattern
-  9–12: High Cardiovascular Stress Pattern
-
-You MUST calculate each parameter's individual score AND the total.
-Return the per-parameter breakdown in criBreakdown (see JSON schema).
+NOTE: The server overrides criScore with its own deterministic calculation. You still need to provide criBreakdown with clinical notes for each parameter.
 
 GPT Output Language Rules for CRI-HQP:
 - Use "Pulse Pressure suggests arterial stiffness" (when elevated)
@@ -648,6 +617,47 @@ EXTRACTION INSTRUCTIONS:
           else if (highELI && highARI)   parsed.crisgoldQuadrant = 'Q2';
           else if (!highELI && !highARI) parsed.crisgoldQuadrant = 'Q3';
           else                           parsed.crisgoldQuadrant = 'Q4';
+        }
+      }
+    }
+
+    // ── SERVER-SIDE CRI SCORING (deterministic — overrides AI scoring) ──────
+    {
+      const extractedPP   = pp ?? parsed.pulsePressure;
+      const extractedLF   = parsed.hrvMarkers?.find(m => m.name === 'LF%')?.value;
+      const extractedVLFc = parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value;
+      const extractedSIc  = parsed.hrvMarkers?.find(m => m.name === 'Stress Index')?.value;
+      const extractedTPc  = parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
+      const extractedSDNNc= parsed.hrvMarkers?.find(m => m.name === 'SDNN')?.value;
+
+      const scorePP   = (v) => { if (v == null) return null; if (v < 40) return 0; if (v <= 60) return 1; return 2; };
+      const scoreLF   = (v) => { if (v == null) return null; if (v < 40) return 0; if (v <= 50) return 1; return 2; };
+      const scoreVLFc = (v) => { if (v == null) return null; if (v < 35) return 0; if (v <= 45) return 1; return 2; };
+      const scoreSI   = (v) => { if (v == null) return null; if (v < 40) return 0; if (v <= 80) return 1; return 2; };
+      const scoreTP   = (v) => { if (v == null) return null; if (v >= 1500) return 0; if (v >= 1000) return 1; return 2; };
+      const scoreSDNN = (v) => { if (v == null) return null; if (v >= 49) return 0; if (v >= 40) return 1; return 2; };
+
+      const criParams = [
+        { key: 'pulsePressure', value: extractedPP,   score: scorePP(extractedPP) },
+        { key: 'lfPercent',     value: extractedLF,    score: scoreLF(extractedLF) },
+        { key: 'vlfPercent',    value: extractedVLFc,  score: scoreVLFc(extractedVLFc) },
+        { key: 'stressIndex',   value: extractedSIc,   score: scoreSI(extractedSIc) },
+        { key: 'totalPower',    value: extractedTPc,   score: scoreTP(extractedTPc) },
+        { key: 'sdnn',          value: extractedSDNNc, score: scoreSDNN(extractedSDNNc) },
+      ];
+      const validScores = criParams.filter(p => p.score !== null);
+      if (validScores.length > 0) {
+        const criTotal = validScores.reduce((a, p) => a + p.score, 0);
+        parsed.criScore = criTotal;
+        parsed.criCategory = criTotal <= 2 ? 'Low Vascular Load' : criTotal <= 5 ? 'Mild Autonomic/Vascular Strain' : criTotal <= 8 ? 'Moderate Cardiovascular Risk Pattern' : 'High Cardiovascular Stress Pattern';
+        const aiBreakdown = parsed.criBreakdown || {};
+        parsed.criBreakdown = {};
+        for (const p of criParams) {
+          parsed.criBreakdown[p.key] = {
+            value: p.value,
+            score: p.score ?? 0,
+            note: aiBreakdown[p.key]?.note || '',
+          };
         }
       }
     }
