@@ -75,19 +75,28 @@ CORE OPERATING PRINCIPLES (LOCKED v1.0)
 6. Drainage is ALWAYS the first therapeutic priority in all programs.
 7. If HQP filtration rejections > 20 — flag stimulant interference warning in aiSummary.
 8. ARI is entered directly by the practitioner from the HQP device (0–100 integer).
-9. ELI base calculation: round((Stress Index Questionnaire Score / 40) × 100). The full ELI formula is:
-   ELI = (stressQuestionnaireScore × 4) + (VLF% × 3) + (HRV Stress Index × 2) + Freeze Bonus
-   Freeze Bonus = +10 if ALL THREE freeze markers are RED (SDNN < 20, RMSSD < 15, Total Power < 200), else 0.
-   If only stressQuestionnaireScore is available (no VLF%/Stress Index from screenshots), use: ELI = round((score / 40) × 100).
+9. ELI (Emotional Load Index) — REVISED FORMULA:
+   ELI = (VLF% × 0.5) + (Polyvagal_all3red × 30) + ((1 - (TotalPower / 3500)) × 20) + HQP_StressIndex_Component + Questionnaire_Component
+
+   Inputs:
+   - VLF% (Very Low Frequency percentage from HQP)
+   - Total Power (TP, ms² from HQP; 3500 is optimal reference)
+   - Polyvagal_all3red: 1 if ALL 3 Polyvagal sections are red, else 0 (binary only — no individual params)
+   - HQP Stress Index → bucketed: <100=0 pts, 100–200=5 pts, 200–400=10 pts, >400=15 pts
+   - Stress Index Questionnaire (0–40) → bucketed: 0–10=0 pts, 11–20=5 pts, 21–30=10 pts, 31–40=15 pts
+
+   Final ELI is clamped 0–100.
+
+   ELI Interpretation: <30 = Low Emotional Load, 31–60 = Moderate, 61–80 = High, >80 = Freeze/Trauma Load
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 QUADRANT DETERMINISM (LOCKED)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ELI (Emotional Load Index):
-  Formula: ELI = round((Questionnaire Score / 40) × 100)
-  High ELI = Questionnaire Score ≥ 20 (ELI ≥ 50)
-  Low ELI  = Questionnaire Score ≤ 19 (ELI < 50)
+  Computed using the 5-input formula above.
+  High ELI = computed ELI ≥ 50
+  Low ELI  = computed ELI < 50
 
 ARI (Autonomic Regulation Index):
   Entered directly from HQP device (0–100 integer)
@@ -100,7 +109,7 @@ Quadrant Assignment:
   Q3: Low ELI  + Low ARI  → "Physiological Exhaustion"         (sub: Fatigue Dominant / Depleted)
   Q4: Low ELI  + High ARI → "Optimal / Strong Regulation"      (sub: Balanced / Optimal)
 
-If the practitioner has provided Questionnaire Score AND ARI, use the formula above to determine the quadrant — this is LOCKED and cannot be overridden by visual interpretation of the document.
+If the practitioner has provided the inputs and ARI, use the formula above to determine the quadrant — this is LOCKED and cannot be overridden by visual interpretation of the document.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 HRV MARKER REFERENCE RANGES
@@ -565,22 +574,20 @@ export const handler = async (event) => {
     const { screenshots = [], reportType, patientInfo, clinicalData, customRules } = body;
     // screenshots: array of base64 image strings (PNG/JPG/TIFF)
 
-    // Pre-compute ELI and quadrant from form data (LOCKED logic)
-    let lockedELI = null, lockedQuadrant = null;
+    // Pre-compute ELI inputs from form data (full ELI computed after AI extraction)
     // Prefer stressQuestionnaireScore (from ELI questionnaire) over manual questionnaireScore
     const qScore = clinicalData?.stressQuestionnaireScore ?? clinicalData?.questionnaireScore;
     const ariVal = clinicalData?.ari;
-    if (qScore != null) {
-      lockedELI = Math.round((qScore / 40) * 100);
-    }
-    if (lockedELI != null && ariVal != null) {
-      const highELI = qScore >= 20;
-      const highARI = ariVal >= 60;
-      if (highELI && !highARI)  lockedQuadrant = 'Q1';
-      else if (highELI && highARI) lockedQuadrant = 'Q2';
-      else if (!highELI && !highARI) lockedQuadrant = 'Q3';
-      else lockedQuadrant = 'Q4';
-    }
+
+    // Helper: HQP Stress Index → ELI points (bucketed)
+    const hqpSItoELI = (si) => { if (si == null) return 0; if (si < 100) return 0; if (si <= 200) return 5; if (si <= 400) return 10; return 15; };
+    // Helper: Questionnaire score → ELI points (bucketed)
+    const qToELI = (s) => { if (s == null) return 0; if (s <= 10) return 0; if (s <= 20) return 5; if (s <= 30) return 10; return 15; };
+    // Helper: Full ELI formula (clamped 0–100)
+    const calcELI = ({ vlfPct, tp, polyAll3Red, hqpSI, qS }) => {
+      const raw = (vlfPct ?? 0) * 0.5 + (polyAll3Red ? 30 : 0) + (tp != null ? (1 - tp / 3500) * 20 : 0) + hqpSItoELI(hqpSI) + qToELI(qS);
+      return Math.round(Math.max(0, Math.min(100, raw)));
+    };
 
     const sbp = clinicalData?.sbp;
     const dbp = clinicalData?.dbp;
@@ -593,11 +600,10 @@ Patient: ${patientInfo?.firstName || ''} ${patientInfo?.lastName || ''}, ${patie
 Report Type: ${reportType || 'Determine from document'}
 ${sbp ? `SBP: ${sbp} mmHg` : ''}${dbp ? ` | DBP: ${dbp} mmHg` : ''}${pp ? ` | Pulse Pressure: ${pp} mmHg` : ''}
 ${clinicalData?.filtrationRejections != null ? `Filtration Rejections: ${clinicalData.filtrationRejections}${clinicalData.filtrationRejections > 20 ? ' ⚠️ EXCEEDS 20 — FLAG STIMULANT WARNING' : ''}` : ''}
-${clinicalData?.stressQuestionnaireScore != null ? `ELI Questionnaire Score (10-item, 0–40): ${clinicalData.stressQuestionnaireScore}` : ''}
+${clinicalData?.stressQuestionnaireScore != null ? `ELI Questionnaire Score (10-item, 0–40): ${clinicalData.stressQuestionnaireScore} → contributes ${qToELI(qScore)} pts to ELI` : ''}
 ${qScore != null ? `Stress Index Questionnaire Score: ${qScore} / 40` : ''}
-${lockedELI != null ? `ELI (calculated from score): ${lockedELI} — ${qScore >= 20 ? 'HIGH ELI' : 'LOW ELI'}` : ''}
 ${ariVal != null ? `ARI (from HQP device): ${ariVal} — ${ariVal >= 60 ? 'HIGH ARI' : 'LOW ARI'}` : ''}
-${lockedQuadrant ? `QUADRANT (LOCKED — do not override): ${lockedQuadrant}` : ''}
+NOTE: ELI and Quadrant will be computed server-side using the full 5-input formula after you extract VLF%, Total Power, HQP Stress Index, and Polyvagal status from the screenshots. Do NOT compute ELI yourself — just extract the raw HRV values accurately.
 ${clinicalData?.chavita ? `Chavita: ${clinicalData.chavita} | Emvita: ${clinicalData.emvita || 'REQUIRED — MUST PAIR'}` : ''}
 ${clinicalData?.ermMethod ? `ERM Method: ${clinicalData.ermMethod}` : ''}
 ${clinicalData?.acuteRemedies ? `Acute Remedies: ${clinicalData.acuteRemedies}` : ''}
@@ -615,7 +621,8 @@ EXTRACTION INSTRUCTIONS:
 - Extract ALL HRV markers, scores, and recommendations visible across all screenshots
 - SDNN and RMSSD must be interpreted separately — never combined
 - Set filtrationWarning: true if filtrationRejections > 20
-- Set eli and hrqEli to the LOCKED calculated value if questionnaire score was provided
+- Do NOT set eli or hrqEli — the server computes ELI from the 5-input formula after extraction
+- Extract polyvagalAll3Red: set to 1 if ALL 3 Polyvagal gauge sections (Parasympathetic Activity, Energy Index, Poly-Vagal) are in the red zone, else 0
 - Set ari and hrqAri to the practitioner-entered ARI if provided
 - Set crisgoldQuadrant to the LOCKED value if provided above
 - CASP: only include if explicitly device-measured on the document — NEVER calculate it
@@ -674,55 +681,45 @@ EXTRACTION INSTRUCTIONS:
     if (clinicalData?.emvita)  parsed.emvita  = clinicalData.emvita;
     if (clinicalData?.ermMethod) parsed.ermMethod = clinicalData.ermMethod;
 
-    // ── FULL ELI FORMULA using extracted HRV data from screenshots ──────────
-    // ELI = (qScore × 4) + (VLF% × 3) + (Stress Index × 2) + Freeze Bonus
-    // Only use full formula if we have VLF% and Stress Index from AI extraction
-    if (qScore != null) {
+    // ── REVISED ELI FORMULA (5-input composite) ──────────────────────────
+    // ELI = (VLF% × 0.5) + (Polyvagal_all3red × 30) + ((1 - TP/3500) × 20)
+    //       + HQP_StressIndex_Component + Questionnaire_Component
+    {
       const extractedVLF = parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value;
+      const extractedTP  = parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
       const extractedSI  = parsed.hrvMarkers?.find(m => m.name === 'Stress Index')?.value;
-      const extractedSDNNforELI  = parsed.hrvMarkers?.find(m => m.name === 'SDNN')?.value;
-      const extractedRMSSDforELI = parsed.hrvMarkers?.find(m => m.name === 'RMSSD')?.value;
-      const extractedTPforELI    = parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
+      const polyAll3Red  = parsed.polyvagalAll3Red ?? 0;
 
-      let freezeBonus = 0;
-      if (extractedSDNNforELI != null && extractedRMSSDforELI != null && extractedTPforELI != null) {
-        if (extractedSDNNforELI < 20 && extractedRMSSDforELI < 15 && extractedTPforELI < 200) {
-          freezeBonus = 10;
+      // Compute ELI if we have at least one HRV input or questionnaire
+      const hasAnyInput = extractedVLF != null || extractedTP != null || extractedSI != null || qScore != null;
+      if (hasAnyInput) {
+        const computedELI = calcELI({
+          vlfPct: extractedVLF,
+          tp: extractedTP,
+          polyAll3Red: polyAll3Red,
+          hqpSI: extractedSI,
+          qS: qScore,
+        });
+
+        parsed.eli = computedELI;
+        parsed.hrqEli = computedELI;
+        if (qScore != null) {
+          parsed.questionnaireScore = qScore;
+          parsed.stressQuestionnaireScore = qScore;
+        }
+
+        // Quadrant: uses computed ELI ≥ 50 as High, ARI ≥ 60 as High
+        if (ariVal != null) {
+          const highELI = computedELI >= 50;
+          const highARI = ariVal >= 60;
+          if (highELI && !highARI)       parsed.crisgoldQuadrant = 'Q1';
+          else if (highELI && highARI)   parsed.crisgoldQuadrant = 'Q2';
+          else if (!highELI && !highARI) parsed.crisgoldQuadrant = 'Q3';
+          else                           parsed.crisgoldQuadrant = 'Q4';
         }
       }
-
-      let computedELI;
-      if (extractedVLF != null && extractedSI != null) {
-        // Full formula: (qScore × 4) + (VLF% × 3) + (stressIndex × 2) + freezeBonus
-        // Normalize stress index: cap at 500 for scoring, then scale to 0-100
-        const normalizedSI = Math.min(extractedSI, 500) / 5;
-        computedELI = Math.round((qScore * 4) + (extractedVLF * 3) + (normalizedSI * 2) + freezeBonus);
-        // Cap at 100
-        computedELI = Math.min(computedELI, 100);
-      } else {
-        // Simple formula: round((score / 40) × 100)
-        computedELI = Math.round((qScore / 40) * 100);
-      }
-
-      parsed.eli = computedELI;
-      parsed.hrqEli = computedELI;
-      parsed.questionnaireScore = qScore;
-      parsed.stressQuestionnaireScore = qScore;
-
-      // Re-compute quadrant with the final ELI
-      if (ariVal != null) {
-        const highELI = qScore >= 20;
-        const highARI = ariVal >= 60;
-        if (highELI && !highARI)       parsed.crisgoldQuadrant = 'Q1';
-        else if (highELI && highARI)   parsed.crisgoldQuadrant = 'Q2';
-        else if (!highELI && !highARI) parsed.crisgoldQuadrant = 'Q3';
-        else                           parsed.crisgoldQuadrant = 'Q4';
-      }
-    } else if (lockedELI != null) {
-      parsed.eli = lockedELI;
-      parsed.hrqEli = lockedELI;
     }
-    if (lockedQuadrant && qScore == null) { parsed.crisgoldQuadrant = lockedQuadrant; }
+    // No more lockedQuadrant fallback — quadrant always computed from ELI formula
 
     // ── STRICT ENFORCEMENT: null out sections not explicitly tested ───────
     if (!clinicalData?.brainGaugeTested) {

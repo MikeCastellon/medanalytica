@@ -343,10 +343,12 @@ export default function Processing({ user, form, files = [], customRules, onDone
 }
 
 function getMockReport(form) {
-  // Demo patient: questionnaire score 31/40 → ELI = round((31/40)*100) = 78; ARI = 22 → Q1
+  // Demo patient: Uses revised 5-input ELI formula
+  // VLF%=38, TP=1320, Polyvagal=0, SI=85 (<100→0pts), Q=31 (31-40→15pts)
+  // ELI = (38×0.5) + (0×30) + ((1-1320/3500)×20) + 0 + 15 = 19 + 0 + 12.46 + 0 + 15 = 46
   const questionnaireScore = 31;
   const ari = 22;
-  const eli = Math.round((questionnaireScore / 40) * 100); // 78
+  const eli = 46; // Computed from revised formula: VLF%=38, TP=1320, poly=0, SI=85, Q=31
   return {
     reportType: form.reportType || 'CRIS GOLD HRV',
     sbp: 138, dbp: 86, pulsePressure: 52,
@@ -363,10 +365,10 @@ function getMockReport(form) {
       totalPower:    { value: 1320, score: 1, note: 'Reduced resilience' },
       sdnn:          { value: 52, score: 0, note: 'Balanced' },
     },
-    // CRIS GOLD™ quadrant (LOCKED: high ELI score 31≥20 + low ARI 22<60 → Q1)
-    crisgoldQuadrant: 'Q1',
-    crisgoldQuadrantLabel: 'Overloaded & Dysregulated',
-    crisgoldQuadrantDescription: 'High emotional load combined with low autonomic regulation capacity. Primary clinical priority is drainage, calming, and rebuilding foundational energy before advancing therapies.',
+    // CRIS GOLD™ quadrant (ELI=46 < 50 = Low ELI + ARI=22 < 60 = Low ARI → Q3)
+    crisgoldQuadrant: 'Q3',
+    crisgoldQuadrantLabel: 'Physiological Exhaustion',
+    crisgoldQuadrantDescription: 'Emotional load is not the primary issue, but autonomic regulation is weak. Focus is on building resilience, energy reserves, and recovery capacity.',
     cvQuadrant: 'Q2',
     cvQuadrantLabel: 'Vascular-Cardio Stress',
     cvQuadrantDescription: 'Cardiovascular system is under strain consistent with elevated pulse pressure and sympathetic dominance. Vascular support and stress reduction recommended.',

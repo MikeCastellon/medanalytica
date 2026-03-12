@@ -102,13 +102,77 @@ export const CRISGOLD_QUADRANTS = {
   },
 };
 
-/** ELI/ARI thresholds and quadrant computation (v1.0 LOCKED) */
-export const computeELI = (questionnaireScore) =>
-  questionnaireScore != null ? Math.round((questionnaireScore / 40) * 100) : null;
+/** ELI/ARI thresholds and quadrant computation — REVISED per CRIS GOLD ELI Developer Spec */
 
-export const computeQuadrant = (questionnaireScore, ari) => {
-  if (questionnaireScore == null || ari == null) return null;
-  const highELI = questionnaireScore >= 20;
+/**
+ * HQP Stress Index → ELI points (bucketed)
+ * <100 = 0, 100–200 = 5, 200–400 = 10, >400 = 15
+ */
+export const hqpStressToELI = (si) => {
+  if (si == null) return 0;
+  if (si < 100) return 0;
+  if (si <= 200) return 5;
+  if (si <= 400) return 10;
+  return 15;
+};
+
+/**
+ * Questionnaire score (0–40) → ELI points (bucketed)
+ * 0–10 = 0, 11–20 = 5, 21–30 = 10, 31–40 = 15
+ */
+export const questionnaireToELI = (score) => {
+  if (score == null) return 0;
+  if (score <= 10) return 0;
+  if (score <= 20) return 5;
+  if (score <= 30) return 10;
+  return 15;
+};
+
+/**
+ * Full ELI formula (REVISED spec):
+ * ELI = (VLF% × 0.5) + (Polyvagal_all3red × 30) + ((1 - (TotalPower / 3500)) × 20)
+ *       + HQP_StressIndex_Component + Questionnaire_Component
+ * Clamped 0–100.
+ *
+ * @param {object} params
+ * @param {number|null} params.vlfPercent       - VLF% from HQP
+ * @param {number|null} params.totalPower       - Total Power (ms²)
+ * @param {number}      params.polyvagalAll3Red - 1 if all 3 Polyvagal sections red, else 0
+ * @param {number|null} params.hqpStressIndex   - HQP Stress Index value
+ * @param {number|null} params.questionnaireScore - Questionnaire total (0–40)
+ */
+export const computeELI = ({ vlfPercent, totalPower, polyvagalAll3Red = 0, hqpStressIndex, questionnaireScore } = {}) => {
+  // Need at least VLF% or Total Power to compute anything meaningful
+  if (vlfPercent == null && totalPower == null && questionnaireScore == null) return null;
+
+  const vlfComponent = (vlfPercent ?? 0) * 0.5;
+  const polyvagalComponent = (polyvagalAll3Red ? 1 : 0) * 30;
+  const tpComponent = totalPower != null ? (1 - (totalPower / 3500)) * 20 : 0;
+  const siComponent = hqpStressToELI(hqpStressIndex);
+  const qComponent = questionnaireToELI(questionnaireScore);
+
+  const raw = vlfComponent + polyvagalComponent + tpComponent + siComponent + qComponent;
+  return Math.round(Math.max(0, Math.min(100, raw)));
+};
+
+/**
+ * ELI interpretation label
+ */
+export const eliLabel = (eli) => {
+  if (eli == null) return null;
+  if (eli < 30) return 'Low Emotional Load';
+  if (eli <= 60) return 'Moderate Emotional Load';
+  if (eli <= 80) return 'High Emotional Load';
+  return 'Freeze / Trauma Load';
+};
+
+/**
+ * Quadrant computation uses computed ELI value (not raw questionnaire score).
+ * High ELI = ELI >= 50, High ARI = ARI >= 60
+ */
+export const computeQuadrant = (eli, ari) => {
+  if (eli == null || ari == null) return null;
+  const highELI = eli >= 50;
   const highARI = ari >= 60;
   if (highELI && !highARI) return 'Q1';
   if (highELI && highARI)  return 'Q2';

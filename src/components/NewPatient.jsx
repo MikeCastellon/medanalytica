@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { computeELI, computeQuadrant, CRISGOLD_QUADRANTS } from '../lib/utils';
+import { computeELI, computeQuadrant, questionnaireToELI, eliLabel, CRISGOLD_QUADRANTS } from '../lib/utils';
 import { ELI_QUESTIONS, ELI_SCALE } from '../lib/protocols';
 
 export default function NewPatient({ onBack, onSubmit }) {
@@ -116,10 +116,13 @@ export default function NewPatient({ onBack, onSubmit }) {
     : (form.questionnaireScore !== '' ? Number(form.questionnaireScore) : null);
 
   // Live ELI / quadrant preview
+  // Note: Full ELI requires VLF%, Total Power, HQP Stress Index, Polyvagal (from HQP screenshots).
+  // Here we only show the questionnaire contribution as a preview.
   const qScore   = effectiveQScore;
   const ariVal   = form.ari !== '' ? Number(form.ari) : null;
-  const eli      = computeELI(qScore);
-  const quad     = computeQuadrant(qScore, ariVal);
+  const qContrib = questionnaireToELI(qScore);  // bucketed: 0/5/10/15
+  const eli      = computeELI({ questionnaireScore: qScore }); // partial — full computed server-side
+  const quad     = computeQuadrant(eli, ariVal);
   const quadMeta = quad ? CRISGOLD_QUADRANTS[quad] : null;
 
   return (
@@ -234,9 +237,9 @@ export default function NewPatient({ onBack, onSubmit }) {
           <div className="fg">
             <label className="fl">Stress Index Questionnaire Score (0–40)</label>
             <input className="fi" placeholder="e.g. 28" value={form.questionnaireScore} onChange={num('questionnaireScore')} />
-            {eli != null && (
+            {qScore != null && (
               <div style={{ marginTop: '4px', fontSize: '11.5px', color: 'var(--text2)' }}>
-                ELI = {eli} — {qScore >= 20 ? <strong style={{ color: '#c0392b' }}>HIGH ELI (score ≥20)</strong> : <strong style={{ color: '#0e7a55' }}>LOW ELI (score &lt;20)</strong>}
+                Questionnaire contributes <strong>{qContrib} pts</strong> to ELI (full ELI computed after HQP analysis)
               </div>
             )}
           </div>
@@ -322,12 +325,12 @@ export default function NewPatient({ onBack, onSubmit }) {
                 </div>
               ))}
               {eliQScore !== null && (
-                <div style={{ marginTop: '8px', padding: '10px 14px', background: eliQScore >= 20 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${eliQScore >= 20 ? '#c0392b40' : '#0e7a5540'}`, borderRadius: '8px' }}>
-                  <strong style={{ color: eliQScore >= 20 ? '#c0392b' : '#0e7a55' }}>
-                    ELI Questionnaire Score: {eliQScore}/40 — {eliQScore >= 20 ? 'HIGH Emotional Load' : 'LOW Emotional Load'}
+                <div style={{ marginTop: '8px', padding: '10px 14px', background: eliQScore > 20 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${eliQScore > 20 ? '#c0392b40' : '#0e7a5540'}`, borderRadius: '8px' }}>
+                  <strong style={{ color: eliQScore > 20 ? '#c0392b' : '#0e7a55' }}>
+                    Questionnaire Score: {eliQScore}/40 → {questionnaireToELI(eliQScore)} ELI pts
                   </strong>
                   <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '3px' }}>
-                    This score feeds into the ELI formula for quadrant determination
+                    One of 5 inputs to the ELI formula. Full ELI computed after HQP screenshot analysis.
                   </div>
                 </div>
               )}
