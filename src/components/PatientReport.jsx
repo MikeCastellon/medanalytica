@@ -175,8 +175,12 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
   const r = report;
   const markers = r.hrvMarkers?.length ? r.hrvMarkers : (r.markers || []);
   const patName = `${patient.first_name} ${patient.last_name}`;
-  const overallStatus = r.overallStatus || (r.criScore >= 6 ? 'critical' : r.criScore >= 3 ? 'warning' : 'normal');
-  const cri = criMeta(r.criScore);
+  // Recompute CRI total from breakdown to avoid AI arithmetic errors
+  const correctedCriScore = r.criBreakdown
+    ? Object.values(r.criBreakdown).reduce((sum, p) => sum + (p?.score ?? 0), 0)
+    : r.criScore;
+  const overallStatus = r.overallStatus || (correctedCriScore >= 6 ? 'critical' : correctedCriScore >= 3 ? 'warning' : 'normal');
+  const cri = criMeta(correctedCriScore);
   const cgQ = r.crisgoldQuadrant ? CRISGOLD_QUADRANTS[r.crisgoldQuadrant] : null;
   const polyFreeze = r.polyvagalAll3Red === 1 || r.polyvagalRuleOf3Met;
   const eli = r.eli ?? r.hrqEli;
@@ -296,7 +300,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
           {r.criScore != null && (
             <div style={{ textAlign: 'center', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 16px', minWidth: '80px' }}>
               <div style={{ fontSize: '9px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--text3)', marginBottom: '2px' }}>CRI</div>
-              <div style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '32px', fontWeight: '700', color: cri.color, lineHeight: 1 }}>{r.criScore}</div>
+              <div style={{ fontFamily: 'Libre Baskerville, serif', fontSize: '32px', fontWeight: '700', color: cri.color, lineHeight: 1 }}>{correctedCriScore}</div>
               <div style={{ fontSize: '9px', color: 'var(--text3)' }}>/ 12</div>
             </div>
           )}
@@ -313,7 +317,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       {/* ── Quick Score Bar ── */}
       {(eli != null || ari != null || r.criScore != null || cgQ) && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-          {r.criScore != null && <ScorePill label="CRI-HQP" value={`${r.criScore}/12`} sub={cri.label} color={cri.color} />}
+          {r.criScore != null && <ScorePill label="CRI-HQP" value={`${correctedCriScore}/12`} sub={cri.label} color={cri.color} />}
           {eli != null && <ScorePill label="ELI" value={eli} sub={eli >= 50 ? 'High Emotional Load' : 'Low Emotional Load'} color={eli >= 50 ? '#c0392b' : '#0e7a55'} />}
           {ari != null && <ScorePill label="ARI" value={ari} sub={ari >= 60 ? 'High Regulation' : 'Low Regulation'} color={ari >= 60 ? '#0e7a55' : '#c0392b'} />}
           {cgQ && <ScorePill label="CRIS GOLD™ Quadrant" value={r.crisgoldQuadrant} sub={cgQ.label} color={cgQ.color} />}
@@ -366,9 +370,9 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
                 {r.criScore != null && (
                   <div style={{ background: 'var(--bg)', border: `1px solid ${cri.color}30`, borderRadius: '8px', padding: '12px 14px' }}>
-                    <div style={{ fontSize: '22px', fontWeight: '700', color: cri.color, fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{r.criScore}<span style={{ fontSize: '13px', color: 'var(--text3)', fontFamily: 'inherit' }}>/12</span></div>
+                    <div style={{ fontSize: '22px', fontWeight: '700', color: cri.color, fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{correctedCriScore}<span style={{ fontSize: '13px', color: 'var(--text3)', fontFamily: 'inherit' }}>/12</span></div>
                     <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Cardiovascular Stress Index</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{r.criScore <= 2 ? 'Low vascular load — balanced cardiovascular stress' : r.criScore <= 5 ? 'Mild strain — increased autonomic/vascular effort' : r.criScore <= 8 ? 'Moderate risk — cardiovascular system under significant load' : 'High stress pattern — priority cardiovascular support needed'}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{correctedCriScore <= 2 ? 'Low vascular load — balanced cardiovascular stress' : correctedCriScore <= 5 ? 'Mild strain — increased autonomic/vascular effort' : correctedCriScore <= 8 ? 'Moderate risk — cardiovascular system under significant load' : 'High stress pattern — priority cardiovascular support needed'}</div>
                   </div>
                 )}
                 {eli != null && (
@@ -513,7 +517,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
           <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--navy)' }}>🤖 AI Clinical Summary</div>
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {cgQ && <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: cgQ.bg, color: cgQ.color, border: `1px solid ${cgQ.color}40` }}>{r.crisgoldQuadrant}: {cgQ.sub || cgQ.label}</span>}
-            {cri.label !== 'N/A' && <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: cri.bg, color: cri.color, border: `1px solid ${cri.color}40` }}>CRI-HQP {r.criScore} — {cri.label}</span>}
+            {cri.label !== 'N/A' && <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: cri.bg, color: cri.color, border: `1px solid ${cri.color}40` }}>CRI-HQP {correctedCriScore} — {cri.label}</span>}
             <span style={{ fontSize: '10.5px', fontWeight: '700', padding: '3px 10px', borderRadius: '20px', background: overallStatus === 'critical' ? '#fdecea' : overallStatus === 'warning' ? '#fef3e2' : '#e6f5ef', color: overallStatus === 'critical' ? '#c0392b' : overallStatus === 'warning' ? '#b45309' : '#0e7a55', border: '1px solid currentColor' }}>
               {overallStatus === 'critical' ? '⚠ Critical' : overallStatus === 'warning' ? '⚠ Review' : '✓ Normal'}
             </span>
@@ -531,7 +535,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       </div>
 
       {/* ── §2 CRI Score ── */}
-      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Stress Index (CRI-HQP)" /><CRICard cri={cri} score={r.criScore} category={r.criCategory} breakdown={r.criBreakdown} /><CVPatternPanel report={r} markers={markers} criLabel={cri.label} /></>}
+      {r.criScore != null && <><SectionLabel number={2} title="Cardiovascular Stress Index (CRI-HQP)" /><CRICard cri={cri} score={correctedCriScore} category={r.criCategory} breakdown={r.criBreakdown} /><CVPatternPanel report={r} markers={markers} criLabel={cri.label} /></>}
 
       {/* ── §3 CRIS GOLD™ Quadrant (CV Quadrant removed per doctor) ── */}
       {cgQ && <SectionLabel number={3} title="Quadrant Placement" />}
@@ -749,7 +753,12 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
 }
 
 /* ── CRI Score Card ─────────────────────────────────────── */
-function CRICard({ cri, score, category, breakdown }) {
+function CRICard({ cri: criProp, score: rawScore, category, breakdown }) {
+  // Always recompute total from breakdown scores to avoid AI arithmetic errors
+  const score = breakdown
+    ? Object.values(breakdown).reduce((sum, p) => sum + (p?.score ?? 0), 0)
+    : rawScore;
+  const cri = criMeta(score); // Recompute color/label from corrected score
   const bands = [
     { label: '9–12', color: '#7b1111', range: [9, 12] },
     { label: '6–8',  color: '#c0392b', range: [6, 8]  },
@@ -998,7 +1007,7 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
 
       {/* PSE Intro */}
       <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '12.5px', color: 'var(--navy2)', lineHeight: '1.75' }}>
-        <strong>What is Psychosomatic Energetics (PSE)?</strong> PSE is a diagnostic and therapeutic method developed by Dr. Reimar Banis that addresses repressed emotional traumas — called <em>conflicts</em> — which store life energy and block its normal flow. Four energy levels are tested: <strong>Vital</strong> (physical &amp; regenerative powers), <strong>Emotional</strong> (mood, resilience), <strong>Mental</strong> (concentration, focus), and <strong>Causal</strong> (intuition, inner sensitivity). Conflicts are identified and treated with homeopathic compound remedies (Emvita 1–28), always paired with the corresponding Chakra remedy (Chavita 1–7).
+        <strong>What is Psychosomatic Energetics (PSE)?</strong> PSE is an evaluation and therapeutic method developed by Dr. Reimar Banis that addresses repressed emotional traumas — called <em>conflicts</em> — which store life energy and block its normal Life flow. Conflicts are identified and treated with homeopathic compound remedies (Emvita 1–28), always paired with the corresponding chakra remedy (Chavita 1–7). Psychosomatic Energetics (PSE) assessments are intended to help identify potential energetic and emotional stress patterns that may influence overall well-being. These findings are not intended to diagnose or treat medical or psychological conditions and should be used as supportive information within a comprehensive healthcare program directed by a qualified health care professional.
       </div>
 
       {/* Structured Clinical Table */}
@@ -1013,7 +1022,8 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
               </tr>
             </thead>
             <tbody>
-              {chavita && CHAVITA_CHAKRAS[chavita] && (
+              {/* Only show Chavita row if no Emvita is present — when Emvita exists, it already references its chakra */}
+              {chavita && CHAVITA_CHAKRAS[chavita] && !emvita && (
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '10px 12px', fontWeight: '700', color: CHAVITA_CHAKRAS[chavita].color, verticalAlign: 'top' }}>Chavita {chavita}</td>
                   <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
@@ -1027,13 +1037,13 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
               )}
               {emvita && EMVITA_CONFLICTS[emvita] && (
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg3)' }}>
-                  <td style={{ padding: '10px 12px', fontWeight: '700', color: CHAVITA_CHAKRAS[chavita]?.color || 'var(--teal)', verticalAlign: 'top' }}>Emvita {emvita}</td>
+                  <td style={{ padding: '10px 12px', fontWeight: '700', color: CHAVITA_CHAKRAS[EMVITA_CONFLICTS[emvita].chakra]?.color || 'var(--teal)', verticalAlign: 'top' }}>Emvita {emvita}</td>
                   <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
                     <div style={{ fontWeight: '600', color: 'var(--navy)' }}>Conflict: {EMVITA_CONFLICTS[emvita].name}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Chakra {EMVITA_CONFLICTS[emvita].chakra} pattern · Emotional Conflict</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '2px' }}>Emvita {emvita} · Emotional Conflict</div>
                   </td>
                   <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
-                    <ExpandableText subtitle={emvitaFull?.subtitle} description={resolvedEmvitaText} previewLength={100} />
+                    <ExpandableText subtitle={`Emvita ${emvita} — ${EMVITA_CONFLICTS[emvita].name} Conflict`} description={resolvedEmvitaText} previewLength={100} />
                   </td>
                 </tr>
               )}
@@ -1058,10 +1068,10 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
       </div>
 
       {/* Chavita + Emvita Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: (chavita && !emvita) && emvita ? '1fr 1fr' : '1fr', gap: '14px', marginBottom: '16px' }}>
 
-        {/* Chavita — Chakra Remedy */}
-        {chavita && (
+        {/* Chavita — Chakra Remedy (hidden when Emvita is present, since Emvita already references its chakra) */}
+        {chavita && !emvita && (
           <div style={{ borderRadius: '10px', border: `2px solid ${chakraColor}40`, overflow: 'hidden' }}>
             <div style={{ background: chakraColor, padding: '10px 14px' }}>
               <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,.8)', marginBottom: '2px' }}>
@@ -1084,8 +1094,7 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
           <div style={{ borderRadius: '10px', border: `2px solid ${chakraColor}40`, overflow: 'hidden' }}>
             <div style={{ background: `${chakraColor}dd`, padding: '10px 14px' }}>
               <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,.8)', marginBottom: '2px' }}>
-                Emvita {emvita} — Emotional Conflict
-                {emvitaInfo && <span style={{ marginLeft: '6px', fontWeight: '400' }}>(Chakra {emvitaInfo.chakra})</span>}
+                Emvita {emvita} — Emotional Conflict {emvitaInfo && <span style={{ fontWeight: '400' }}>(Chakra {emvitaInfo.chakra})</span>}
               </div>
               <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>
                 Conflict: {emvitaInfo ? emvitaInfo.name : `Pattern #${emvita}`}
@@ -1093,7 +1102,7 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
             </div>
             <div style={{ background: 'var(--bg3)', padding: '12px 14px' }}>
               {emvita && (
-                <ExpandableText subtitle={emvitaFull?.subtitle} description={resolvedEmvitaText} previewLength={140} />
+                <ExpandableText subtitle={`Emvita ${emvita} — ${emvitaInfo?.name || 'Emotional'} Conflict`} description={resolvedEmvitaText} previewLength={140} />
               )}
             </div>
           </div>
@@ -1600,7 +1609,7 @@ function CVPatternPanel({ report: r, markers, criLabel }) {
     { key: 'stiff',   label: 'Arterial Stiffness',      color: '#7b1111', active: r?.pulsePressure >= 70 },
     { key: 'autoLoad',label: 'Elevated Autonomic Load', color: '#b45309', active: stressMarker?.status === 'high' },
     { key: 'baro',    label: 'Baroreflex Dysfunction',  color: '#b45309', active: lfMarker?.status === 'high' },
-    { key: 'endo',    label: 'Endothelial Concern',     color: '#c0392b', active: r?.criScore >= 6 },
+    { key: 'endo',    label: 'Endothelial Concern',     color: '#c0392b', active: (r?.criBreakdown ? Object.values(r.criBreakdown).reduce((s, p) => s + (p?.score ?? 0), 0) : r?.criScore) >= 6 },
   ].filter(f => f.active);
 
   const objectives = CV_PROTOCOL_OBJECTIVES[criLabel] || CV_PROTOCOL_OBJECTIVES['Mild Strain'];
