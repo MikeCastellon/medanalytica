@@ -6,7 +6,7 @@ export default function NewPatient({ onBack, onSubmit }) {
   const [form, setForm] = useState({
     // Patient info
     firstName: '', lastName: '', dob: '', gender: '',
-    mrn: '', phone: '',
+    mrn: '', phone: '', email: '',
     // Report
     reportType: 'CRIS GOLD HRV', collectionDate: '', notes: '',
     // CV inputs
@@ -28,6 +28,14 @@ export default function NewPatient({ onBack, onSubmit }) {
   const [drag, setDrag]       = useState(false);
   const [eliAnswers, setEliAnswers] = useState(Array(10).fill(null));
   const [showEli, setShowEli] = useState(false);
+
+  // ── HQB Import state ──────────────────────────────────────────────────────
+  const [hqbSearch, setHqbSearch]         = useState('');
+  const [hqbLoading, setHqbLoading]       = useState(false);
+  const [hqbError, setHqbError]           = useState(null);
+  const [hqbResult, setHqbResult]         = useState(null);   // { patient, recordings }
+  const [hqbRecordingIdx, setHqbRecordingIdx] = useState(0); // which recording is selected
+  const [hqbApplied, setHqbApplied]       = useState(false);  // whether data has been applied
 
   const [pasteFlash, setPasteFlash] = useState(false);
 
@@ -69,6 +77,63 @@ export default function NewPatient({ onBack, onSubmit }) {
   const s = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const num = (k) => (e) => s(k, e.target.value.replace(/[^0-9.]/g, ''));
   const canSubmit = form.firstName && form.lastName;
+
+  // ── HQB Import: fetch from backend ────────────────────────────────────────
+  const fetchHqbData = async () => {
+    const q = hqbSearch.trim();
+    if (!q) return;
+    setHqbLoading(true);
+    setHqbError(null);
+    setHqbResult(null);
+    setHqbApplied(false);
+    try {
+      // Detect whether input looks like a UUID (patient ID) or email
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
+      const body   = isUuid ? { patientId: q } : { email: q };
+      const res    = await fetch('/.netlify/functions/fetch-hqb-data', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'HQB lookup failed');
+      setHqbResult(json);
+      setHqbRecordingIdx(0);
+    } catch (err) {
+      setHqbError(err.message);
+    } finally {
+      setHqbLoading(false);
+    }
+  };
+
+  // ── HQB Import: apply selected recording data to form ─────────────────────
+  const applyHqbData = () => {
+    if (!hqbResult) return;
+    const { patient, recordings } = hqbResult;
+    const rec = recordings?.[hqbRecordingIdx];
+
+    setForm(f => ({
+      ...f,
+      // Patient demographics — only fill if currently blank
+      firstName:      f.firstName      || patient.firstName || '',
+      lastName:       f.lastName       || patient.lastName  || '',
+      dob:            f.dob            || (patient.dob ? patient.dob.split('T')[0] : ''),
+      gender:         f.gender         || patient.gender    || '',
+      phone:          f.phone          || patient.phone     || '',
+      email:          f.email          || patient.email     || '',
+      // Clinical fields from the selected recording
+      ...(rec?.collectionDate && !f.collectionDate
+        ? { collectionDate: rec.collectionDate } : {}),
+      ...(rec?.filtrationRejections != null && f.filtrationRejections === ''
+        ? { filtrationRejections: String(rec.filtrationRejections) } : {}),
+      ...(rec?.ari != null && f.ari === ''
+        ? { ari: String(rec.ari) } : {}),
+    }));
+    setHqbApplied(true);
+  };
+
+  // The currently selected HQB recording (for display)
+  const hqbRec = hqbResult?.recordings?.[hqbRecordingIdx];
 
   // ── Quick Test: randomize all clinical inputs ──────────────────────
   const FIRST_NAMES = ['Alex', 'Jordan', 'Taylor', 'Morgan', 'Casey', 'Dana', 'Riley', 'Drew'];
@@ -147,10 +212,170 @@ export default function NewPatient({ onBack, onSubmit }) {
         </button>
       </div>
 
+      {/* ── HQB Import ── */}
+      <div className="fc" style={{ borderColor: '#1a6fa8', background: 'linear-gradient(135deg, #eaf4fd 0%, #f8fbff 100%)' }}>
+        <div className="fc-hdr">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '18px' }}>🔗</span>
+            <div className="fc-title" style={{ color: '#1a6fa8' }}>Import from HQB</div>
+            {hqbApplied && (
+              <span style={{ fontSize: '11px', fontWeight: '700', background: '#0e7a55', color: '#fff', borderRadius: '20px', padding: '2px 10px' }}>
+                ✓ Data imported
+              </span>
+            )}
+          </div>
+          <div className="fc-badge" style={{ background: '#1a6fa820', color: '#1a6fa8' }}>Auto-fill</div>
+        </div>
+
+        <p style={{ fontSize: '12.5px', color: 'var(--text3)', margin: '0 0 14px', lineHeight: '1.6' }}>
+          Enter the patient's HQB email address or HQB patient ID (UUID) to automatically fill in demographics
+          and clinical values from their latest HeartQuest recording.
+        </p>
+
+        {/* Search bar */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <input
+            className="fi"
+            style={{ flex: 1, borderColor: '#1a6fa840' }}
+            placeholder="patient@email.com  or  xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            value={hqbSearch}
+            onChange={e => { setHqbSearch(e.target.value); setHqbError(null); }}
+            onKeyDown={e => e.key === 'Enter' && fetchHqbData()}
+          />
+          <button
+            type="button"
+            onClick={fetchHqbData}
+            disabled={hqbLoading || !hqbSearch.trim()}
+            style={{
+              padding: '8px 20px', borderRadius: '7px', border: 'none',
+              background: hqbLoading || !hqbSearch.trim() ? 'var(--border)' : '#1a6fa8',
+              color: '#fff', fontWeight: '700', cursor: hqbLoading || !hqbSearch.trim() ? 'not-allowed' : 'pointer',
+              fontSize: '13px', whiteSpace: 'nowrap', minWidth: '110px',
+            }}
+          >
+            {hqbLoading ? '⏳ Searching…' : '🔍 Search HQB'}
+          </button>
+        </div>
+
+        {/* Error */}
+        {hqbError && (
+          <div style={{ marginTop: '10px', padding: '10px 14px', background: '#fef2f2', border: '1px solid #c0392b40', borderRadius: '7px', fontSize: '12.5px', color: '#c0392b', fontWeight: '600' }}>
+            ⚠️ {hqbError}
+          </div>
+        )}
+
+        {/* Results panel */}
+        {hqbResult && (
+          <div style={{ marginTop: '14px', padding: '14px 16px', background: '#fff', border: '1.5px solid #1a6fa840', borderRadius: '8px' }}>
+
+            {/* Patient found banner */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1a6fa820', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>👤</div>
+              <div>
+                <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--navy)' }}>
+                  {hqbResult.patient.firstName} {hqbResult.patient.lastName}
+                </div>
+                <div style={{ fontSize: '11.5px', color: 'var(--text3)' }}>
+                  {hqbResult.patient.dob ? `DOB: ${hqbResult.patient.dob.split('T')[0]}` : ''}
+                  {hqbResult.patient.gender ? `  ·  ${hqbResult.patient.gender}` : ''}
+                  {hqbResult.patient.phone  ? `  ·  ${hqbResult.patient.phone}`  : ''}
+                </div>
+              </div>
+              <div style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--text3)' }}>
+                HQB ID: <code style={{ fontSize: '10px' }}>{hqbResult.patient.hqbPatientId?.slice(0, 8)}…</code>
+              </div>
+            </div>
+
+            {/* Recording selector */}
+            {hqbResult.recordings?.length > 0 ? (
+              <>
+                <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '6px' }}>
+                  {hqbResult.recordings.length} recording{hqbResult.recordings.length > 1 ? 's' : ''} found — select one to import
+                </div>
+                <select
+                  className="fi"
+                  style={{ marginBottom: '12px', borderColor: '#1a6fa840' }}
+                  value={hqbRecordingIdx}
+                  onChange={e => { setHqbRecordingIdx(Number(e.target.value)); setHqbApplied(false); }}
+                >
+                  {hqbResult.recordings.map((r, i) => (
+                    <option key={r.id} value={i}>
+                      {r.title || 'Untitled'} — {r.date ? new Date(r.date).toLocaleDateString() : 'No date'}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Preview what will be filled */}
+                {hqbRec && (
+                  <div style={{ fontSize: '11.5px', color: 'var(--text2)', marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
+                    {hqbRec.filtrationRejections != null && (
+                      <div>📊 Filtration Rejections: <strong>{hqbRec.filtrationRejections}</strong></div>
+                    )}
+                    {hqbRec.ari != null && (
+                      <div>💓 Health Index (→ ARI): <strong>{hqbRec.ari}</strong></div>
+                    )}
+                    {hqbRec.hrv?.sdnn != null && (
+                      <div>📈 SDNN: <strong>{hqbRec.hrv.sdnn?.toFixed(1)} ms</strong></div>
+                    )}
+                    {hqbRec.hrv?.rmssd != null && (
+                      <div>📈 RMSSD: <strong>{hqbRec.hrv.rmssd?.toFixed(1)} ms</strong></div>
+                    )}
+                    {hqbRec.hrv?.lfHfRatio != null && (
+                      <div>⚖️ LF/HF Ratio: <strong>{hqbRec.hrv.lfHfRatio?.toFixed(2)}</strong></div>
+                    )}
+                    {hqbRec.hrv?.totalPower != null && (
+                      <div>⚡ Total Power: <strong>{hqbRec.hrv.totalPower?.toFixed(0)} ms²</strong></div>
+                    )}
+                    {hqbRec.hrv?.hfPct != null && (
+                      <div>🔵 HF%: <strong>{hqbRec.hrv.hfPct?.toFixed(1)}%</strong></div>
+                    )}
+                    {hqbRec.hrv?.vlfPct != null && (
+                      <div>🟡 VLF%: <strong>{hqbRec.hrv.vlfPct?.toFixed(1)}%</strong></div>
+                    )}
+                    {hqbRec.hrv?.stressIndex != null && (
+                      <div>🔴 Stress Index: <strong>{hqbRec.hrv.stressIndex?.toFixed(1)}</strong></div>
+                    )}
+                    {hqbRec.hrv?.meanHr != null && (
+                      <div>❤️ Mean HR: <strong>{hqbRec.hrv.meanHr?.toFixed(0)} bpm</strong></div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={applyHqbData}
+                    style={{
+                      padding: '8px 20px', borderRadius: '7px', border: 'none',
+                      background: '#0e7a55', color: '#fff', fontWeight: '700',
+                      cursor: 'pointer', fontSize: '13px',
+                    }}
+                  >
+                    ✓ Apply to Form
+                  </button>
+                  {hqbApplied && (
+                    <span style={{ fontSize: '12px', color: '#0e7a55', fontWeight: '600' }}>
+                      ✓ Patient info and clinical values filled in below. Review and edit as needed.
+                    </span>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: '12.5px', color: 'var(--amber)', fontWeight: '600' }}>
+                ⚠️ Patient found but no recordings in HQB yet.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* ── Step 1: Patient Information ── */}
       <div className="fc">
         <div className="fc-hdr">
-          <div className="fc-title">Patient Information</div>
+          <div className="fc-title">
+            Patient Information
+            {hqbApplied && <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: '600', color: '#0e7a55' }}>✓ Pre-filled from HQB</span>}
+          </div>
           <div className="fc-badge">Step 1</div>
         </div>
         <div className="fg2">
@@ -167,6 +392,7 @@ export default function NewPatient({ onBack, onSubmit }) {
           </div>
           <div className="fg"><label className="fl">Medical Record No.</label><input className="fi" placeholder="MRN-0044" value={form.mrn} onChange={e => s('mrn', e.target.value)} /></div>
           <div className="fg"><label className="fl">Contact Phone</label><input className="fi" placeholder="(555) 000-0000" value={form.phone} onChange={e => s('phone', e.target.value)} /></div>
+          <div className="fg"><label className="fl">Email</label><input className="fi" type="email" placeholder="patient@email.com" value={form.email} onChange={e => s('email', e.target.value)} /></div>
         </div>
       </div>
 
