@@ -176,8 +176,10 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
   const markers = r.hrvMarkers?.length ? r.hrvMarkers : (r.markers || []);
   const patName = `${patient.first_name} ${patient.last_name}`;
   // Recompute CRI total from breakdown to avoid AI arithmetic errors
+  // Only sum the 6 known CRI parameters (ignore any extra keys AI might add)
+  const CRI_KEYS = ['pulsePressure', 'lfPercent', 'vlfPercent', 'stressIndex', 'totalPower', 'sdnn'];
   const correctedCriScore = r.criBreakdown
-    ? Object.values(r.criBreakdown).reduce((sum, p) => sum + (p?.score ?? 0), 0)
+    ? CRI_KEYS.reduce((sum, k) => sum + (r.criBreakdown[k]?.score ?? 0), 0)
     : r.criScore;
   const overallStatus = r.overallStatus || (correctedCriScore >= 6 ? 'critical' : correctedCriScore >= 3 ? 'warning' : 'normal');
   const cri = criMeta(correctedCriScore);
@@ -754,9 +756,10 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
 
 /* ── CRI Score Card ─────────────────────────────────────── */
 function CRICard({ cri: criProp, score: rawScore, category, breakdown }) {
-  // Always recompute total from breakdown scores to avoid AI arithmetic errors
+  // Always recompute total from the 6 known CRI parameters to avoid AI arithmetic errors
+  const CRI_KEYS = ['pulsePressure', 'lfPercent', 'vlfPercent', 'stressIndex', 'totalPower', 'sdnn'];
   const score = breakdown
-    ? Object.values(breakdown).reduce((sum, p) => sum + (p?.score ?? 0), 0)
+    ? CRI_KEYS.reduce((sum, k) => sum + (breakdown[k]?.score ?? 0), 0)
     : rawScore;
   const cri = criMeta(score); // Recompute color/label from corrected score
   const bands = [
@@ -1022,8 +1025,7 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
               </tr>
             </thead>
             <tbody>
-              {/* Only show Chavita row if no Emvita is present — when Emvita exists, it already references its chakra */}
-              {chavita && CHAVITA_CHAKRAS[chavita] && !emvita && (
+              {chavita && CHAVITA_CHAKRAS[chavita] && (
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '10px 12px', fontWeight: '700', color: CHAVITA_CHAKRAS[chavita].color, verticalAlign: 'top' }}>Chavita {chavita}</td>
                   <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
@@ -1068,10 +1070,10 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
       </div>
 
       {/* Chavita + Emvita Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: (chavita && !emvita) && emvita ? '1fr 1fr' : '1fr', gap: '14px', marginBottom: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: chavita && emvita ? '1fr 1fr' : '1fr', gap: '14px', marginBottom: '16px' }}>
 
-        {/* Chavita — Chakra Remedy (hidden when Emvita is present, since Emvita already references its chakra) */}
-        {chavita && !emvita && (
+        {/* Chavita — Chakra Remedy */}
+        {chavita && (
           <div style={{ borderRadius: '10px', border: `2px solid ${chakraColor}40`, overflow: 'hidden' }}>
             <div style={{ background: chakraColor, padding: '10px 14px' }}>
               <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,.8)', marginBottom: '2px' }}>
