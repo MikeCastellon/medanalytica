@@ -251,3 +251,124 @@ export const BRAIN_GAUGE_METRICS = [
   { key: 'focus',                 label: 'Focus',               low: 60, note: 'Attentional capacity; optimal >75' },
   { key: 'overallCorticalMetric', label: 'Overall Cortical',    low: 50, note: 'Global cortical resilience; optimal >70' },
 ];
+
+/* ── Therapeutic Priority Engine ─────────────────────────────────
+ * Deterministic ordering of 6 therapy categories based on:
+ *   1. Drainage is ALWAYS Priority 1
+ *   2. Red Flag overrides (CRI, Total Power, Stress Index, Polyvagal)
+ *   3. Quadrant-specific default ordering
+ *
+ * Returns: { priorities: [...], redFlags: [...], primaryRisk: string|null }
+ *   Each priority: { priority: 1-6, key, label, icon, reason, isRedFlag }
+ * ────────────────────────────────────────────────────────────────*/
+
+const THERAPY_CATEGORIES = {
+  drainage:              { label: 'Drainage (Foundation)',       icon: '🚿' },
+  cardiovascularSupport: { label: 'Cardiovascular Stabilization', icon: '💓' },
+  cellMembraneSupport:   { label: 'Cell Membrane Restoration',  icon: '🧬' },
+  mitochondrialSupport:  { label: 'Mitochondrial Energy Support', icon: '⚡' },
+  neurocognitiveSupport: { label: 'Neurocognitive Support',     icon: '🧠' },
+  oxidativeStressSupport:{ label: 'Oxidative Stress Support',   icon: '⚗️' },
+};
+
+/** Quadrant-specific default ordering (positions 2–6, after drainage) */
+const QUADRANT_DEFAULT_ORDER = {
+  Q1: ['cardiovascularSupport', 'neurocognitiveSupport', 'cellMembraneSupport', 'mitochondrialSupport', 'oxidativeStressSupport'],
+  Q2: ['cardiovascularSupport', 'oxidativeStressSupport', 'cellMembraneSupport', 'mitochondrialSupport', 'neurocognitiveSupport'],
+  Q3: ['cardiovascularSupport', 'mitochondrialSupport', 'cellMembraneSupport', 'neurocognitiveSupport', 'oxidativeStressSupport'],
+  Q4: ['cellMembraneSupport', 'mitochondrialSupport', 'neurocognitiveSupport', 'cardiovascularSupport', 'oxidativeStressSupport'],
+};
+
+/**
+ * Compute therapeutic priority ordering.
+ * @param {object} params
+ * @param {number|null} params.criScore       - CRI score (0–12)
+ * @param {number|null} params.totalPower     - Total Power (ms²)
+ * @param {number|null} params.stressIndex    - HQP Stress Index
+ * @param {boolean}     params.polyvagalFreeze - true if all 3 Polyvagal sections red
+ * @param {string}      params.quadrant       - Q1, Q2, Q3, or Q4
+ * @returns {{ priorities: Array, redFlags: Array, primaryRisk: string|null }}
+ */
+export const computeTherapeuticPriority = ({ criScore, totalPower, stressIndex, polyvagalFreeze = false, quadrant = 'Q3' } = {}) => {
+  const redFlags = [];
+
+  // Detect red flags
+  if (criScore != null && criScore >= 8) {
+    redFlags.push({
+      category: 'cardiovascularSupport',
+      reason: `Priority elevated: CRI score of ${criScore} indicates significant cardiovascular stress`,
+      type: 'cardiovascular',
+    });
+  }
+  if (stressIndex != null && stressIndex > 300) {
+    redFlags.push({
+      category: 'cardiovascularSupport',
+      reason: `Priority elevated: Stress Index of ${Math.round(stressIndex)} indicates extreme sympathetic activation`,
+      type: 'sympathetic',
+    });
+  }
+  if (totalPower != null && totalPower < 400) {
+    redFlags.push({
+      category: 'mitochondrialSupport',
+      reason: `Priority elevated: Total Power of ${Math.round(totalPower)} indicates severely depleted autonomic reserve`,
+      type: 'energy',
+    });
+  }
+  if (polyvagalFreeze) {
+    redFlags.push({
+      category: 'cardiovascularSupport',
+      reason: 'Polyvagal Freeze detected — dorsal vagal shutdown physiology present',
+      type: 'freeze',
+    });
+  }
+
+  // Determine primary physiological risk for banner
+  let primaryRisk = null;
+  if (redFlags.some(f => f.type === 'cardiovascular'))  primaryRisk = 'Cardiovascular Stress';
+  else if (redFlags.some(f => f.type === 'sympathetic')) primaryRisk = 'Extreme Sympathetic Activation';
+  else if (redFlags.some(f => f.type === 'energy'))      primaryRisk = 'Severe Energy Depletion';
+  else if (redFlags.some(f => f.type === 'freeze'))      primaryRisk = 'Polyvagal Freeze / Dorsal Vagal Shutdown';
+
+  // Start with quadrant default order
+  const defaultOrder = QUADRANT_DEFAULT_ORDER[quadrant] || QUADRANT_DEFAULT_ORDER.Q3;
+
+  // Collect which categories are red-flagged (deduplicate)
+  const flaggedCategories = [...new Set(redFlags.map(f => f.category))];
+
+  // Build ordered list: flagged categories first (CV before Mito if both), then remaining in default order
+  const flagPriority = ['cardiovascularSupport', 'mitochondrialSupport', 'neurocognitiveSupport'];
+  const sortedFlags = flaggedCategories.sort((a, b) => flagPriority.indexOf(a) - flagPriority.indexOf(b));
+  const remaining = defaultOrder.filter(k => !sortedFlags.includes(k));
+  const orderedKeys = [...sortedFlags, ...remaining];
+
+  // Build reason map (combine reasons if multiple flags for same category)
+  const reasonMap = {};
+  for (const f of redFlags) {
+    if (!reasonMap[f.category]) reasonMap[f.category] = [];
+    reasonMap[f.category].push(f.reason);
+  }
+
+  // Assemble final priorities array
+  const priorities = [
+    {
+      priority: 1,
+      key: 'drainage',
+      ...THERAPY_CATEGORIES.drainage,
+      reason: 'Always first — prepares lymphatic, liver, and kidney clearance before other therapies',
+      isRedFlag: false,
+    },
+    ...orderedKeys.map((key, idx) => ({
+      priority: idx + 2,
+      key,
+      ...THERAPY_CATEGORIES[key],
+      reason: reasonMap[key]
+        ? reasonMap[key].join('. ')
+        : `${THERAPY_CATEGORIES[key].label} — quadrant ${quadrant} default sequence`,
+      isRedFlag: !!reasonMap[key],
+    })),
+  ];
+
+  return { priorities, redFlags, primaryRisk };
+};
+
+export { THERAPY_CATEGORIES };

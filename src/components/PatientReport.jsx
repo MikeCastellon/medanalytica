@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, Cell,
+  ResponsiveContainer, ReferenceLine, Cell, LabelList,
 } from 'recharts';
 import {
   ini, age, fmtDate,
@@ -12,6 +12,19 @@ import {
 import { MASTER_PROTOCOL_LIST } from '../lib/protocols';
 import { CHAVITA_DESCRIPTIONS, EMVITA_DESCRIPTIONS } from '../lib/rubimed';
 import Badge from './Badge';
+
+// ── HRV Metric Descriptions (info tooltips) ──
+const HRV_INFO = {
+  'Rate':   'Heart Rate — average beats per minute. Reflects overall cardiac pacing.',
+  'SDNN':   'SDNN — standard deviation of NN intervals. Measures total HRV and overall autonomic nervous system health. Low values indicate reduced adaptability.',
+  'RMSSD':  'RMSSD — root mean square of successive differences. Reflects parasympathetic (vagal) activity and short-term HRV. Low values suggest reduced vagal tone.',
+  'Ratio':  'LF/HF Ratio — low-frequency to high-frequency power ratio. Indicates sympathovagal balance. Values >2 suggest sympathetic dominance; <0.5 suggest parasympathetic dominance.',
+  'Power':  'Total Power — sum of all frequency-domain power (VLF+LF+HF). Represents total autonomic nervous system energy and reserve capacity. Very low values indicate severely depleted reserves.',
+  'Index':  'Stress Index (Baevsky) — geometric measure of sympathetic stress on the heart. Higher values indicate greater physiological stress burden.',
+  'VLF%':   'VLF% — very low frequency percentage. Reflects thermoregulation, hormonal, and renin-angiotensin activity. Elevated values may indicate chronic stress or metabolic burden.',
+  'HF%':    'HF% — high-frequency percentage. Represents parasympathetic (vagal) activity. Higher values indicate stronger rest-and-digest function.',
+  'LF%':    'LF% — low-frequency percentage. Reflects a mix of sympathetic and parasympathetic activity, including baroreflex function.',
+};
 
 // ── PSE: 28 Emvita Conflict Definitions (VERBATIM from Rubimed Practitioner Guide by Dr. Reimar Banis) ──
 const EMVITA_CONFLICTS = {
@@ -169,8 +182,35 @@ const HRV_PATTERNS = [
   },
 ];
 
+/* ── Info Tooltip (hover icon ⓘ) ─────────────────────────────────────────── */
+function InfoTip({ text }) {
+  const [show, setShow] = useState(false);
+  if (!text) return null;
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: '4px', cursor: 'help' }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      <span style={{ fontSize: '11px', color: 'var(--text3)', fontWeight: '700', width: '14px', height: '14px', borderRadius: '50%', border: '1px solid var(--text3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>i</span>
+      {show && (
+        <div style={{ position: 'absolute', bottom: '120%', left: '50%', transform: 'translateX(-50%)', background: 'var(--navy)', color: '#fff', padding: '8px 12px', borderRadius: '8px', fontSize: '11.5px', lineHeight: '1.5', width: '240px', zIndex: 100, boxShadow: 'var(--shadow2)', pointerEvents: 'none', textAlign: 'left', fontWeight: '400' }}>
+          {text}
+        </div>
+      )}
+    </span>
+  );
+}
+
+/* ── Custom X-axis tick ──────────────────────────── */
+function HrvAxisTick({ x, y, payload }) {
+  const name = payload?.value;
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={14} textAnchor="middle" fill="var(--text3)" fontSize={11}>{name}</text>
+    </g>
+  );
+}
+
 export default function PatientReport({ patient, report, saveError, onBack, doctorName, user, onViewHistory }) {
-  const [reportTab, setReportTab] = useState('clinician');
+  // Patient summary tab removed — clinician view only
   if (!report) return null;
   const r = report;
   const markers = r.hrvMarkers?.length ? r.hrvMarkers : (r.markers || []);
@@ -204,7 +244,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
     name:     m.name.split(' ').slice(-1)[0],
     fullName: m.name,
     value:    m.value,
-    pct:      Math.min(Math.max(((m.value - m.low) / ((m.high - m.low) || 1)) * 100, 0), 140),
+    pct:      Math.min(Math.round((m.value / (m.high || 1)) * 100), 140),
     status:   m.status,
     unit:     m.unit,
     low:      m.low,
@@ -214,11 +254,14 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
   const CustomTooltip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload;
+    const info = HRV_INFO[d.name];
     return (
-      <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', boxShadow: 'var(--shadow2)', fontSize: '12.5px' }}>
+      <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', boxShadow: '0 4px 20px rgba(0,0,0,.15)', fontSize: '12.5px', maxWidth: '280px', zIndex: 9999, position: 'relative' }}>
         <div style={{ fontWeight: '600', color: 'var(--navy)', marginBottom: '4px' }}>{d.fullName}</div>
         <div style={{ color: STATUS_COLOR[d.status] }}>Value: <strong>{d.value} {d.unit}</strong></div>
         <div style={{ color: 'var(--text2)' }}>Range: {d.low}–{d.high} {d.unit}</div>
+        <div style={{ color: 'var(--text2)' }}>{d.pct}% of upper reference</div>
+        {info && <div style={{ color: 'var(--text3)', marginTop: '6px', fontSize: '11.5px', lineHeight: '1.5', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>{info}</div>}
       </div>
     );
   };
@@ -230,10 +273,8 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
     <div className="fade-in">
       <div className="report-toolbar no-print">
         <button className="back-btn" onClick={onBack} style={{ margin: 0 }}>← Back to Dashboard</button>
-        <div style={{ display: 'flex', gap: '4px', background: 'var(--bg3)', borderRadius: '8px', padding: '4px', border: '1px solid var(--border)' }}>
-          {[{ id: 'clinician', label: '🩺 Clinician View' }, { id: 'patient', label: '👤 Patient Summary' }].map(({ id, label }) => (
-            <button key={id} onClick={() => setReportTab(id)} style={{ padding: '7px 16px', fontSize: '12.5px', fontWeight: '600', borderRadius: '6px', border: 'none', cursor: 'pointer', background: reportTab === id ? 'var(--navy)' : 'transparent', color: reportTab === id ? '#fff' : 'var(--text2)', transition: 'all .15s' }}>{label}</button>
-          ))}
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          <span style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--navy)', padding: '7px 16px' }}>🩺 Clinician View</span>
         </div>
         {onViewHistory && (
           <button className="btn btn-nv" style={{ fontSize: '12.5px', padding: '8px 18px', background: 'var(--teal, #0e8a7a)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }} onClick={onViewHistory}>
@@ -355,160 +396,8 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
         <span style={{ marginLeft: 'auto', fontFamily: 'monospace', fontSize: '10.5px', color: '#93c5fd', flexShrink: 0 }}>Report ID: {reportId}</span>
       </div>
 
-      {/* ── PATIENT SUMMARY TAB ── */}
-      {reportTab === 'patient' && (
-        <div>
-          {cgQ && (
-            <div style={{ background: cgQ.bg, border: `1px solid ${cgQ.color}30`, borderLeft: `4px solid ${cgQ.color}`, borderRadius: '8px', padding: '16px 20px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: cgQ.color, marginBottom: '5px' }}>
-                Your Health Quadrant: {r.crisgoldQuadrant} — {cgQ.label}
-              </div>
-              <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{cgQ.description}</div>
-            </div>
-          )}
-          {r.patientFriendlySummary ? (
-            <div style={{ background: '#f0fdf4', border: '1px solid rgba(14,122,85,.2)', borderLeft: '4px solid var(--green)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--green)', marginBottom: '8px' }}>📋 Summary for You</div>
-              <div style={{ fontSize: '14px', color: 'var(--navy2)', lineHeight: '1.85' }}>{r.patientFriendlySummary}</div>
-            </div>
-          ) : (
-            <div style={{ fontSize: '13px', color: 'var(--text2)', padding: '16px', textAlign: 'center' }}>
-              No patient summary available for this report.
-            </div>
-          )}
-
-          {/* Key numbers in plain language */}
-          {(r.criScore != null || eli != null || ari != null || r.adrenalUrineDrops != null) && (
-            <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--text3)', marginBottom: '14px' }}>📊 Your Key Numbers Explained</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
-                {r.criScore != null && (
-                  <div style={{ background: 'var(--bg)', border: `1px solid ${cri.color}30`, borderRadius: '8px', padding: '12px 14px' }}>
-                    <div style={{ fontSize: '22px', fontWeight: '700', color: cri.color, fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{correctedCriScore}<span style={{ fontSize: '13px', color: 'var(--text3)', fontFamily: 'inherit' }}>/12</span></div>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Cardiovascular Stress Index</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{correctedCriScore <= 2 ? 'Low vascular load — balanced cardiovascular stress' : correctedCriScore <= 5 ? 'Mild strain — increased autonomic/vascular effort' : correctedCriScore <= 8 ? 'Moderate risk — cardiovascular system under significant load' : 'High stress pattern — priority cardiovascular support needed'}</div>
-                  </div>
-                )}
-                {eli != null && (
-                  <div style={{ background: 'var(--bg)', border: `1px solid ${eli >= 50 ? '#c0392b30' : '#0e7a5530'}`, borderRadius: '8px', padding: '12px 14px' }}>
-                    <div style={{ fontSize: '22px', fontWeight: '700', color: eli >= 50 ? '#c0392b' : '#0e7a55', fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{eli}</div>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Emotional Load (ELI)</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{eli >= 70 ? 'Very high emotional stress — nervous system significantly burdened' : eli >= 50 ? 'Elevated — emotional stress is affecting your physical health' : 'Manageable — emotional load within a healthy range'}</div>
-                  </div>
-                )}
-                {ari != null && (
-                  <div style={{ background: 'var(--bg)', border: `1px solid ${ari >= 60 ? '#0e7a5530' : '#c0392b30'}`, borderRadius: '8px', padding: '12px 14px' }}>
-                    <div style={{ fontSize: '22px', fontWeight: '700', color: ari >= 60 ? '#0e7a55' : '#c0392b', fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{ari}</div>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Resilience (ARI)</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{ari >= 70 ? 'Strong — your body is regulating well under stress' : ari >= 50 ? 'Moderate — some capacity to regulate, but room to improve' : 'Low — recovery and stress buffering need support'}</div>
-                  </div>
-                )}
-                {r.adrenalUrineDrops != null && (
-                  <div style={{ background: 'var(--bg)', border: '1px solid rgba(180,83,9,.25)', borderRadius: '8px', padding: '12px 14px' }}>
-                    <div style={{ fontSize: '22px', fontWeight: '700', color: '#b45309', fontFamily: 'Libre Baskerville, serif', lineHeight: 1 }}>{r.adrenalUrineDrops} <span style={{ fontSize: '13px' }}>drops</span></div>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginTop: '4px' }}>Adrenal (Urine Test)</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text2)', marginTop: '2px', lineHeight: '1.4' }}>{r.adrenalInterpretation || (r.adrenalUrineDrops <= 3 ? 'Low adrenal output — fatigue pattern likely' : r.adrenalUrineDrops <= 7 ? 'Moderate adrenal function' : 'Normal to high adrenal activity')}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Nervous system plain-language */}
-          {r.hrvSummary && (
-            <div style={{ background: 'var(--blue-lt)', border: '1px solid rgba(26,111,181,.18)', borderLeft: '4px solid var(--blue)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--blue)', marginBottom: '8px' }}>🫀 Your Nervous System</div>
-              <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{r.hrvSummary}</div>
-            </div>
-          )}
-
-          {/* Polyvagal — ONLY shown when ALL 3 sections are red (binary freeze detection) */}
-          {(r.polyvagalAll3Red === 1 || r.polyvagalRuleOf3Met) && (
-            <div style={{ background: '#fef2f2', border: '1px solid rgba(192,57,43,.2)', borderLeft: '4px solid var(--red)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--red)', marginBottom: '8px' }}>
-                ⚠️ Dorsal Vagal Freeze Detected — All 3 Polyvagal Sections in Red Zone
-              </div>
-              {r.polyvagalInterpretation && <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{r.polyvagalInterpretation}</div>}
-            </div>
-          )}
-
-          {/* Brain Gauge plain-language */}
-          {r.brainGaugeSummary && (
-            <div style={{ background: '#f5f3ff', border: '1px solid rgba(109,40,217,.15)', borderLeft: '4px solid #7c3aed', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: '#7c3aed', marginBottom: '8px' }}>🧠 Brain & Cognitive Performance</div>
-              <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.8' }}>{r.brainGaugeSummary}</div>
-            </div>
-          )}
-
-          {/* NeuroVIZR recommendations */}
-          {r.neuroVizrPrograms && (r.neuroVizrPrograms.brainGymFoundation?.length > 0 || r.neuroVizrPrograms.quadrantPrograms?.length > 0) && (
-            <div style={{ background: 'var(--teal-lt)', border: '1px solid rgba(14,138,122,.18)', borderLeft: '4px solid var(--teal)', borderRadius: '8px', padding: '18px 22px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--teal)', marginBottom: '10px' }}>🎧 Your NeuroVIZR Brain Programs</div>
-              {r.neuroVizrPrograms.brainGymFoundation?.length > 0 && (
-                <div style={{ marginBottom: '10px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginBottom: '6px' }}>Foundation Sequence</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {r.neuroVizrPrograms.brainGymFoundation.map((p, i) => (
-                      <span key={i} style={{ fontSize: '12px', background: 'var(--bg)', border: '1px solid rgba(14,138,122,.25)', borderRadius: '20px', padding: '3px 10px', color: 'var(--teal)' }}>{p}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {r.neuroVizrPrograms.quadrantPrograms?.length > 0 && (
-                <div>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--navy)', marginBottom: '6px' }}>Recommended for Your Quadrant</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {r.neuroVizrPrograms.quadrantPrograms.map((p, i) => (
-                      <span key={i} style={{ fontSize: '12px', background: 'var(--bg)', border: '1px solid rgba(14,138,122,.25)', borderRadius: '20px', padding: '3px 10px', color: 'var(--teal)' }}>{p}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {r.therapeuticSelections && (
-            <div className="card" style={{ marginBottom: '16px' }}>
-              <div className="card-hdr"><span className="card-title">💊 Your Recommended Supplements</span></div>
-              <div style={{ padding: '16px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-                {[
-                  { key: 'drainage',              icon: '🚿', label: 'Drainage' },
-                  { key: 'cellMembraneSupport',   icon: '🧬', label: 'Cell Membrane' },
-                  { key: 'mitochondrialSupport',  icon: '⚡', label: 'Mitochondrial' },
-                  { key: 'neurocognitiveSupport', icon: '🧠', label: 'Neurocognitive' },
-                  { key: 'oxidativeStressSupport',icon: '⚗️', label: 'Oxidative Stress' },
-                  { key: 'cardiovascularSupport', icon: '💓', label: 'Cardiovascular' },
-                ].map(({ key, icon, label }) => {
-                  const items = r.therapeuticSelections[key] || [];
-                  if (!items.length) return null;
-                  return (
-                    <div key={key}>
-                      <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '8px' }}>{icon} {label}</div>
-                      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                        {items.map((item, i) => (
-                          <li key={i} style={{ fontSize: '12.5px', color: 'var(--navy)', padding: '3px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                            • {item.split(' — ')[0]}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          {r.recommendedFollowUp && (
-            <div style={{ marginTop: '4px', background: 'var(--teal-lt)', border: '1px solid rgba(14,138,122,.2)', borderLeft: '4px solid var(--teal)', borderRadius: '8px', padding: '16px 20px', marginBottom: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--teal)', marginBottom: '6px' }}>📅 Next Steps</div>
-              <div style={{ fontSize: '13.5px', color: 'var(--navy2)', lineHeight: '1.7' }}>{r.recommendedFollowUp}</div>
-            </div>
-          )}
-          <DisclaimerSection />
-        </div>
-      )}
-
-      {/* ── CLINICIAN VIEW TAB ── */}
-      {reportTab === 'clinician' && <div>
+      {/* ── CLINICIAN VIEW ── */}
+      <div>
 
       {/* ── Filtration Warning ── */}
 
@@ -575,18 +464,21 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
           <div className="cc">
             <div className="ct">HRV Values vs. Reference Range</div>
             <div className="cs">% of upper reference limit — dashed line = 100% (upper normal)</div>
-            <ResponsiveContainer width="100%" height={248}>
-              <BarChart data={chartData} margin={{ top: 4, right: 0, left: -22, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="name" tick={{ fill: 'var(--text3)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'var(--text3)', fontSize: 11 }} axisLine={false} tickLine={false} unit="%" />
-                <Tooltip content={<CustomTooltip />} />
-                <ReferenceLine y={100} stroke="var(--border2)" strokeDasharray="5 3" />
-                <Bar dataKey="pct" radius={[4, 4, 0, 0]} maxBarSize={34}>
-                  {chartData.map((e, i) => <Cell key={i} fill={STATUS_COLOR[e.status]} fillOpacity={0.72} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <ResponsiveContainer width="100%" height={272}>
+                <BarChart data={chartData} margin={{ top: 4, right: 0, left: -22, bottom: 24 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" tick={<HrvAxisTick />} axisLine={false} tickLine={false} height={42} />
+                  <YAxis tick={{ fill: 'var(--text3)', fontSize: 11 }} axisLine={false} tickLine={false} unit="%" />
+                  <Tooltip content={<CustomTooltip />} wrapperStyle={{ zIndex: 9999, pointerEvents: 'none' }} offset={20} />
+                  <ReferenceLine y={100} stroke="var(--border2)" strokeDasharray="5 3" />
+                  <Bar dataKey="pct" radius={[4, 4, 0, 0]} maxBarSize={34} minPointSize={8}>
+                    {chartData.map((e, i) => <Cell key={i} fill={STATUS_COLOR[e.status]} fillOpacity={0.72} />)}
+                    <LabelList dataKey="pct" position="top" style={{ fill: 'var(--text2)', fontSize: '10px', fontWeight: '600' }} formatter={v => `${v}%`} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
           <div className="cc">
             <div className="ct">Marker Detail</div>
@@ -597,7 +489,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
                 return (
                   <div key={i} className="mr" style={{ display: 'block', padding: '8px 0', borderBottom: i < markers.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <div className="mn" style={{ flex: 1 }}>{m.name}</div>
+                      <div className="mn" style={{ flex: 1, display: 'flex', alignItems: 'center' }}>{m.name}<InfoTip text={HRV_INFO[m.name.split(' ').slice(-1)[0]]} /></div>
                       <div className="mv" style={{ color: STATUS_COLOR[m.status], flexShrink: 0 }}>{m.value} <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{m.unit}</span></div>
                     </div>
                     <div className="mb" style={{ marginBottom: '3px' }}><div className="mbi" style={{ width: `${pct}%`, background: STATUS_COLOR[m.status], opacity: .7 }} /></div>
@@ -731,24 +623,14 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
 
       {/* ── §9 Therapeutic Selections ── */}
       <SectionLabel number={9} title="Therapeutic Selections" />
-      <TherapeuticCard selections={r.therapeuticSelections || {}} quadrant={r.crisgoldQuadrant} />
+      <TherapeuticCard selections={r.therapeuticSelections || {}} quadrant={r.crisgoldQuadrant} therapeuticPriorities={r.therapeuticPriorities} />
 
-      {/* ── NeuroVIZR ── */}
-      {r.neuroVizrPrograms && <NeuroVizrCard programs={r.neuroVizrPrograms} />}
-
-      {/* ── Psychosomatic Energetics ── */}
-      {r.psychosomaticFindings && (
-        <InfoCard icon="🔮" title="Psychosomatic Energetics" color="var(--teal)" bg="var(--teal-lt)">
-          {r.psychosomaticFindings}
-        </InfoCard>
-      )}
-
-      {/* ── Patient-Friendly Summary ── */}
-      {r.patientFriendlySummary && (
-        <div style={{ background: '#f0fdf4', border: '1px solid rgba(14,122,85,.2)', borderLeft: '4px solid var(--green)', borderRadius: '8px', padding: '18px 22px', marginTop: '16px' }}>
-          <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--green)', marginBottom: '8px' }}>👤 Patient-Friendly Summary</div>
-          <div style={{ fontSize: '14px', color: 'var(--navy2)', lineHeight: '1.85' }}>{r.patientFriendlySummary}</div>
-        </div>
+      {/* ── NeuroVIZR (feature-flagged) ── */}
+      {r.neuroVizrPrograms && user?.featureFlags?.neurovizr && (
+        <>
+          <SectionLabel number={10} title="NeuroVIZR Session Recommendations" />
+          <NeuroVizrCard programs={r.neuroVizrPrograms} quadrant={r.crisgoldQuadrant} />
+        </>
       )}
 
       {/* ── Follow-up ── */}
@@ -761,7 +643,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
 
       <DisclaimerSection />
 
-      </div>} {/* end clinician tab */}
+      </div>
     </div>
   );
 }
@@ -1075,48 +957,6 @@ function RubimedCard({ chavita, emvita, method, chavitaText, emvitaText, acuteRe
         <strong>Clinical Integration Notes:</strong> Rubimed findings correlate with elevated Stress Index and reduced HRV coherence. Emotional conflict resolution is expected to progressively improve parasympathetic recovery capacity and enhance protocol response across Vascular, Mitochondrial, and Neurocognitive therapeutic categories. Monitor ELI reduction at follow-up.
       </div>
 
-      {/* Chavita + Emvita Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: chavita && emvita ? '1fr 1fr' : '1fr', gap: '14px', marginBottom: '16px' }}>
-
-        {/* Chavita — Chakra Remedy */}
-        {chavita && (
-          <div style={{ borderRadius: '10px', border: `2px solid ${chakraColor}40`, overflow: 'hidden' }}>
-            <div style={{ background: chakraColor, padding: '10px 14px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,.8)', marginBottom: '2px' }}>
-                Chavita {chavita} — Chakra Remedy
-              </div>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>
-                {chavitaInfo ? `Chakra ${chavita}: ${chavitaInfo.name}` : `Chakra #${chavita}`}
-              </div>
-            </div>
-            <div style={{ background: 'var(--bg3)', padding: '12px 14px' }}>
-              {chavita && (
-                <ExpandableText subtitle={chavitaFull?.theme} description={resolvedChavitaText} previewLength={140} />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Emvita — Emotional Conflict Remedy */}
-        {emvita && (
-          <div style={{ borderRadius: '10px', border: `2px solid ${chakraColor}40`, overflow: 'hidden' }}>
-            <div style={{ background: `${chakraColor}dd`, padding: '10px 14px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'rgba(255,255,255,.8)', marginBottom: '2px' }}>
-                Emvita {emvita} — Emotional Conflict {emvitaInfo && <span style={{ fontWeight: '400' }}>(Chakra {emvitaInfo.chakra})</span>}
-              </div>
-              <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>
-                Conflict: {emvitaInfo ? emvitaInfo.name : `Pattern #${emvita}`}
-              </div>
-            </div>
-            <div style={{ background: 'var(--bg3)', padding: '12px 14px' }}>
-              {emvita && (
-                <ExpandableText subtitle={`Emvita ${emvita} — ${emvitaInfo?.name || 'Emotional'} Conflict`} description={resolvedEmvitaText} previewLength={140} />
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Dosage */}
       <div style={{ background: '#f0fdf4', border: '1px solid rgba(14,122,85,.2)', borderLeft: '4px solid var(--green)', borderRadius: '8px', padding: '10px 14px', marginBottom: '14px', fontSize: '12px', color: 'var(--navy2)', lineHeight: '1.7' }}>
         <strong>Standard Dosage (Rubimed Protocol):</strong> {PSE_DOSAGE}
@@ -1179,24 +1019,32 @@ function RjlBiaCard({ bia, summary }) {
   );
 }
 
-/* ── Therapeutic Selections Card (Editable + Master List) ── */
-function TherapeuticCard({ selections, quadrant }) {
-  const categories = [
-    { key: 'drainage',              icon: '🚿', label: 'Drainage (First Priority)' },
-    { key: 'cellMembraneSupport',   icon: '🧬', label: 'Cell Membrane Support' },
-    { key: 'mitochondrialSupport',  icon: '⚡', label: 'Mitochondrial Support' },
-    { key: 'neurocognitiveSupport', icon: '🧠', label: 'Neurocognitive Support' },
-    { key: 'oxidativeStressSupport',icon: '⚗️', label: 'Oxidative Stress Support' },
-    { key: 'cardiovascularSupport', icon: '💓', label: 'Cardiovascular Support' },
+/* ── Therapeutic Selections Card (Priority Engine + Editable) ── */
+function TherapeuticCard({ selections, quadrant, therapeuticPriorities }) {
+  // Fallback categories if no priority engine data
+  const fallbackCategories = [
+    { key: 'drainage',              icon: '🚿', label: 'Drainage (Foundation)',         priority: 1 },
+    { key: 'cardiovascularSupport', icon: '💓', label: 'Cardiovascular Stabilization', priority: 2 },
+    { key: 'cellMembraneSupport',   icon: '🧬', label: 'Cell Membrane Restoration',   priority: 3 },
+    { key: 'mitochondrialSupport',  icon: '⚡', label: 'Mitochondrial Energy Support', priority: 4 },
+    { key: 'neurocognitiveSupport', icon: '🧠', label: 'Neurocognitive Support',      priority: 5 },
+    { key: 'oxidativeStressSupport',icon: '⚗️', label: 'Oxidative Stress Support',     priority: 6 },
   ];
+
+  // Use priority engine ordering if available, else fallback
+  const priorities  = therapeuticPriorities?.priorities || fallbackCategories;
+  const redFlags    = therapeuticPriorities?.redFlags || [];
+  const primaryRisk = therapeuticPriorities?.primaryRisk || null;
+
+  const allKeys = priorities.map(p => p.key);
 
   const [editSels, setEditSels]         = useState(() => {
     const s = {};
-    categories.forEach(c => { s[c.key] = [...(selections?.[c.key] || [])]; });
+    allKeys.forEach(k => { s[k] = [...(selections?.[k] || [])]; });
     return s;
   });
-  const [editCols, setEditCols]         = useState({});        // per-category edit open state
-  const [addTab, setAddTab]             = useState({});        // 'browse' | 'custom' per category
+  const [editCols, setEditCols]         = useState({});
+  const [addTab, setAddTab]             = useState({});
   const [customInput, setCustomInput]   = useState({});
   const [searchText, setSearchText]     = useState({});
 
@@ -1231,176 +1079,221 @@ function TherapeuticCard({ selections, quadrant }) {
   const isAdded = (catKey, p) =>
     editSels[catKey]?.some(x => x === `${p.product} — ${p.dose} (${p.brand})`);
 
-  // Always show all 6 categories — even empty ones can be edited by practitioner
+  // Priority badge colors
+  const priorityColors = {
+    1: { bg: '#c0392b', text: '#fff' },
+    2: { bg: '#e67e22', text: '#fff' },
+    3: { bg: '#f1c40f', text: '#333' },
+    4: { bg: '#27ae60', text: '#fff' },
+    5: { bg: '#2980b9', text: '#fff' },
+    6: { bg: '#8e44ad', text: '#fff' },
+  };
 
   return (
     <div className="card" style={{ marginBottom: '16px' }}>
       <div className="card-hdr">
-        <span className="card-title">💊 Therapeutic Selections</span>
+        <span className="card-title">💊 Therapeutic Priority Engine</span>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
           {quadrant && <span className="badge b-bl">{quadrant} Protocol</span>}
           <span style={{ fontSize: '10px', fontWeight: '700', padding: '3px 8px', borderRadius: '4px', background: 'var(--bg3)', color: 'var(--text3)', border: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Protocol Library v1.0 LOCKED</span>
         </div>
       </div>
+
+      {/* Primary Physiological Risk Banner */}
+      {primaryRisk && (
+        <div style={{ margin: 0, padding: '10px 22px', background: '#fdecea', borderBottom: '1px solid #c0392b30', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#7f1d1d' }}>
+          <span style={{ fontSize: '18px', flexShrink: 0 }}>&#9888;</span>
+          <div>
+            <strong>Primary Physiological Risk: {primaryRisk}</strong>
+            {redFlags.length > 0 && (
+              <span style={{ fontSize: '11px', marginLeft: '8px', color: '#991b1b' }}>
+                ({redFlags.length} red flag{redFlags.length > 1 ? 's' : ''} detected)
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Stress Buster Kit for Q1/Q2 */}
       {(quadrant === 'Q1' || quadrant === 'Q2') && (
-        <div style={{ margin: '0 0 0 0', padding: '10px 22px', background: '#fff8e1', borderBottom: '1px solid #f59e0b30', display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12.5px', color: '#92400e' }}>
-          <span style={{ fontSize: '16px', flexShrink: 0 }}>⚡</span>
+        <div style={{ margin: 0, padding: '10px 22px', background: '#fff8e1', borderBottom: '1px solid #f59e0b30', display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '12.5px', color: '#92400e' }}>
+          <span style={{ fontSize: '16px', flexShrink: 0 }}>&#9889;</span>
           <div>
             <strong>Stress Buster Kit auto-indicated for {quadrant}</strong> — Psy-Stabil + Dalectro + Neu-Regen (Bioresource) should be included under Drainage. Primary nervous system calming protocol for high emotional load states.
           </div>
         </div>
       )}
 
-      <div style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '20px' }}>
-        {categories.map(({ key, icon, label }) => {
-          const items      = editSels[key];
+      {/* Clinical Sequence Summary */}
+      <div style={{ padding: '12px 22px', background: 'var(--bg3)', borderBottom: '1px solid var(--border)', fontSize: '11px', color: 'var(--text3)' }}>
+        <strong>Clinical Sequence:</strong> Drain &rarr; Stabilize &rarr; Repair &rarr; Energize &rarr; Optimize
+      </div>
+
+      {/* Priority Stack */}
+      <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {priorities.map((p) => {
+          const key        = p.key;
+          const items      = editSels[key] || [];
           const tab        = addTab[key] || 'browse';
           const masterList = getMasterList(key);
           const editing    = isEditing(key);
+          const pColor     = priorityColors[p.priority] || priorityColors[6];
+
           return (
-            <div key={key}>
-              {/* Category header with per-column edit button */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)' }}>
-                  {icon} {label}
+            <div key={key} style={{ border: `1px solid ${p.isRedFlag ? '#c0392b40' : 'var(--border)'}`, borderRadius: '10px', overflow: 'hidden', background: p.isRedFlag ? '#fef2f2' : 'var(--bg2)' }}>
+              {/* Priority header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: p.isRedFlag ? '#fdecea' : 'var(--bg3)', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {/* Priority badge */}
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: '28px', height: '28px', borderRadius: '50%',
+                    background: pColor.bg, color: pColor.text,
+                    fontSize: '13px', fontWeight: '800', flexShrink: 0,
+                  }}>{p.priority}</span>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--navy)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                      {p.icon} {p.label}
+                    </div>
+                    {/* AI Reasoning Line */}
+                    <div style={{ fontSize: '11px', color: p.isRedFlag ? '#991b1b' : 'var(--text3)', marginTop: '2px', lineHeight: '1.4' }}>
+                      {p.isRedFlag && <span style={{ fontWeight: '700', marginRight: '4px' }}>&#9888;</span>}
+                      {p.reason}
+                    </div>
+                  </div>
                 </div>
                 <button
                   onClick={() => toggleEdit(key)}
                   title={editing ? 'Done editing' : 'Edit this category'}
-                  style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '5px', border: `1px solid ${editing ? 'var(--navy)' : 'var(--border)'}`, background: editing ? 'var(--navy)' : 'var(--bg3)', color: editing ? '#fff' : 'var(--text3)', cursor: 'pointer', fontWeight: '600', flexShrink: 0 }}
+                  style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '5px', border: `1px solid ${editing ? 'var(--navy)' : 'var(--border)'}`, background: editing ? 'var(--navy)' : '#fff', color: editing ? '#fff' : 'var(--text3)', cursor: 'pointer', fontWeight: '600', flexShrink: 0 }}
                 >
                   {editing ? '✓ Done' : '✏️'}
                 </button>
               </div>
 
-              {/* Category rationale */}
-              {CATEGORY_RATIONALE[key] && !editing && (
-                <div style={{ fontSize: '10.5px', color: 'var(--text3)', fontStyle: 'italic', marginBottom: '8px', lineHeight: '1.4' }}>
-                  {CATEGORY_RATIONALE[key]}
-                </div>
-              )}
-
-              {/* Current items */}
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {items.map((item, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '12.5px', color: 'var(--navy)', padding: '4px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    {editing ? (
-                      <input
-                        value={item}
-                        onChange={e => {
-                          const val = e.target.value;
-                          setEditSels(prev => ({ ...prev, [key]: prev[key].map((x, j) => j === i ? val : x) }));
-                        }}
-                        style={{ flex: 1, fontSize: '12px', padding: '3px 6px', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg3)', color: 'var(--navy)', lineHeight: '1.5', fontFamily: 'inherit' }}
-                      />
-                    ) : (
-                      <span style={{ flex: 1, lineHeight: '1.5' }}>• {item}</span>
-                    )}
-                    {editing && (
-                      <button
-                        onClick={() => removeItem(key, i)}
-                        title="Remove"
-                        style={{ flexShrink: 0, fontSize: '11px', lineHeight: 1, padding: '2px 6px', borderRadius: '4px', border: '1px solid #e3342f40', background: '#fef2f2', color: '#e3342f', cursor: 'pointer' }}
-                      >✕</button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-
-              {/* Add panel — edit mode only */}
-              {editing && (
-                <div style={{ marginTop: '10px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-                  {/* Tab switcher */}
-                  <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg3)' }}>
-                    {[{ id: 'browse', lbl: '📋 Master List' }, { id: 'custom', lbl: '✏️ Custom' }].map(({ id, lbl }) => (
-                      <button
-                        key={id}
-                        onClick={() => setAddTab(prev => ({ ...prev, [key]: id }))}
-                        style={{
-                          flex: 1, padding: '5px 6px', fontSize: '10.5px', fontWeight: '700',
-                          border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.04em',
-                          background: tab === id ? '#fff' : 'transparent',
-                          color: tab === id ? 'var(--blue)' : 'var(--text3)',
-                          borderBottom: tab === id ? '2px solid var(--blue)' : '2px solid transparent',
-                        }}
-                      >{lbl}</button>
-                    ))}
-                  </div>
-
-                  {/* Browse tab */}
-                  {tab === 'browse' && (
-                    <div>
-                      <div style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)' }}>
+              {/* Products list */}
+              <div style={{ padding: '10px 16px' }}>
+                {items.length === 0 && !editing && (
+                  <div style={{ fontSize: '11.5px', color: 'var(--text3)', fontStyle: 'italic' }}>No products assigned</div>
+                )}
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                  {items.map((item, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '12.5px', color: 'var(--navy)', padding: '4px 0', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      {editing ? (
                         <input
-                          placeholder="🔍 Filter products…"
-                          value={searchText[key] || ''}
-                          onChange={e => setSearchText(prev => ({ ...prev, [key]: e.target.value }))}
-                          style={{ width: '100%', fontSize: '11.5px', padding: '4px 6px', border: '1px solid var(--border)', borderRadius: '5px', background: 'var(--bg3)', color: 'var(--navy)', boxSizing: 'border-box' }}
+                          value={item}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setEditSels(prev => ({ ...prev, [key]: prev[key].map((x, j) => j === i ? val : x) }));
+                          }}
+                          style={{ flex: 1, fontSize: '12px', padding: '3px 6px', border: '1px solid var(--border)', borderRadius: '4px', background: 'var(--bg3)', color: 'var(--navy)', lineHeight: '1.5', fontFamily: 'inherit' }}
                         />
-                      </div>
-                      {quadrant && (
-                        <div style={{ padding: '3px 8px', fontSize: '10px', color: 'var(--blue)', background: 'var(--blue-lt)', fontWeight: '600' }}>
-                          Filtered to {quadrant} products
-                        </div>
+                      ) : (
+                        <span style={{ flex: 1, lineHeight: '1.5' }}>&bull; {item}</span>
                       )}
-                      <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
-                        {masterList.length === 0 ? (
-                          <div style={{ padding: '10px 8px', fontSize: '11.5px', color: 'var(--text3)', textAlign: 'center' }}>
-                            No products found
-                          </div>
-                        ) : masterList.map((p, i) => {
-                          const added = isAdded(key, p);
-                          return (
-                            <div
-                              key={i}
-                              onClick={() => !added && addFromList(key, p)}
-                              style={{
-                                padding: '7px 8px', fontSize: '11.5px',
-                                borderBottom: i < masterList.length - 1 ? '1px solid var(--border)' : 'none',
-                                cursor: added ? 'default' : 'pointer',
-                                background: added ? 'var(--bg3)' : 'transparent',
-                                opacity: added ? 0.55 : 1,
-                                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px',
-                              }}
-                              onMouseEnter={e => { if (!added) e.currentTarget.style.background = 'var(--blue-lt)'; }}
-                              onMouseLeave={e => { if (!added) e.currentTarget.style.background = 'transparent'; }}
-                            >
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: '600', color: added ? 'var(--text3)' : 'var(--navy)', lineHeight: '1.3' }}>{p.product}</div>
-                                <div style={{ color: 'var(--text3)', fontSize: '10.5px', marginTop: '1px' }}>{p.dose} · {p.brand}</div>
-                                {p.indication && <div style={{ color: 'var(--text3)', fontSize: '10px', marginTop: '2px', fontStyle: 'italic', lineHeight: '1.3' }}>{p.indication}</div>}
-                              </div>
-                              {added
-                                ? <span style={{ fontSize: '10px', color: 'var(--green)', fontWeight: '700', flexShrink: 0 }}>✓</span>
-                                : <span style={{ fontSize: '10px', color: 'var(--blue)', flexShrink: 0 }}>+ Add</span>
-                              }
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Custom tab */}
-                  {tab === 'custom' && (
-                    <div style={{ padding: '8px' }}>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <input
-                          value={customInput[key] || ''}
-                          onChange={e => setCustomInput(prev => ({ ...prev, [key]: e.target.value }))}
-                          onKeyDown={e => { if (e.key === 'Enter') addCustom(key); }}
-                          placeholder="Type custom item…"
-                          style={{ flex: 1, fontSize: '11.5px', padding: '5px 8px', borderRadius: '5px', border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--navy)', minWidth: 0 }}
-                        />
+                      {editing && (
                         <button
-                          onClick={() => addCustom(key)}
-                          style={{ fontSize: '13px', padding: '5px 10px', borderRadius: '5px', border: '1px solid var(--teal)', background: 'var(--teal-lt)', color: 'var(--teal)', cursor: 'pointer', fontWeight: '700' }}
-                        >+</button>
-                      </div>
+                          onClick={() => removeItem(key, i)}
+                          title="Remove"
+                          style={{ flexShrink: 0, fontSize: '11px', lineHeight: 1, padding: '2px 6px', borderRadius: '4px', border: '1px solid #e3342f40', background: '#fef2f2', color: '#e3342f', cursor: 'pointer' }}
+                        >&#10005;</button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Add panel — edit mode only */}
+                {editing && (
+                  <div style={{ marginTop: '10px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg3)' }}>
+                      {[{ id: 'browse', lbl: 'Master List' }, { id: 'custom', lbl: 'Custom' }].map(({ id, lbl }) => (
+                        <button
+                          key={id}
+                          onClick={() => setAddTab(prev => ({ ...prev, [key]: id }))}
+                          style={{
+                            flex: 1, padding: '5px 6px', fontSize: '10.5px', fontWeight: '700',
+                            border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '.04em',
+                            background: tab === id ? '#fff' : 'transparent',
+                            color: tab === id ? 'var(--blue)' : 'var(--text3)',
+                            borderBottom: tab === id ? '2px solid var(--blue)' : '2px solid transparent',
+                          }}
+                        >{lbl}</button>
+                      ))}
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {tab === 'browse' && (
+                      <div>
+                        <div style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)' }}>
+                          <input
+                            placeholder="Filter products..."
+                            value={searchText[key] || ''}
+                            onChange={e => setSearchText(prev => ({ ...prev, [key]: e.target.value }))}
+                            style={{ width: '100%', fontSize: '11.5px', padding: '4px 6px', border: '1px solid var(--border)', borderRadius: '5px', background: 'var(--bg3)', color: 'var(--navy)', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        {quadrant && (
+                          <div style={{ padding: '3px 8px', fontSize: '10px', color: 'var(--blue)', background: 'var(--blue-lt)', fontWeight: '600' }}>
+                            Filtered to {quadrant} products
+                          </div>
+                        )}
+                        <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                          {masterList.length === 0 ? (
+                            <div style={{ padding: '10px 8px', fontSize: '11.5px', color: 'var(--text3)', textAlign: 'center' }}>
+                              No products found
+                            </div>
+                          ) : masterList.map((mp, i) => {
+                            const added = isAdded(key, mp);
+                            return (
+                              <div
+                                key={i}
+                                onClick={() => !added && addFromList(key, mp)}
+                                style={{
+                                  padding: '7px 8px', fontSize: '11.5px',
+                                  borderBottom: i < masterList.length - 1 ? '1px solid var(--border)' : 'none',
+                                  cursor: added ? 'default' : 'pointer',
+                                  background: added ? 'var(--bg3)' : 'transparent',
+                                  opacity: added ? 0.55 : 1,
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px',
+                                }}
+                                onMouseEnter={e => { if (!added) e.currentTarget.style.background = 'var(--blue-lt)'; }}
+                                onMouseLeave={e => { if (!added) e.currentTarget.style.background = 'transparent'; }}
+                              >
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: '600', color: added ? 'var(--text3)' : 'var(--navy)', lineHeight: '1.3' }}>{mp.product}</div>
+                                  <div style={{ color: 'var(--text3)', fontSize: '10.5px', marginTop: '1px' }}>{mp.dose} &middot; {mp.brand}</div>
+                                  {mp.indication && <div style={{ color: 'var(--text3)', fontSize: '10px', marginTop: '2px', fontStyle: 'italic', lineHeight: '1.3' }}>{mp.indication}</div>}
+                                </div>
+                                {added
+                                  ? <span style={{ fontSize: '10px', color: 'var(--green)', fontWeight: '700', flexShrink: 0 }}>&#10003;</span>
+                                  : <span style={{ fontSize: '10px', color: 'var(--blue)', flexShrink: 0 }}>+ Add</span>
+                                }
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {tab === 'custom' && (
+                      <div style={{ padding: '8px' }}>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <input
+                            value={customInput[key] || ''}
+                            onChange={e => setCustomInput(prev => ({ ...prev, [key]: e.target.value }))}
+                            onKeyDown={e => { if (e.key === 'Enter') addCustom(key); }}
+                            placeholder="Type custom item..."
+                            style={{ flex: 1, fontSize: '11.5px', padding: '5px 8px', borderRadius: '5px', border: '1px solid var(--border)', background: 'var(--bg3)', color: 'var(--navy)', minWidth: 0 }}
+                          />
+                          <button
+                            onClick={() => addCustom(key)}
+                            style={{ fontSize: '13px', padding: '5px 10px', borderRadius: '5px', border: '1px solid var(--teal)', background: 'var(--teal-lt)', color: 'var(--teal)', cursor: 'pointer', fontWeight: '700' }}
+                          >+</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
@@ -1408,53 +1301,134 @@ function TherapeuticCard({ selections, quadrant }) {
 
       {anyEditing && (
         <div style={{ padding: '0 22px 14px', fontSize: '11px', color: 'var(--text3)' }}>
-          ⚠️ Changes are session-only and not saved to the patient record.
+          Changes are session-only and not saved to the patient record.
         </div>
       )}
     </div>
   );
 }
 
-/* ── NeuroVIZR Card ─────────────────────────────────────── */
-function NeuroVizrCard({ programs }) {
+/* ── NeuroVIZR Card (rich clinical mapping) ─────────────── */
+function NeuroVizrCard({ programs, quadrant }) {
   const hasBgf = programs.brainGymFoundation?.length > 0;
   const hasQp  = programs.quadrantPrograms?.length > 0;
-  if (!hasBgf && !hasQp) return null;
+  const hasFlow = programs.sessionFlow?.length > 0;
+  const hasMini = programs.miniProtocol && (programs.miniProtocol.am || programs.miniProtocol.midday || programs.miniProtocol.pm);
+  if (!hasBgf && !hasQp && !hasFlow) return null;
+
+  const catColors = {
+    'Calm':        { bg: '#ecfdf5', border: '#a7f3d0', text: '#065f46' },
+    'Focus':       { bg: '#eff6ff', border: '#bfdbfe', text: '#1e40af' },
+    'Performance': { bg: '#fef3c7', border: '#fcd34d', text: '#92400e' },
+    'Brain Gym':   { bg: '#f5f3ff', border: '#c4b5fd', text: '#5b21b6' },
+  };
+  const sessionMeta = {
+    'Peaceful Heart': { icon: '💚', cat: 'Calm' }, 'Big Peace': { icon: '🕊️', cat: 'Calm' },
+    'Gentle Movers': { icon: '🌊', cat: 'Calm' }, 'Calm Down': { icon: '😌', cat: 'Calm' },
+    'Still Point': { icon: '🧘', cat: 'Calm' }, 'Heart Space': { icon: '❤️', cat: 'Calm' },
+    'Gamma Gamma': { icon: '⚡', cat: 'Focus' }, 'Crystal Clear': { icon: '💎', cat: 'Focus' },
+    'Laser Focus': { icon: '🎯', cat: 'Focus' }, 'Focused Attention': { icon: '🔬', cat: 'Focus' },
+    'Centered': { icon: '⚖️', cat: 'Performance' },
+  };
+  const getSessionStyle = (name) => {
+    const meta = sessionMeta[name];
+    if (meta) { const c = catColors[meta.cat]; return { bg: c.bg, border: c.border, text: c.text, icon: meta.icon }; }
+    if (name?.toLowerCase().includes('brain gym') || name?.toLowerCase().includes('coordination') || name?.toLowerCase().includes('flexibility') || name?.toLowerCase().includes('strength') || name?.toLowerCase().includes('endurance')) {
+      const c = catColors['Brain Gym']; return { bg: c.bg, border: c.border, text: c.text, icon: '🏋️' };
+    }
+    return { bg: 'var(--bg3)', border: 'var(--border)', text: 'var(--navy)', icon: '🎧' };
+  };
 
   return (
     <div className="cc" style={{ marginBottom: '16px' }}>
-      <div className="ct">🎧 NeuroVIZR Program Recommendations</div>
-      <div className="cs">Recommended sessions based on quadrant placement</div>
-      <div style={{ display: 'grid', gridTemplateColumns: hasBgf && hasQp ? '1fr 1fr' : '1fr', gap: '16px' }}>
+      <div className="ct">🎧 NeuroVIZR Clinical Session Plan</div>
+      <div className="cs">AI-recommended sessions based on quadrant, HQP patterns, and Brain Gauge data</div>
+
+      {/* Clinical Intention banner */}
+      {programs.clinicalIntention && (
+        <div style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #eff6ff 100%)', border: '1px solid #c4b5fd', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px' }}>
+          <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: '#7c3aed', marginBottom: '4px' }}>Clinical Intention</div>
+          <div style={{ fontSize: '13px', color: 'var(--navy)', lineHeight: '1.6' }}>{programs.clinicalIntention}</div>
+          {programs.frequency && <div style={{ fontSize: '11px', color: 'var(--text3)', marginTop: '4px' }}>📅 Recommended: {programs.frequency}</div>}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        {/* Brain Gym Foundation */}
         {hasBgf && (
-          <div>
-            <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '8px' }}>
-              🏋️ Brain Gym Foundation (Required First)
+          <div style={{ background: catColors['Brain Gym'].bg, border: `1px solid ${catColors['Brain Gym'].border}`, borderRadius: '10px', padding: '14px' }}>
+            <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: catColors['Brain Gym'].text, marginBottom: '10px' }}>
+              🏋️ Brain Gym Foundation <span style={{ fontWeight: 400, fontSize: '9.5px', opacity: .7 }}>(Required First)</span>
             </div>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {programs.brainGymFoundation.map((p, i) => (
-                <span key={i} style={{ padding: '4px 10px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '20px', fontSize: '12px', color: 'var(--navy)' }}>
+                <span key={i} style={{ padding: '4px 10px', background: '#fff', border: `1px solid ${catColors['Brain Gym'].border}`, borderRadius: '20px', fontSize: '11.5px', color: catColors['Brain Gym'].text, fontWeight: 600 }}>
                   {i + 1}. {p}
                 </span>
               ))}
             </div>
           </div>
         )}
+
+        {/* Quadrant Programs */}
         {hasQp && (
-          <div>
-            <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '8px' }}>
-              📋 Quadrant Programs
+          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px' }}>
+            <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '10px' }}>
+              📋 {quadrant ? `${quadrant} ` : ''}Quadrant Sessions
             </div>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {programs.quadrantPrograms.map((p, i) => (
-                <li key={i} style={{ fontSize: '12.5px', color: 'var(--navy)', padding: '4px 0', borderBottom: i < programs.quadrantPrograms.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  • {p}
-                </li>
-              ))}
-            </ul>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {programs.quadrantPrograms.map((p, i) => {
+                const s = getSessionStyle(p);
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: '8px' }}>
+                    <span style={{ fontSize: '14px' }}>{s.icon}</span>
+                    <span style={{ fontSize: '12.5px', fontWeight: 600, color: s.text }}>{p}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Session Flow */}
+      {hasFlow && (
+        <div style={{ marginTop: '16px' }}>
+          <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '10px' }}>
+            🔄 Recommended Session Flow
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+            {programs.sessionFlow.map((step, i) => {
+              const s = getSessionStyle(step);
+              return (
+                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  {i > 0 && <span style={{ color: 'var(--text3)', fontSize: '14px', margin: '0 2px' }}>→</span>}
+                  <span style={{ padding: '5px 12px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: s.text }}>
+                    {s.icon} {step}
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Mini Protocol */}
+      {hasMini && (
+        <div style={{ marginTop: '16px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px' }}>
+          <div style={{ fontSize: '10.5px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.07em', color: 'var(--text3)', marginBottom: '10px' }}>
+            ⏰ Daily Session Protocol
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+            {[['🌅 AM', programs.miniProtocol.am], ['☀️ Midday', programs.miniProtocol.midday], ['🌙 PM', programs.miniProtocol.pm]].map(([label, val]) => val && (
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text3)', marginBottom: '4px' }}>{label}</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--navy)', padding: '6px', background: '#fff', borderRadius: '8px', border: '1px solid var(--border)' }}>{val}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

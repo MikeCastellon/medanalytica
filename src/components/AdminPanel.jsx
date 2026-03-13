@@ -38,6 +38,7 @@ export default function AdminPanel({ user }) {
   const [editStatus, setEditStatus] = useState('');
   const [editRole, setEditRole] = useState('');
   const [editClinic, setEditClinic] = useState('');
+  const [editFeatures, setEditFeatures] = useState({});
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState('success');
@@ -85,6 +86,7 @@ export default function AdminPanel({ user }) {
     setEditStatus(doc.subscription_status || 'inactive');
     setEditRole(doc.role || 'Physician');
     setEditClinic(doc.clinic_name || '');
+    setEditFeatures(doc.feature_flags || {});
   };
 
   const cancelEdit = () => { setEditingId(null); };
@@ -98,6 +100,7 @@ export default function AdminPanel({ user }) {
         subscription_status: editStatus,
         role: editRole,
         clinic_name: editClinic,
+        feature_flags: editFeatures,
       })
       .eq('id', docId);
     if (error) {
@@ -407,6 +410,7 @@ export default function AdminPanel({ user }) {
                       <th style={thStyle}>Status</th>
                       <th style={thStyle}>Patients</th>
                       <th style={thStyle}>Reports</th>
+                      <th style={thStyle}>Features</th>
                       <th style={thStyle}>Joined</th>
                       <th style={thStyle}>Actions</th>
                     </tr>
@@ -467,6 +471,22 @@ export default function AdminPanel({ user }) {
                         </td>
                         <td style={{ ...tdStyle, textAlign: 'center' }}>
                           {doctorReportCounts[doc.id] || 0}
+                        </td>
+                        <td style={tdStyle}>
+                          {editingId === doc.id ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <FeatureToggle label="NeuroVIZR" featureKey="neurovizr" features={editFeatures} setFeatures={setEditFeatures} />
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                              {(doc.feature_flags?.neurovizr) && (
+                                <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '10px', fontWeight: 600, background: '#7c3aed18', color: '#7c3aed' }}>🎧 NeuroVIZR</span>
+                              )}
+                              {!doc.feature_flags?.neurovizr && (
+                                <span style={{ fontSize: '11px', color: C.text3 }}>—</span>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td style={tdStyle}>
                           {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : '—'}
@@ -821,6 +841,27 @@ function StatusBadge({ status }) {
     }}>
       {status || 'inactive'}
     </span>
+  );
+}
+
+function FeatureToggle({ label, featureKey, features, setFeatures }) {
+  const on = !!features[featureKey];
+  return (
+    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, color: on ? '#7c3aed' : '#9ca3af' }}>
+      <div
+        onClick={() => setFeatures(f => ({ ...f, [featureKey]: !on }))}
+        style={{
+          width: '32px', height: '18px', borderRadius: '9px', position: 'relative', cursor: 'pointer',
+          background: on ? '#7c3aed' : '#d1d5db', transition: 'background .2s',
+        }}
+      >
+        <div style={{
+          width: '14px', height: '14px', borderRadius: '50%', background: '#fff', position: 'absolute',
+          top: '2px', left: on ? '16px' : '2px', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+        }} />
+      </div>
+      {label}
+    </label>
   );
 }
 

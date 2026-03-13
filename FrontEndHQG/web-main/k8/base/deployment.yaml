@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: new-web
+  name: new-web
+  namespace: new-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: new-web
+  template:
+    metadata:
+      labels:
+        app: new-web
+    spec:
+      containers:
+      - name: new-web
+        image: registry.gitlab.com/hq-global/frontend/web:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        - containerPort: 3000
+        envFrom:
+        - configMapRef:
+            name: new-web-configmap
+      imagePullSecrets:
+      - name: registry-secret
+      restartPolicy: Always

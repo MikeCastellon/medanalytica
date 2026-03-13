@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: new-web
+resources:
+- deployment.yaml
+- ingres.yaml
+- namespace.yaml
+- registry-secret.yaml
+- service.yaml
+configMapGenerator:
+- envs:
+  - config.env
+  name: new-web-configmap

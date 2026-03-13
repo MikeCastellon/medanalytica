@@ -215,6 +215,92 @@ export const handler = async (event) => {
             }
           : null,
 
+        // ── Extended biomarkers (all 40+ fields for AI) ───────────────────────
+        bioMarkers: {
+          // Autonomic / Polyvagal indicators
+          bpm:              d.bpm              ?? null,
+          icp:              d.icp              ?? null,  // "HIGH" | "WNL"
+          dorsalVagus:      d.dorsalVagus      ?? null,
+          cns_ans:          d.cns_ans          ?? null,
+          yin_yang:         d.yin_yang         ?? null,
+          mo:               d.mo               ?? null,
+          amo:              d.amo              ?? null,
+          ans:              d.ans              ?? null,
+          tfi:              d.tfi              ?? null,
+          rsai:             d.rsai             ?? null,
+          mxdmn:            d.mxdmn            ?? null,
+          // CV / metabolic
+          cardio_vasc_adapt:  d.cardio_vasc_adapt  ?? null,
+          neuro_hormonal_reg: d.neuro_hormonal_reg ?? null,
+          inflamIndex:        d.inflamIndex        ?? null,
+          bioAge:             d.bioAge             ?? null,
+          ageDiff:            d.ageDiff            ?? null,
+          // Doshas (Ayurvedic)
+          doshas: d.doshas ? {
+            vata:  d.doshas.vata  ?? null,
+            pitta: d.doshas.pitta ?? null,
+            kapha: d.doshas.kapha ?? null,
+          } : null,
+          // Chakras
+          chakras: d.chakras ? {
+            ep1: d.chakras.ep1 ?? null,
+            ep2: d.chakras.ep2 ?? null,
+            ep3: d.chakras.ep3 ?? null,
+            ep4: d.chakras.ep4 ?? null,
+            ep5: d.chakras.ep5 ?? null,
+            ep6: d.chakras.ep6 ?? null,
+            ep7: d.chakras.ep7 ?? null,
+          } : null,
+          // Five elements
+          fiveElements: d.fiveElements ? {
+            air:   d.fiveElements.air   ?? null,
+            fire:  d.fiveElements.fire  ?? null,
+            earth: d.fiveElements.earth ?? null,
+            ether: d.fiveElements.ether ?? null,
+            water: d.fiveElements.water ?? null,
+          } : null,
+          // Hormones
+          hormones: d.hormones ? {
+            dhea:         d.hormones.dhea         ?? null,
+            t3_t4:        d.hormones.t3_t4        ?? null,
+            insulin:      d.hormones.insulin      ?? null,
+            cortisol:     d.hormones.cortisol     ?? null,
+            estradiol:    d.hormones.estradiol    ?? null,
+            pregnenolone: d.hormones.pregnenolone ?? null,
+          } : null,
+          // Minerals
+          minerals: d.minerals ? {
+            k:  d.minerals.k  ?? null,
+            ca: d.minerals.ca ?? null,
+            mg: d.minerals.mg ?? null,
+            na: d.minerals.na ?? null,
+          } : null,
+          // Meridians
+          meridians: d.meridians ? {
+            bl: d.meridians.bl ?? null,
+            gb: d.meridians.gb ?? null,
+            ht: d.meridians.ht ?? null,
+            ki: d.meridians.ki ?? null,
+            li: d.meridians.li ?? null,
+            lu: d.meridians.lu ?? null,
+            lv: d.meridians.lv ?? null,
+            pc: d.meridians.pc ?? null,
+            si: d.meridians.si ?? null,
+            sp: d.meridians.sp ?? null,
+            st: d.meridians.st ?? null,
+            tw: d.meridians.tw ?? null,
+          } : null,
+          // Neurotransmitter balance
+          bnt: d.bnt ? {
+            ach:   d.bnt.ach   ?? null,
+            ct_e:  d.bnt.ct_e  ?? null,
+            dopa:  d.bnt.dopa  ?? null,
+            gaba:  d.bnt.gaba  ?? null,
+            sert:  d.bnt.sert  ?? null,
+            ct_ne: d.bnt.ct_ne ?? null,
+          } : null,
+        },
+
         // ── RR metadata summary ───────────────────────────────────────────────
         rrSummary: {
           totalRr:         rrm.total_rr         ?? null,

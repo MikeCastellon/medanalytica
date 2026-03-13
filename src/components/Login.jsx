@@ -37,6 +37,7 @@ export default function Login({ onLogin }) {
         tier: isAdmin ? 'clinic' : tier,
         subscriptionStatus: isAdmin ? 'active' : status,
         isAdmin,
+        featureFlags: profile?.feature_flags || {},
       });
     } finally {
       setLoading(false);

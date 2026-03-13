@@ -94,7 +94,7 @@ export default function App() {
       try {
         const { data: profile } = await supabase
           .from('doctor_profiles')
-          .select('full_name, role, initials, clinic_name, subscription_tier, subscription_status')
+          .select('full_name, role, initials, clinic_name, subscription_tier, subscription_status, feature_flags')
           .eq('id', supaUser.id)
           .single();
         const tier   = (profile?.subscription_tier   || 'starter').toLowerCase();
@@ -138,10 +138,11 @@ export default function App() {
           subscriptionStatus: isAdmin ? 'active' : status,
           isAdmin,
           team:               teamData,
+          featureFlags:       profile?.feature_flags || {},
         };
       } catch {
         const isAdmin = supaUser.email === 'mike.castellon5@gmail.com';
-        return { id: supaUser.id, name: supaUser.email, role: 'Physician', initials: 'DR', clinicName: '', tier: isAdmin ? 'clinic' : 'starter', subscriptionStatus: 'active', isAdmin };
+        return { id: supaUser.id, name: supaUser.email, role: 'Physician', initials: 'DR', clinicName: '', tier: isAdmin ? 'clinic' : 'starter', subscriptionStatus: 'active', isAdmin, featureFlags: {} };
       }
     };
 

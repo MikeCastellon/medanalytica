@@ -22,7 +22,11 @@ export default function NewPatient({ onBack, onSubmit }) {
     oxidativeStressScore: '',
     // Test flags — must be explicitly checked to include in report
     adrenalTested: false,
+    adrenalDropCount: '',
+    thyroidFunctionalIndex: '',
     brainGaugeTested: false,
+    bgSpeed: '', bgAccuracy: '', bgTimeOrderJudgment: '', bgTimePerception: '',
+    bgPlasticity: '', bgFatigue: '', bgFocus: '', bgOverallCortical: '',
   });
   const [files, setFiles]     = useState([]); // multiple screenshots
   const [drag, setDrag]       = useState(false);
@@ -36,6 +40,7 @@ export default function NewPatient({ onBack, onSubmit }) {
   const [hqbResult, setHqbResult]         = useState(null);   // { patient, recordings }
   const [hqbRecordingIdx, setHqbRecordingIdx] = useState(0); // which recording is selected
   const [hqbApplied, setHqbApplied]       = useState(false);  // whether data has been applied
+  const [hqbFullRecord, setHqbFullRecord] = useState(null);   // full recording for AI (no screenshots needed)
 
   const [pasteFlash, setPasteFlash] = useState(false);
 
@@ -130,6 +135,7 @@ export default function NewPatient({ onBack, onSubmit }) {
         ? { ari: String(rec.ari) } : {}),
     }));
     setHqbApplied(true);
+    setHqbFullRecord(rec || null);
   };
 
   // The currently selected HQB recording (for display)
@@ -636,16 +642,38 @@ export default function NewPatient({ onBack, onSubmit }) {
               Tests Performed This Session
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', color: 'var(--text2)' }}>
-                <input type="checkbox" checked={form.adrenalTested} onChange={e => s('adrenalTested', e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: 'var(--teal)', cursor: 'pointer' }} />
-                <span>Adrenal Urine Test was performed (include adrenal section in report)</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', color: 'var(--text2)' }}>
-                <input type="checkbox" checked={form.brainGaugeTested} onChange={e => s('brainGaugeTested', e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: 'var(--teal)', cursor: 'pointer' }} />
-                <span>Brain Gauge test was performed (include Brain Gauge section in report)</span>
-              </label>
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', color: 'var(--text2)' }}>
+                  <input type="checkbox" checked={form.adrenalTested} onChange={e => s('adrenalTested', e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--teal)', cursor: 'pointer' }} />
+                  <span>Adrenal Urine Test was performed (include adrenal section in report)</span>
+                </label>
+                {form.adrenalTested && (
+                  <div className="fg2" style={{ marginTop: '10px', paddingLeft: '26px' }}>
+                    <div className="fg"><label className="fl">Drop Count</label><input className="fi" type="number" min="0" max="50" placeholder="e.g. 8" value={form.adrenalDropCount} onChange={e => s('adrenalDropCount', e.target.value)} /></div>
+                    <div className="fg"><label className="fl">Thyroid Functional Index</label><input className="fi" type="number" min="0" max="100" placeholder="e.g. 42" value={form.thyroidFunctionalIndex} onChange={e => s('thyroidFunctionalIndex', e.target.value)} /></div>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', color: 'var(--text2)' }}>
+                  <input type="checkbox" checked={form.brainGaugeTested} onChange={e => s('brainGaugeTested', e.target.checked)}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--teal)', cursor: 'pointer' }} />
+                  <span>Brain Gauge test was performed (include Brain Gauge section in report)</span>
+                </label>
+                {form.brainGaugeTested && (
+                  <div className="fg2" style={{ marginTop: '10px', paddingLeft: '26px' }}>
+                    <div className="fg"><label className="fl">Speed</label><input className="fi" type="number" min="0" max="100" placeholder="0–100" value={form.bgSpeed} onChange={e => s('bgSpeed', e.target.value)} /></div>
+                    <div className="fg"><label className="fl">Accuracy</label><input className="fi" type="number" min="0" max="100" placeholder="0–100" value={form.bgAccuracy} onChange={e => s('bgAccuracy', e.target.value)} /></div>
+                    <div className="fg"><label className="fl">Time Order Judgment</label><input className="fi" type="number" min="0" max="100" placeholder="0–100" value={form.bgTimeOrderJudgment} onChange={e => s('bgTimeOrderJudgment', e.target.value)} /></div>
+                    <div className="fg"><label className="fl">Time Perception</label><input className="fi" type="number" min="0" max="100" placeholder="0–100" value={form.bgTimePerception} onChange={e => s('bgTimePerception', e.target.value)} /></div>
+                    <div className="fg"><label className="fl">Plasticity</label><input className="fi" type="number" min="0" max="100" placeholder="0–100" value={form.bgPlasticity} onChange={e => s('bgPlasticity', e.target.value)} /></div>
+                    <div className="fg"><label className="fl">Fatigue</label><input className="fi" type="number" min="0" max="100" placeholder="0–100" value={form.bgFatigue} onChange={e => s('bgFatigue', e.target.value)} /></div>
+                    <div className="fg"><label className="fl">Focus</label><input className="fi" type="number" min="0" max="100" placeholder="0–100" value={form.bgFocus} onChange={e => s('bgFocus', e.target.value)} /></div>
+                    <div className="fg"><label className="fl">Overall Cortical Metric</label><input className="fi" type="number" min="0" max="100" placeholder="0–100" value={form.bgOverallCortical} onChange={e => s('bgOverallCortical', e.target.value)} /></div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -718,6 +746,7 @@ export default function NewPatient({ onBack, onSubmit }) {
             ...form,
             stressQuestionnaireScore: eliQScore !== null ? eliQScore : (form.questionnaireScore !== '' ? Number(form.questionnaireScore) : null),
             questionnaireScore: effectiveQScore,
+            hqbData: hqbFullRecord || null,
           }, files)}
           disabled={!canSubmit}
         >

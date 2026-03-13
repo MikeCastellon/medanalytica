@@ -1,0 +1,1145 @@
+query GetPractitionerPatients($_id: String!) {
+  followers(
+    where: { follower_id: { _eq: $_id }, deleted_on: { _is_null: true } }
+  ) {
+    accepted_on
+    id
+    followee {
+      id
+      email
+      firstName
+      lastName
+      birthDate
+    }
+  }
+  all: followers_aggregate(
+    where: { follower_id: { _eq: $_id }, deleted_on: { _is_null: true } }
+  ) {
+    aggregate {
+      count
+    }
+  }
+  accepted: followers_aggregate(
+    where: { follower_id: { _eq: $_id }, accepted_on: { _is_null: false } }
+  ) {
+    aggregate {
+      count
+    }
+  }
+  pending: followers_aggregate(
+    where: {
+      follower_id: { _eq: $_id }
+      accepted_on: { _is_null: true }
+      deleted_on: { _is_null: true }
+    }
+  ) {
+    aggregate {
+      count
+    }
+  }
+}
+
+query GetAllHeartDataForOwner(
+  $id: uuid!
+  $_eq: String!
+  $order_by: order_by
+  $where: heart_data_bool_exp
+) {
+  user(id: $_eq) {
+    firstName
+    birthDate
+    email
+  }
+  users_by_pk(id: $id) {
+    data
+    birth_date
+    first_name
+    last_name
+    mobile_phone
+  }
+  heart_data(order_by: { created_on: $order_by }, where: $where) {
+    id
+    title
+    data
+    created_on
+    trend_recording
+    rr_file {
+      id
+    }
+    ecg_file {
+      id
+    }
+    rr_metadata {
+      id
+      max
+      mean
+      min
+      owner_id
+      threshold
+      rrs
+      total_filtered_rr
+      total_rejected
+      total_rr
+    }
+    brain_spectrum {
+      id
+      delta
+      theta
+      alpha
+      beta
+      hbeta
+    }
+  }
+}
+
+query GetBrainDescription {
+  descriptions(
+    filter: {
+      key: {
+        _in: [
+          "brain_20"
+          "brain_30"
+          "brain_50"
+          "brain_60"
+          "brain_80"
+          "brain_100"
+        ]
+      }
+    }
+    sort: "key"
+  ) {
+    key
+    hq_professional
+  }
+}
+
+query GetDescriptionByKey($key: String!) {
+  descriptions(filter: { key: { _eq: $key }, status: { _eq: "published" } }) {
+    status
+    hq_professional
+  }
+}
+
+mutation DeleteRecording($id: uuid!) {
+  update_heart_data_by_pk(
+    pk_columns: { id: $id }
+    _set: { deleted_on: "now()" }
+  ) {
+    id
+    title
+    deleted_on
+  }
+}
+
+mutation UpdateRecordingByPk(
+  $id: uuid!
+  $title: String!
+  $trend_recording: Boolean!
+) {
+  update_heart_data_by_pk(
+    pk_columns: { id: $id }
+    _set: { title: $title, trend_recording: $trend_recording }
+  ) {
+    id
+    title
+    trend_recording
+  }
+}
+
+query GetVagalNerveQuestions($heart_data_ref: uuid!, $survey_ref: Int!) {
+  get_heart_data_answers(
+    args: { heart_data_ref: $heart_data_ref, survey_ref: $survey_ref }
+  ) {
+    answer_id
+    answer
+    question_id
+    question
+    heart_data_id
+    survey_id
+  }
+}
+
+mutation InsertAnswerOne(
+  $answer: Boolean!
+  $question_id: Int!
+  $heart_data_id: uuid!
+) {
+  insert_v_answer_one(
+    object: {
+      question_id: $question_id
+      heart_data_id: $heart_data_id
+      answer: $answer
+    }
+  ) {
+    id
+    answer
+  }
+}
+
+mutation UpdateAnswerByPk($id: bigint!, $answer: Boolean!) {
+  update_v_answer_by_pk(pk_columns: { id: $id }, _set: { answer: $answer }) {
+    id
+    answer
+  }
+}
+
+mutation DoctorFollowUser(
+  $follower_id: String
+  $followee_id: String
+  $accepted_on: timestamptz = null
+) {
+  insert_followers_one(
+    object: {
+      followee_id: $followee_id
+      follower_id: $follower_id
+      deleted_on: null
+      accepted_on: $accepted_on
+    }
+    on_conflict: {
+      constraint: followers_followee_id_follower_id_key
+      update_columns: [deleted_on]
+    }
+  ) {
+    id
+  }
+}
+
+query GetUsersByEmail($email: String!) {
+  userByEmail(email: $email) {
+    total
+    users {
+      id
+      email
+      birthDate
+      active
+      firstName
+      fullName
+      lastName
+      username
+    }
+  }
+}
+
+query GetNotesForRecording($heart_data_id: uuid!) {
+  note(where: { heart_data_id: { _eq: $heart_data_id } }) {
+    id
+    note
+    author_id
+    heart_data_id
+    created_at
+    updated_at
+  }
+}
+
+mutation Delete_Note_By_PK($id: bigint!) {
+  delete_note_by_pk(id: $id) {
+    id
+  }
+}
+
+mutation InsertOneNoteForRecording(
+  $heart_data_id: uuid!
+  $author_id: String!
+  $note: json!
+  $text: String!
+) {
+  insert_note_one(
+    object: {
+      heart_data_id: $heart_data_id
+      author_id: $author_id
+      note: $note
+      text: $text
+    }
+  ) {
+    id
+    heart_data_id
+    author_id
+    note
+    created_at
+    updated_at
+  }
+}
+
+mutation UpdateNoteByPk($note: json!, $text: String!, $id: bigint!) {
+  update_note_by_pk(
+    pk_columns: { id: $id }
+    _set: { note: $note, text: $text }
+  ) {
+    id
+    note
+  }
+}
+
+mutation UpdateUserProfile($userId: String!, $userDetails: UserDetails!) {
+  PatchUser(userId: $userId, userDetails: $userDetails) {
+    user {
+      birthDate
+      email
+      firstName
+      lastName
+      data {
+        gender
+      }
+    }
+  }
+}
+
+mutation UnfollowSubject($id: uuid!) {
+  update_followers_by_pk(
+    pk_columns: { id: $id }
+    _set: { deleted_on: "now()", accepted_on: null }
+  ) {
+    id
+  }
+}
+
+query GetValuesParameters {
+  values {
+    id
+    title
+    title_alt
+    ideal_max
+    ideal_min
+    abs_max
+    abs_min
+    status
+  }
+}
+
+query GetSpecificExplanation(
+  $age: GraphQLStringOrFloat!
+  $status: String
+  $gender: [String]
+) {
+  match(
+    filter: {
+      max_age: { _gte: $age }
+      min_age: { _lte: $age }
+      gender: { _in: $gender }
+      status: { _eq: $status }
+    }
+  ) {
+    refKey {
+      id
+    }
+    max
+    min
+    max_age
+    min_age
+    gender
+    status
+    explanation {
+      title
+      explanation
+    }
+  }
+}
+
+query GetSpecificExplanationByKeyValue(
+  $age: GraphQLStringOrFloat!
+  $status: String = "published"
+  $value: GraphQLStringOrFloat!
+  $refKey: String!
+  $gender: [String] = ["all"]
+) {
+  match(
+    filter: {
+      max_age: { _gte: $age }
+      min_age: { _lte: $age }
+      gender: { _in: $gender }
+      status: { _eq: $status }
+      max: { _gte: $value }
+      min: { _lte: $value }
+      refKey: { id: { _eq: $refKey } }
+    }
+  ) {
+    refKey {
+      id
+    }
+    max
+    min
+    max_age
+    min_age
+    gender
+    status
+    explanation {
+      title
+      explanation
+    }
+  }
+}
+
+query GetSolutionsAndCategory {
+  Solution(
+    filter: {
+      status: { _eq: "published" }
+      category: { status: { _eq: "published" } }
+    }
+  ) {
+    category {
+      id
+      name
+    }
+    id
+    title
+    tags
+  }
+}
+
+query GetSingleSolution($id: ID!) {
+  Solution_by_id(id: $id) {
+    id
+    tags
+    title
+    category {
+      id
+      name
+    }
+    content
+  }
+}
+
+query GetBrainGaugeDetails {
+  bg_parameters {
+    id
+    key
+    name
+    explanation
+  }
+}
+
+query GetBrainGaugeRawScores {
+  BG_Raw_Scores {
+    id
+    key
+    name
+    explanation
+  }
+}
+
+query DisclaimerQuery(
+  $id: ID!
+  $disclaimerId: GraphQLStringOrFloat!
+  $userId: String!
+) {
+  Disclaimer_Acknowledgement(
+    filter: {
+      UserId: { _eq: $userId }
+      Disclaimer: { id: { _eq: $disclaimerId } }
+    }
+  ) {
+    id
+    UserId
+    Disclaimer {
+      id
+      Title
+      Disclaimer
+    }
+  }
+  Disclaimers_by_id(id: $id) {
+    id
+    Title
+    Disclaimer
+  }
+}
+
+mutation UpdateDisclaimerAgreement(
+  $date_updated: Date = "now()"
+  $disclaimerAgreementId: ID!
+) {
+  update_Disclaimer_Acknowledgement_item(
+    data: { date_updated: $date_updated }
+    id: $disclaimerAgreementId
+  ) {
+    UserId
+    date_created
+    date_updated
+  }
+}
+
+mutation CreateDisclaimerAgreement($disclaimerId: ID!, $UserId: String!) {
+  create_Disclaimer_Acknowledgement_item(
+    data: { Disclaimer: { id: $disclaimerId }, UserId: $UserId }
+  ) {
+    id
+  }
+}
+
+query GetQuestionnaires {
+  questionnaire(
+    filter: { status: { _eq: "published" } }
+    sort: "date_created"
+  ) {
+    id
+    title
+  }
+}
+
+query GetQuestionSets {
+  question_set(filter: { status: { _eq: "published" } }, sort: "date_created") {
+    id
+    title
+    questionnaires(
+      filter: { questionnaire_id: { status: { _eq: "published" } } }
+    ) {
+      questionnaire_id {
+        id
+        title
+      }
+    }
+  }
+}
+
+query GetQuestionSetById($id: ID = "1") {
+  question_set_by_id(id: $id) {
+    id
+    title
+    instructions
+    questions {
+      id
+      question
+      instructions
+      option_group {
+        id
+        options {
+          id
+          title
+          value
+        }
+      }
+    }
+  }
+}
+
+mutation CreateAnswers(
+  $owner_id: String!
+  $question_set: ID!
+  $answers: [create_answer_input!]
+) {
+  create_answer_set_item(
+    data: {
+      owner_id: $owner_id
+      question_set: { id: $question_set }
+      answers: $answers
+    }
+  ) {
+    id
+    answers {
+      option {
+        id
+        title
+        value
+      }
+      question {
+        id
+        question
+      }
+    }
+  }
+}
+
+# query GetAnswerSetAnswersForUser($owner_id: String!, $question_set_id: GraphQLStringOrFloat!) {
+#   answer_set(filter: {owner_id: {_eq: $owner_id}, question_set: {id: {_eq: $question_set_id}}}) {
+#     id
+#     date_created
+#     answers {
+#       option {
+#         title
+#         value
+#       }
+#     }
+#   }
+# }
+
+query GetAnswerSetAnswersForUser(
+  $owner_id: String!
+  $question_set_id: GraphQLStringOrFloat!
+  $question_set_id_ID: ID!
+) {
+  question_set_by_id(id: $question_set_id_ID) {
+    id
+    title
+    instructions
+  }
+  answer_set(
+    filter: {
+      owner_id: { _eq: $owner_id }
+      question_set: { id: { _eq: $question_set_id } }
+    }
+    sort: "-date_created"
+  ) {
+    id
+    date_created
+    answers {
+      option {
+        id
+        title
+        value
+      }
+    }
+  }
+}
+
+query GetAnswerSetById($id: ID!) {
+  answer_set_by_id(id: $id) {
+    id
+    date_created
+    question_set {
+      title
+      instructions
+    }
+    answers {
+      option {
+        id
+        title
+        value
+      }
+      question {
+        id
+        question
+        instructions
+        option_group {
+          options {
+            id
+            title
+            value
+            option_group {
+              options {
+                id
+                title
+                sort
+                value
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+query GetQuestionnaireById($id: ID!) {
+  questionnaire_by_id(id: $id) {
+    id
+    title
+    question_sets {
+      question_set_id {
+        id
+        title
+        instructions
+        questions {
+          id
+          instructions
+          question
+          option_group {
+            id
+            options {
+              id
+              title
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+mutation CreateAnswerGroup(
+  $owner_id: String!
+  $questionnaireId: ID!
+  $answerSets: [create_answer_set_input!]
+) {
+  create_answer_group_item(
+    data: {
+      owner_id: $owner_id
+      questionnaire: { id: $questionnaireId }
+      answer_sets: $answerSets
+    }
+  ) {
+    id
+    owner_id
+    questionnaire {
+      id
+      title
+    }
+    answer_sets {
+      id
+      answers {
+        question {
+          question
+        }
+        option {
+          id
+          title
+          value
+        }
+      }
+    }
+  }
+}
+
+query GetQuestionnaireAnswerSetS(
+  $owner_id: String!
+  $questionnaireId: GraphQLStringOrFloat!
+) {
+  answer_group(
+    filter: {
+      owner_id: { _eq: $owner_id }
+      questionnaire: { id: { _eq: $questionnaireId } }
+    }
+    sort: "-date_created"
+  ) {
+    id
+    owner_id
+    date_created
+  }
+}
+
+query GetAnswerGroupById($id: ID!) {
+  answer_group_by_id(id: $id) {
+    answer_sets {
+      id
+      question_set {
+        id
+        key
+        title
+      }
+      answers {
+        question {
+          id
+          question
+        }
+        option {
+          id
+          title
+          value
+          option_group {
+            options {
+              id
+              title
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+query GetTutorials {
+  tutorials(filter: { status: { _eq: "published" } }) {
+    id
+    title
+    type
+    sort
+  }
+}
+
+query GetTutorialById($id: ID!) {
+  tutorials_by_id(id: $id) {
+    id
+    type
+    title
+    body
+    date_created
+    date_updated
+  }
+}
+
+query GetQuestionnaireConclusions($questionnaire_eq: GraphQLStringOrFloat!) {
+  questionnaire_conclusion(
+    filter: { questionnaire: { id: { _eq: $questionnaire_eq } } }
+  ) {
+    id
+    title
+    content
+  }
+}
+
+mutation InsertOneWholeBodyComp(
+  $age: Int!
+  $ecw: numeric!
+  $gender: Int!
+  $height: Int!
+  $icw: numeric!
+  $owner: String!
+  $phase_angle: numeric!
+  $reactance: numeric!
+  $resistance: numeric!
+  $tbw: numeric!
+  $title: String!
+  $weight: Int!
+) {
+  insert_whole_body_comp_one(
+    object: {
+      age: $age
+      ecw: $ecw
+      gender: $gender
+      height: $height
+      icw: $icw
+      owner: $owner
+      phase_angle: $phase_angle
+      reactance: $reactance
+      resistance: $resistance
+      tbw: $tbw
+      title: $title
+      weight: $weight
+    }
+  ) {
+    id
+    title
+    age
+    ecw
+    gender
+    height
+    icw
+    owner
+    phase_angle
+    reactance
+    resistance
+    tbw
+    weight
+  }
+}
+
+query GetWholeBodyCompByOwner(
+  $owner: String!
+  $offset: Int = 0
+  $limit: Int = 100
+) {
+  whole_body_comp(
+    where: { owner: { _eq: $owner } }
+    order_by: { created_at: desc }
+    limit: $limit
+    offset: $offset
+  ) {
+    id
+    title
+    owner
+    reactance
+    resistance
+    gender
+    ecw
+    created_at
+    age
+    height
+    icw
+    phase_angle
+    tbw
+    updated_at
+    weight
+  }
+}
+
+mutation UpdateWholeBodyCompTitle($id: uuid!, $title: String!) {
+  update_whole_body_comp_by_pk(
+    pk_columns: { id: $id }
+    _set: { title: $title }
+  ) {
+    age
+    created_at
+    ecw
+    gender
+    height
+    icw
+    id
+    owner
+    phase_angle
+    reactance
+    resistance
+    tbw
+    title
+    updated_at
+    weight
+  }
+}
+
+mutation DeleteWholeBodyCompTitle($id: uuid!) {
+  delete_whole_body_comp_by_pk(id: $id) {
+    id
+    title
+  }
+}
+
+query GetSubjectDetails($id: uuid!, $_eq: String!) {
+  user(id: $_eq) {
+    firstName
+    birthDate
+    email
+  }
+  users_by_pk(id: $id) {
+    data
+    birth_date
+    first_name
+    last_name
+    mobile_phone
+  }
+}
+
+query GetSubjectHeartDataRange(
+  $id: String!
+  $order_by: order_by
+  $start_date: timestamptz
+  $end_date: timestamptz
+) {
+  heart_data(
+    order_by: { created_on: $order_by }
+    where: {
+      owner: { _eq: $id }
+      deleted_on: { _is_null: true }
+      _and: [
+        { created_on: { _gte: $start_date } }
+        { created_on: { _lte: $end_date } }
+      ]
+    }
+  ) {
+    id
+    title
+    data
+    created_on
+    trend_recording
+    rr_file {
+      id
+    }
+    ecg_file {
+      id
+    }
+    rr_metadata {
+      id
+      max
+      mean
+      min
+      owner_id
+      threshold
+      total_filtered_rr
+      total_rejected
+      total_rr
+    }
+  }
+}
+
+query GetUserFollowing($userId: String!) {
+  all: followers_aggregate(
+    where: { follower_id: { _eq: $userId }, deleted_on: { _is_null: true } }
+  ) {
+    aggregate {
+      count
+    }
+  }
+  accepted: followers_aggregate(
+    where: { follower_id: { _eq: $userId }, accepted_on: { _is_null: false } }
+  ) {
+    aggregate {
+      count
+    }
+  }
+  pending: followers_aggregate(
+    where: {
+      follower_id: { _eq: $userId }
+      accepted_on: { _is_null: true }
+      deleted_on: { _is_null: true }
+    }
+  ) {
+    aggregate {
+      count
+    }
+  }
+  followers(
+    where: { follower_id: { _eq: $userId }, deleted_on: { _is_null: true } }
+  ) {
+    accepted_on
+    requested_on
+    id
+    followee_id
+  }
+}
+
+query GetFollowingByPartiesId($follower_id: String, $followee_id: String) {
+  followers(
+    where: {
+      _and: [
+        { follower_id: { _eq: $follower_id } }
+        { followee_id: { _eq: $followee_id } }
+      ]
+    }
+  ) {
+    id
+    follower_id
+    followee_id
+    accepted_on
+    deleted_on
+    requested_on
+  }
+}
+
+mutation completelyRemoveFollow($id: uuid!) {
+  delete_followers_by_pk(id: $id) {
+    id
+  }
+}
+
+mutation AcceptFollowing($id: uuid!) {
+  update_followers_by_pk(
+    pk_columns: { id: $id }
+    _set: { accepted_on: "now()", deleted_on: null }
+  ) {
+    id
+    accepted_on
+  }
+}
+
+mutation UpsertUserMetaData($id: uuid!, $metadata: jsonb!) {
+  insert_user_metadata_one(
+    object: { id: $id, metadata: $metadata }
+    on_conflict: { constraint: user_metadata_pkey, update_columns: metadata }
+  ) {
+    id
+    metadata
+    created_at
+    updated_at
+  }
+}
+
+query GetUserMetaData($id: uuid!) {
+  user_metadata_by_pk(id: $id) {
+    id
+    metadata
+    created_at
+    updated_at
+  }
+}
+
+query GetAdrenalTestsByOwner($owner_id: String!, $created_at: order_by = desc) {
+  adrenal_function_urine_test(
+    where: { owner_id: { _eq: $owner_id }, deleted_at: { _is_null: true } }
+    order_by: { created_at: $created_at }
+  ) {
+    id
+    title
+    drops
+    created_at
+    updated_at
+    owner_id
+  }
+}
+
+# this is a soft delete
+mutation DeleteAdrenalTestById($id: uuid!) {
+  update_adrenal_function_urine_test_by_pk(
+    pk_columns: { id: $id }
+    _set: { deleted_at: "now()" }
+  ) {
+    id
+  }
+}
+
+mutation InsertAdrenalTest(
+  $owner_id: String!
+  $title: String!
+  $drops: Int!
+  $created_at: timestamptz = "now()"
+) {
+  insert_adrenal_function_urine_test_one(
+    object: {
+      owner_id: $owner_id
+      title: $title
+      drops: $drops
+      created_at: $created_at
+    }
+  ) {
+    id
+    drops
+    owner_id
+    title
+    created_at
+    updated_at
+  }
+}
+
+mutation UpdateAdrenalTest(
+  $id: uuid!
+  $_set: adrenal_function_urine_test_set_input = {}
+) {
+  update_adrenal_function_urine_test_by_pk(
+    pk_columns: { id: $id }
+    _set: $_set
+  ) {
+    id
+    owner_id
+    title
+    drops
+    deleted_at
+    created_at
+    updated_at
+  }
+}
+
+query GetOxidativeStressTestsByOwner($owner_id: String!) {
+  oxidative_stress_test(
+    where: { owner_id: { _eq: $owner_id }, deleted_at: { _is_null: true } }
+    order_by: { created_at: desc }
+  ) {
+    id
+    owner_id
+    title
+    created_at
+    updated_at
+    deleted_at
+    color
+  }
+}
+
+mutation InsertOxidativeStressTest(
+  $owner_id: String!
+  $title: String = "Test"
+  $created_at: timestamptz = "now()"
+  $color: Int!
+) {
+  insert_oxidative_stress_test_one(
+    object: {
+      owner_id: $owner_id
+      title: $title
+      created_at: $created_at
+      color: $color
+    }
+  ) {
+    id
+    owner_id
+    title
+    created_at
+    updated_at
+    deleted_at
+    color
+  }
+}
+
+mutation UpdateOxidativeStressTest(
+  $id: uuid!
+  $_set: oxidative_stress_test_set_input = {}
+) {
+  update_oxidative_stress_test_by_pk(pk_columns: { id: $id }, _set: $_set) {
+    id
+    owner_id
+    title
+    created_at
+    updated_at
+    deleted_at
+    color
+  }
+}
+
+mutation DeleteOxidativeStressTest($id: uuid!) {
+  update_oxidative_stress_test_by_pk(
+    pk_columns: { id: $id }
+    _set: { deleted_at: "now()" }
+  ) {
+    id
+    owner_id
+    title
+    created_at
+    updated_at
+    deleted_at
+    color
+  }
+}

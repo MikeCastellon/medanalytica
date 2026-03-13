@@ -45,7 +45,9 @@ You do NOT diagnose, prescribe, or replace practitioner judgment. All outputs ar
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠️ DATA SOURCE RULE (ABSOLUTE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-You must ONLY use data from the submitted screenshots and form inputs. Do NOT use any external knowledge, internet data, or reference databases to fill in values. If a value is not visible in the submitted data, set it to null. Never fabricate, infer, or look up values from outside sources.
+You must ONLY use data from the submitted screenshots, HQB structured data, and form inputs. Do NOT use any external knowledge, internet data, or reference databases to fill in values. If a value is not present in the submitted data, set it to null. Never fabricate, infer, or look up values from outside sources.
+
+When HQB structured data is provided, use those exact numeric values for all HRV markers — treat them with the same authority as screenshot pixel readings. HQB data is direct sensor output from the HeartQuest device.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ANALYSIS CALCULATION FLOW (follow this order)
@@ -442,6 +444,93 @@ function sanitizeNumber(val, min = 0, max = 99999) {
   return Math.min(Math.max(n, min), max);
 }
 
+// ── Format HQB data as structured text block for AI prompt ────────────────
+function buildHqbDataBlock(hqb) {
+  if (!hqb) return '';
+  const h = hqb.hrv || {};
+  const b = hqb.bioMarkers || {};
+  const bs = hqb.brainSpectrum || null;
+  const rr = hqb.rrSummary || {};
+
+  const fmt = (v, unit = '') => v != null ? `${v}${unit}` : 'N/A';
+
+  const lines = [
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    'HQB DEVICE DATA (HeartQuest structured output — treat as direct sensor readings)',
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    '',
+    '── HRV Time Domain ──',
+    `Heart Rate (Mean): ${fmt(h.meanHr, ' bpm')}`,
+    `SDNN: ${fmt(h.sdnn, ' ms')}`,
+    `RMSSD: ${fmt(h.rmssd, ' ms')}`,
+    `Min HR: ${fmt(h.minHr, ' bpm')} | Max HR: ${fmt(h.maxHr, ' bpm')}`,
+    '',
+    '── HRV Frequency Domain ──',
+    `LF/HF Ratio: ${fmt(h.lfHfRatio)}`,
+    `Total Power: ${fmt(h.totalPower, ' ms²')}`,
+    `VLF%: ${fmt(h.vlfPct, '%')} | LF%: ${fmt(h.lfPct, '%')} | HF%: ${fmt(h.hfPct, '%')}`,
+    `VLF (abs): ${fmt(h.vlf, ' ms²')} | LF (abs): ${fmt(h.lf, ' ms²')} | HF (abs): ${fmt(h.hf, ' ms²')}`,
+    '',
+    '── Indices ──',
+    `Stress Index: ${fmt(h.stressIndex)}`,
+    `Health Index (ARI proxy): ${fmt(h.healthIndex)}`,
+    `HRV Index: ${fmt(h.hrvIndex)}`,
+    `BPM: ${fmt(b.bpm)} | ICP: ${fmt(b.icp)} | MO: ${fmt(b.mo)} | AMO: ${fmt(b.amo)}`,
+    `ANS Balance: ${fmt(b.ans)} | TFI: ${fmt(b.tfi)} | RSAI: ${fmt(b.rsai)} | MXDMN: ${fmt(b.mxdmn)}`,
+    '',
+    '── Autonomic / Polyvagal Indicators ──',
+    `Dorsal Vagus: ${fmt(b.dorsalVagus)} | CNS/ANS: ${fmt(b.cns_ans)} | Yin/Yang: ${fmt(b.yin_yang)}`,
+    `Cardio-Vascular Adaptation: ${fmt(b.cardio_vasc_adapt)}`,
+    `Neuro-Hormonal Regulation: ${fmt(b.neuro_hormonal_reg)}`,
+    `Inflammation Index: ${fmt(b.inflamIndex)}`,
+    `Bio Age: ${fmt(b.bioAge)} yrs | Age Diff: ${fmt(b.ageDiff)} yrs`,
+  ];
+
+  if (bs) {
+    lines.push('', '── Brain Spectrum ──');
+    lines.push(`Delta: ${fmt(bs.delta)} | Theta: ${fmt(bs.theta)} | Alpha: ${fmt(bs.alpha)} | Beta: ${fmt(bs.beta)} | HBeta: ${fmt(bs.hbeta)}`);
+  }
+  if (b.doshas) {
+    lines.push('', '── Ayurvedic Doshas ──');
+    lines.push(`Vata: ${fmt(b.doshas.vata)} | Pitta: ${fmt(b.doshas.pitta)} | Kapha: ${fmt(b.doshas.kapha)}`);
+  }
+  if (b.hormones) {
+    lines.push('', '── Hormones ──');
+    lines.push(`DHEA: ${fmt(b.hormones.dhea)} | T3/T4: ${fmt(b.hormones.t3_t4)} | Insulin: ${fmt(b.hormones.insulin)}`);
+    lines.push(`Cortisol: ${fmt(b.hormones.cortisol)} | Estradiol: ${fmt(b.hormones.estradiol)} | Pregnenolone: ${fmt(b.hormones.pregnenolone)}`);
+  }
+  if (b.minerals) {
+    lines.push('', '── Minerals ──');
+    lines.push(`K: ${fmt(b.minerals.k)} | Ca: ${fmt(b.minerals.ca)} | Mg: ${fmt(b.minerals.mg)} | Na: ${fmt(b.minerals.na)}`);
+  }
+  if (b.meridians) {
+    const m = b.meridians;
+    lines.push('', '── Meridians ──');
+    lines.push(`BL:${fmt(m.bl)} GB:${fmt(m.gb)} HT:${fmt(m.ht)} KI:${fmt(m.ki)} LI:${fmt(m.li)} LU:${fmt(m.lu)}`);
+    lines.push(`LV:${fmt(m.lv)} PC:${fmt(m.pc)} SI:${fmt(m.si)} SP:${fmt(m.sp)} ST:${fmt(m.st)} TW:${fmt(m.tw)}`);
+  }
+  if (b.chakras) {
+    const c = b.chakras;
+    lines.push('', '── Chakras ──');
+    lines.push(`EP1:${fmt(c.ep1)} EP2:${fmt(c.ep2)} EP3:${fmt(c.ep3)} EP4:${fmt(c.ep4)} EP5:${fmt(c.ep5)} EP6:${fmt(c.ep6)} EP7:${fmt(c.ep7)}`);
+  }
+  if (b.fiveElements) {
+    const f = b.fiveElements;
+    lines.push('', '── Five Elements ──');
+    lines.push(`Air:${fmt(f.air)} Fire:${fmt(f.fire)} Earth:${fmt(f.earth)} Ether:${fmt(f.ether)} Water:${fmt(f.water)}`);
+  }
+  if (b.bnt) {
+    lines.push('', '── Neurotransmitters (BNT) ──');
+    lines.push(`ACh:${fmt(b.bnt.ach)} Dopa:${fmt(b.bnt.dopa)} GABA:${fmt(b.bnt.gaba)} Sert:${fmt(b.bnt.sert)} CT-E:${fmt(b.bnt.ct_e)} CT-NE:${fmt(b.bnt.ct_ne)}`);
+  }
+  lines.push('', '── RR Metadata ──');
+  lines.push(`Total RR: ${fmt(rr.totalRr)} | Filtered: ${fmt(rr.totalFilteredRr)} | Rejected: ${fmt(rr.totalRejected)}`);
+  lines.push(`Mean RR: ${fmt(rr.mean, ' ms')} | Min: ${fmt(rr.min, ' ms')} | Max: ${fmt(rr.max, ' ms')}`);
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+  return '\n' + lines.join('\n') + '\n';
+}
+
 export const handler = async (event) => {
   // Background functions return 202 immediately — this code runs asynchronously
   let jobId;
@@ -490,7 +579,14 @@ export const handler = async (event) => {
     if (body.screenshots && body.screenshots.length > 10) {
       body.screenshots = body.screenshots.slice(0, 10);
     }
-    const { screenshots = [], reportType, patientInfo, clinicalData, customRules } = body;
+    const { screenshots = [], reportType, patientInfo, clinicalData, customRules, hqbData } = body;
+
+    // ── When HQB data is present, derive polyvagal status server-side ─────────
+    const hqbPolyAll3Red = hqbData?.hrv
+      ? ((hqbData.hrv.sdnn != null && hqbData.hrv.sdnn < 20) &&
+         (hqbData.hrv.rmssd != null && hqbData.hrv.rmssd < 15) &&
+         (hqbData.hrv.totalPower != null && hqbData.hrv.totalPower < 200) ? 1 : 0)
+      : null;
 
     // Pre-compute ELI inputs from form data (full ELI computed after AI extraction)
     const qScore = clinicalData?.stressQuestionnaireScore ?? clinicalData?.questionnaireScore;
@@ -520,26 +616,27 @@ ${clinicalData?.filtrationRejections != null ? `Filtration Rejections: ${clinica
 ${clinicalData?.stressQuestionnaireScore != null ? `ELI Questionnaire Score (10-item, 0–40): ${clinicalData.stressQuestionnaireScore} → contributes ${qToELI(qScore)} pts to ELI` : ''}
 ${qScore != null ? `Stress Index Questionnaire Score: ${qScore} / 40` : ''}
 ${ariVal != null ? `ARI (from HQP device): ${ariVal} — ${ariVal >= 60 ? 'HIGH ARI' : 'LOW ARI'}` : ''}
-NOTE: ELI and Quadrant will be computed server-side using the full 5-input formula after you extract VLF%, Total Power, HQP Stress Index, and Polyvagal status from the screenshots. Do NOT compute ELI yourself — just extract the raw HRV values accurately.
+NOTE: ELI and Quadrant will be computed server-side. Do NOT compute ELI yourself — just populate HRV values accurately.
 ${clinicalData?.chavita ? `Chavita: ${clinicalData.chavita} | Emvita: ${clinicalData.emvita || 'REQUIRED — MUST PAIR'}` : ''}
 ${clinicalData?.ermMethod ? `ERM Method: ${clinicalData.ermMethod}` : ''}
 ${clinicalData?.acuteRemedies ? `Acute Remedies: ${clinicalData.acuteRemedies}` : ''}
 ${clinicalData?.rjlPhaseAngle ? `RJL BIA — Phase Angle: ${clinicalData.rjlPhaseAngle} | ICW: ${clinicalData.rjlIcw || '?'} | ECW: ${clinicalData.rjlEcw || '?'} | TBW: ${clinicalData.rjlTbw || '?'}` : ''}
 ${clinicalData?.oxidativeStressScore ? `Oxidative Stress Test Score: ${clinicalData.oxidativeStressScore}` : ''}
-
+${hqbData ? buildHqbDataBlock(hqbData) : ''}
 TESTS PERFORMED THIS SESSION:
-- Adrenal Urine Test: ${clinicalData?.adrenalTested ? 'YES — include adrenal findings' : 'NOT PERFORMED — set adrenalUrineDrops: null, adrenalInterpretation: null, adrenalSummary: null'}
-- Brain Gauge Test: ${clinicalData?.brainGaugeTested ? 'YES — include Brain Gauge data' : 'NOT PERFORMED — set brainGauge: null, brainGaugeSummary: null, neuroVizrPrograms: null'}
+- Adrenal Urine Test: ${clinicalData?.adrenalTested ? `YES — Drop Count: ${clinicalData.adrenalDropCount ?? 'not entered'}${clinicalData.thyroidFunctionalIndex != null ? ` | Thyroid Functional Index: ${clinicalData.thyroidFunctionalIndex}` : ''} — interpret these values and include adrenal/thyroid findings` : 'NOT PERFORMED — set adrenalUrineDrops: null, adrenalInterpretation: null, adrenalSummary: null'}
+- Brain Gauge Test: ${clinicalData?.brainGaugeTested && clinicalData?.brainGauge ? `YES — use these EXACT scores: Speed:${clinicalData.brainGauge.speed ?? 'N/A'} | Accuracy:${clinicalData.brainGauge.accuracy ?? 'N/A'} | Time Order Judgment:${clinicalData.brainGauge.timeOrderJudgment ?? 'N/A'} | Time Perception:${clinicalData.brainGauge.timePerception ?? 'N/A'} | Plasticity:${clinicalData.brainGauge.plasticity ?? 'N/A'} | Fatigue:${clinicalData.brainGauge.fatigue ?? 'N/A'} | Focus:${clinicalData.brainGauge.focus ?? 'N/A'} | Overall Cortical:${clinicalData.brainGauge.overallCorticalMetric ?? 'N/A'} — do NOT read from screenshots, use these numbers directly` : 'NOT PERFORMED — set brainGauge: null, brainGaugeSummary: null, neuroVizrPrograms: null'}
 ${customRules ? `\nCustom Clinical Rules:\n${customRules}\n` : ''}
 
 EXTRACTION INSTRUCTIONS:
-- ${screenshots.length > 0 ? `You are provided with ${screenshots.length} HQP screenshot(s). READ THE ACTUAL PIXEL VALUES FROM THESE SCREENSHOTS. Do NOT use example values, training data values, or "typical" values. Every HRV number must come from what you SEE in the images.` : 'No screenshots provided — generate report from practitioner-entered clinical data only.'}
-- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, RMSSD, LF/HF Ratio and reference ranges beneath each value, (2) A pie chart showing VLF%, HF%, LF% with percentages labeled on each slice, (3) Gauge bars for Total Power, Stress Index, and Nervous System Balance Index with the exact numeric value shown, (4) Polyvagal section with Parasympathetic Activity, Energy Index, and Poly-Vagal values on gauge bars
-- Extract ALL HRV markers, scores, and recommendations visible across all screenshots
+${hqbData ? `- HQB structured data is provided above. Use those EXACT values to populate all HRV markers (Heart Rate, SDNN, RMSSD, LF/HF Ratio, Total Power, Stress Index, VLF%, LF%, HF%). Do NOT read from screenshots for these values — the HQB data IS the device output.
+- polyvagalAll3Red has been computed server-side and will be enforced — set it to ${hqbPolyAll3Red} in your response.` : `- ${screenshots.length > 0 ? `You are provided with ${screenshots.length} HQP screenshot(s). READ THE ACTUAL PIXEL VALUES FROM THESE SCREENSHOTS. Do NOT use example values, training data values, or "typical" values. Every HRV number must come from what you SEE in the images.` : 'No screenshots provided — generate report from practitioner-entered clinical data only.'}`}
+${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, RMSSD, LF/HF Ratio and reference ranges beneath each value, (2) A pie chart showing VLF%, HF%, LF% with percentages labeled on each slice, (3) Gauge bars for Total Power, Stress Index, and Nervous System Balance Index with the exact numeric value shown, (4) Polyvagal section with Parasympathetic Activity, Energy Index, and Poly-Vagal values on gauge bars
+- Extract ALL HRV markers, scores, and recommendations visible across all screenshots` : ''}
 - SDNN and RMSSD must be interpreted separately — never combined
 - Set filtrationWarning: true if filtrationRejections > 20
 - Do NOT set eli or hrqEli — the server computes ELI from the 5-input formula after extraction
-- Extract polyvagalAll3Red: set to 1 if ALL 3 Polyvagal gauge sections (Parasympathetic Activity, Energy Index, Poly-Vagal) are in the red zone, else 0
+- ${hqbData ? `polyvagalAll3Red is pre-computed: set it to ${hqbPolyAll3Red}` : `Extract polyvagalAll3Red: set to 1 if ALL 3 Polyvagal gauge sections (Parasympathetic Activity, Energy Index, Poly-Vagal) are in the red zone, else 0`}
 - Set ari and hrqAri to the practitioner-entered ARI if provided
 - Set crisgoldQuadrant to the LOCKED value if provided above
 - CASP: only include if explicitly device-measured on the document — NEVER calculate it
@@ -547,7 +644,7 @@ EXTRACTION INSTRUCTIONS:
 - Drainage must always be populated first with quadrant-specific protocols
 - If Chavita and Emvita numbers were provided, write the EXACT Rubimed practitioner manual description for each using the conflict names from the system prompt
 - CRITICAL: Your aiSummary MUST use the EXACT same numbers as your hrvMarkers array. If hrvMarkers shows Total Power: 106, your aiSummary must say "Total Power 106ms²" — not any other number.
-- Write aiSummary as a clinician-facing summary (3-5 sentences, specific values from screenshots)
+- Write aiSummary as a clinician-facing summary (3-5 sentences, specific values from data)
 - Write patientFriendlySummary in plain language (2-3 sentences)
 - Return ONLY valid JSON, no other text`;
 
@@ -597,13 +694,55 @@ EXTRACTION INSTRUCTIONS:
     if (clinicalData?.emvita)  parsed.emvita  = clinicalData.emvita;
     if (clinicalData?.ermMethod) parsed.ermMethod = clinicalData.ermMethod;
 
+    // ── When HQB data present, enforce HRV marker values from device ──────────
+    if (hqbData?.hrv) {
+      const h = hqbData.hrv;
+      const markerOverrides = [
+        { name: 'Heart Rate', value: h.meanHr,     unit: 'bpm',  low: 60,   high: 84 },
+        { name: 'SDNN',       value: h.sdnn,        unit: 'ms',   low: 49,   high: 70 },
+        { name: 'RMSSD',      value: h.rmssd,       unit: 'ms',   low: 25,   high: 50 },
+        { name: 'LF/HF Ratio',value: h.lfHfRatio,   unit: '',     low: 1.0,  high: 3.0 },
+        { name: 'Total Power', value: h.totalPower,  unit: 'ms²',  low: 1500, high: 3500 },
+        { name: 'Stress Index',value: h.stressIndex, unit: '',     low: 10,   high: 100 },
+        { name: 'VLF%',        value: h.vlfPct,      unit: '%',    low: 25,   high: 40 },
+        { name: 'LF%',         value: h.lfPct,       unit: '%',    low: 40,   high: 55 },
+        { name: 'HF%',         value: h.hfPct,       unit: '%',    low: 30,   high: 50 },
+      ].filter(m => m.value != null);
+
+      if (markerOverrides.length > 0) {
+        const statusOf = (v, lo, hi) => v < lo ? 'low' : v > hi ? 'high' : 'normal';
+        if (!Array.isArray(parsed.hrvMarkers)) parsed.hrvMarkers = [];
+        for (const mo of markerOverrides) {
+          const idx = parsed.hrvMarkers.findIndex(m => m.name === mo.name);
+          const status = statusOf(mo.value, mo.low, mo.high);
+          if (idx >= 0) {
+            parsed.hrvMarkers[idx].value = mo.value;
+            parsed.hrvMarkers[idx].status = status;
+          } else {
+            parsed.hrvMarkers.push({ name: mo.name, value: mo.value, unit: mo.unit, low: mo.low, high: mo.high, status, clinicalNote: '' });
+          }
+        }
+      }
+    }
+
     // ── REVISED ELI FORMULA (5-input composite) ──────────────────────────
     // ELI = (VLF% × 0.5) + (Polyvagal_all3red × 30) + ((1 - TP/3500) × 20)
     //       + HQP_StressIndex_Component + Questionnaire_Component
     {
-      const extractedVLF = parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value;
-      const extractedTP  = parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
-      const extractedSI  = parsed.hrvMarkers?.find(m => m.name === 'Stress Index')?.value;
+      // When HQB data present, override polyvagal and use HQB HRV values directly
+      if (hqbPolyAll3Red !== null) {
+        parsed.polyvagalAll3Red = hqbPolyAll3Red;
+        parsed.polyvagalRuleOf3Met = hqbPolyAll3Red === 1;
+        if (hqbPolyAll3Red === 0) parsed.polyvagalInterpretation = null;
+      }
+
+      // Prefer HQB values for ELI computation
+      const extractedVLF = hqbData?.hrv?.vlfPct
+        ?? parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value;
+      const extractedTP  = hqbData?.hrv?.totalPower
+        ?? parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
+      const extractedSI  = hqbData?.hrv?.stressIndex
+        ?? parsed.hrvMarkers?.find(m => m.name === 'Stress Index')?.value;
       const polyAll3Red  = parsed.polyvagalAll3Red ?? 0;
 
       const hasAnyInput = extractedVLF != null || extractedTP != null || extractedSI != null || qScore != null;
@@ -633,6 +772,15 @@ EXTRACTION INSTRUCTIONS:
           else                           parsed.crisgoldQuadrant = 'Q4';
         }
       }
+    }
+
+    // ── Enforce adrenal + Brain Gauge values from form (overrides AI) ─────────
+    if (clinicalData?.adrenalTested) {
+      if (clinicalData.adrenalDropCount != null) parsed.adrenalUrineDrops = clinicalData.adrenalDropCount;
+      if (clinicalData.thyroidFunctionalIndex != null) parsed.thyroidFunctionalIndex = clinicalData.thyroidFunctionalIndex;
+    }
+    if (clinicalData?.brainGaugeTested && clinicalData?.brainGauge) {
+      parsed.brainGauge = { ...clinicalData.brainGauge };
     }
 
     // ── SERVER-SIDE CRI SCORING (deterministic — overrides AI scoring) ──────

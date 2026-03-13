@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  name: new-web
+  namespace: new-web
+spec:
+  rules:
+  - host: new.heartquest-global.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: new-web
+            port:
+              number: 80
+        path: /
+        pathType: Prefix

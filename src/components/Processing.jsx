@@ -162,9 +162,22 @@ export default function Processing({ user, form, files = [], customRules, onDone
           rjlTbw:               form.rjlTbw || null,
           oxidativeStressScore: form.oxidativeStressScore || null,
           adrenalTested:        form.adrenalTested === true,
+          adrenalDropCount:     form.adrenalDropCount !== '' && form.adrenalDropCount != null ? Number(form.adrenalDropCount) : null,
+          thyroidFunctionalIndex: form.thyroidFunctionalIndex !== '' && form.thyroidFunctionalIndex != null ? Number(form.thyroidFunctionalIndex) : null,
           brainGaugeTested:     form.brainGaugeTested === true,
+          brainGauge: form.brainGaugeTested ? {
+            speed:                form.bgSpeed              !== '' ? Number(form.bgSpeed)              : null,
+            accuracy:             form.bgAccuracy           !== '' ? Number(form.bgAccuracy)           : null,
+            timeOrderJudgment:    form.bgTimeOrderJudgment  !== '' ? Number(form.bgTimeOrderJudgment)  : null,
+            timePerception:       form.bgTimePerception     !== '' ? Number(form.bgTimePerception)     : null,
+            plasticity:           form.bgPlasticity         !== '' ? Number(form.bgPlasticity)         : null,
+            fatigue:              form.bgFatigue            !== '' ? Number(form.bgFatigue)            : null,
+            focus:                form.bgFocus              !== '' ? Number(form.bgFocus)              : null,
+            overallCorticalMetric:form.bgOverallCortical    !== '' ? Number(form.bgOverallCortical)    : null,
+          } : null,
         },
         customRules,
+        hqbData: form.hqbData || null,
       };
 
       // Step 1: Create job record (small request — no screenshots)
@@ -408,6 +421,19 @@ function getMockReport(form) {
       overallCorticalMetric: 48,
     },
     brainGaugeSummary: 'Cognitive fatigue is present with preserved focus and time perception. This reflects an overworked but still responsive brain that needs recovery support rather than stimulation.',
+    // Therapeutic Priority Engine (Q3 default, no red flags in mock)
+    therapeuticPriorities: {
+      priorities: [
+        { priority: 1, key: 'drainage',              icon: '🚿', label: 'Drainage (Foundation)',         reason: 'Always first — prepares lymphatic, liver, and kidney clearance before other therapies', isRedFlag: false },
+        { priority: 2, key: 'cardiovascularSupport', icon: '💓', label: 'Cardiovascular Stabilization', reason: 'Cardiovascular Stabilization — Q3 default sequence', isRedFlag: false },
+        { priority: 3, key: 'mitochondrialSupport',  icon: '⚡', label: 'Mitochondrial Energy Support', reason: 'Mitochondrial Energy Support — Q3 default sequence', isRedFlag: false },
+        { priority: 4, key: 'cellMembraneSupport',   icon: '🧬', label: 'Cell Membrane Restoration',   reason: 'Cell Membrane Restoration — Q3 default sequence', isRedFlag: false },
+        { priority: 5, key: 'neurocognitiveSupport', icon: '🧠', label: 'Neurocognitive Support',      reason: 'Neurocognitive Support — Q3 default sequence', isRedFlag: false },
+        { priority: 6, key: 'oxidativeStressSupport', icon: '⚗️', label: 'Oxidative Stress Support',    reason: 'Oxidative Stress Support — Q3 default sequence', isRedFlag: false },
+      ],
+      redFlags: [],
+      primaryRisk: null,
+    },
     // Therapeutic selections — 6 categories (CRIS GOLD™ v1.0)
     therapeuticSelections: {
       drainage: ['Mundipur 1-2 tsp BID', 'Stress Buster Kit (Psy-stabil, Dalectro, Neu-regen)'],
@@ -420,7 +446,11 @@ function getMockReport(form) {
     // NeuroVIZR
     neuroVizrPrograms: {
       brainGymFoundation: ['Coordination 1', 'Flexibility 1', 'Strength 1', 'Endurance 1'],
-      quadrantPrograms: ['Gentle Movers', 'Peaceful Heart', 'Calm Your Mind Routine', 'Sleep Success Routine'],
+      quadrantPrograms: ['Peaceful Heart', 'Big Peace', 'Crystal Clear', 'Calm Down'],
+      sessionFlow: ['Peaceful Heart', 'Big Peace', 'Brain Gym', 'Crystal Clear'],
+      clinicalIntention: 'Calm ANS overload and rebuild parasympathetic reserve before transitioning to focus and clarity sessions',
+      frequency: 'Daily or near-daily for first 4 weeks, then 4-6x/week',
+      miniProtocol: { am: 'Crystal Clear', midday: 'Gamma Gamma', pm: 'Peaceful Heart' },
     },
     psychosomaticFindings: 'Chavita 7 (Crown): Chronic stress related to meaning, safety, and integration. Emvita 27: Disorientation and long-standing emotional strain. These findings align with long-term stress, insomnia, and autonomic instability.',
     aiSummary: 'Patient presents with severely compromised autonomic function: SDNN 20ms (ref 49–70ms) and Total Power 356ms² (ref 1500–3500ms²) indicate significant energy reserve depletion. Stress Index of 372 (ref 10–100) and VLF% of 57% (ref 25–40%) confirm chronic emotional and neurohormonal overload. CRI score of 7 (High Cardiovascular Stress) combined with CRIS GOLD™ Q1 placement (High Emotional Load + Low Autonomic Resilience) indicates an exhausted system requiring foundational support. Adrenal testing shows severe hyper-adrenal stress. Brain Gauge reveals significant cognitive fatigue (score 12) with preserved focus. Priority is drainage, calming, and restoring cellular and mitochondrial function.',

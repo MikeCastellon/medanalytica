@@ -1,0 +1,64 @@
+stages:
+  - build
+  - deploy
+  - rollback
+
+docker-build:
+  image: docker:latest
+  stage: build
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - |
+      if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
+        tag1=""
+        echo "Running on default branch '$CI_DEFAULT_BRANCH': tag1 = 'latest'"
+      else
+        tag1=":$CI_COMMIT_REF_SLUG"
+        echo "Running on branch '$CI_COMMIT_BRANCH': tag = $tag1"
+      fi
+      tag2=":$CI_COMMIT_SHORT_SHA"
+    - docker build --pull -t "$CI_REGISTRY_IMAGE${tag1}" -t "$CI_REGISTRY_IMAGE${tag2}" .
+    - docker push "$CI_REGISTRY_IMAGE${tag1}"
+    - docker push "$CI_REGISTRY_IMAGE${tag2}"
+  when: manual
+  # rules:
+    # - if: $CI_COMMIT_BRANCH
+      # exists:
+        # - Dockerfile
+
+deploy:
+  stage: deploy
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: ['']
+  before_script:
+    - echo $B64_KUBECONFIG | base64 -d > kubeconfig
+    - export KUBECONFIG=$(pwd)/kubeconfig
+  script:
+    - echo "deploy"
+    - kubectl apply -k k8/base/
+    - kubectl -n new-web set image deployment/new-web new-web="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+  when: manual
+  # rules:
+    # - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      # when: manual
+
+rollback:
+  stage: rollback
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: ['']
+  before_script:
+    - echo $B64_KUBECONFIG | base64 -d > kubeconfig
+    - export KUBECONFIG=$(pwd)/kubeconfig
+  script:
+    - echo "rollback"
+    - kubectl -n new-web rollout undo deployment/new-web
+  when: manual
+  # rules:
+    # - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      # when: manual
+
