@@ -101,7 +101,7 @@ export default function NewPatient({ onBack, onSubmit }) {
         body:    JSON.stringify(body),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'HQB lookup failed');
+      if (!res.ok) throw new Error(json.error || 'HQP lookup failed');
       setHqbResult(json);
       setHqbRecordingIdx(0);
     } catch (err) {
@@ -111,10 +111,10 @@ export default function NewPatient({ onBack, onSubmit }) {
     }
   };
 
-  // ── HQB Import: apply selected recording data to form ─────────────────────
+  // ── HQP Import: apply selected recording data to form ─────────────────────
   const applyHqbData = () => {
     if (!hqbResult) return;
-    const { patient, recordings } = hqbResult;
+    const { patient, recordings, adrenalTest, oxidativeStressTest, bodyComp } = hqbResult;
     const rec = recordings?.[hqbRecordingIdx];
 
     setForm(f => ({
@@ -133,6 +133,21 @@ export default function NewPatient({ onBack, onSubmit }) {
         ? { filtrationRejections: String(rec.filtrationRejections) } : {}),
       ...(rec?.ari != null && f.ari === ''
         ? { ari: String(rec.ari) } : {}),
+      // Adrenal urine test — auto-enable + fill drop count
+      ...(adrenalTest?.drops != null ? {
+        adrenalTested:    true,
+        adrenalDropCount: f.adrenalDropCount || String(adrenalTest.drops),
+      } : {}),
+      // Oxidative stress score
+      ...(oxidativeStressTest?.color != null && f.oxidativeStressScore === ''
+        ? { oxidativeStressScore: String(oxidativeStressTest.color) } : {}),
+      // Body composition (RJL BIA equivalent)
+      ...(bodyComp ? {
+        rjlPhaseAngle: f.rjlPhaseAngle || (bodyComp.phaseAngle != null ? String(bodyComp.phaseAngle) : ''),
+        rjlIcw:        f.rjlIcw        || (bodyComp.icw        != null ? String(bodyComp.icw)        : ''),
+        rjlEcw:        f.rjlEcw        || (bodyComp.ecw        != null ? String(bodyComp.ecw)        : ''),
+        rjlTbw:        f.rjlTbw        || (bodyComp.tbw        != null ? String(bodyComp.tbw)        : ''),
+      } : {}),
     }));
     setHqbApplied(true);
     setHqbFullRecord(rec || null);
@@ -218,12 +233,12 @@ export default function NewPatient({ onBack, onSubmit }) {
         </button>
       </div>
 
-      {/* ── HQB Import ── */}
+      {/* ── HQP Import ── */}
       <div className="fc" style={{ borderColor: '#1a6fa8', background: 'linear-gradient(135deg, #eaf4fd 0%, #f8fbff 100%)' }}>
         <div className="fc-hdr">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '18px' }}>🔗</span>
-            <div className="fc-title" style={{ color: '#1a6fa8' }}>Import from HQB</div>
+            <div className="fc-title" style={{ color: '#1a6fa8' }}>Import from HQP</div>
             {hqbApplied && (
               <span style={{ fontSize: '11px', fontWeight: '700', background: '#0e7a55', color: '#fff', borderRadius: '20px', padding: '2px 10px' }}>
                 ✓ Data imported
@@ -234,7 +249,7 @@ export default function NewPatient({ onBack, onSubmit }) {
         </div>
 
         <p style={{ fontSize: '12.5px', color: 'var(--text3)', margin: '0 0 14px', lineHeight: '1.6' }}>
-          Enter the patient's HQB email address or HQB patient ID (UUID) to automatically fill in demographics
+          Enter the patient's HQP email address or HQP patient ID (UUID) to automatically fill in demographics
           and clinical values from their latest HeartQuest recording.
         </p>
 
@@ -259,7 +274,7 @@ export default function NewPatient({ onBack, onSubmit }) {
               fontSize: '13px', whiteSpace: 'nowrap', minWidth: '110px',
             }}
           >
-            {hqbLoading ? '⏳ Searching…' : '🔍 Search HQB'}
+            {hqbLoading ? '⏳ Searching…' : '🔍 Search HQP'}
           </button>
         </div>
 
@@ -288,7 +303,7 @@ export default function NewPatient({ onBack, onSubmit }) {
                 </div>
               </div>
               <div style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--text3)' }}>
-                HQB ID: <code style={{ fontSize: '10px' }}>{hqbResult.patient.hqbPatientId?.slice(0, 8)}…</code>
+                HQP ID: <code style={{ fontSize: '10px' }}>{hqbResult.patient.hqbPatientId?.slice(0, 8)}…</code>
               </div>
             </div>
 
@@ -347,6 +362,30 @@ export default function NewPatient({ onBack, onSubmit }) {
                   </div>
                 )}
 
+                {/* Supplemental test previews */}
+                {(hqbResult.adrenalTest || hqbResult.oxidativeStressTest || hqbResult.bodyComp) && (
+                  <div style={{ fontSize: '11.5px', color: 'var(--text2)', marginBottom: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px', padding: '8px 10px', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                    {hqbResult.adrenalTest?.drops != null && (
+                      <div>💧 Adrenal Drops: <strong>{hqbResult.adrenalTest.drops}</strong></div>
+                    )}
+                    {hqbResult.oxidativeStressTest?.color != null && (
+                      <div>⚗️ Oxidative Stress: <strong>{hqbResult.oxidativeStressTest.color}</strong></div>
+                    )}
+                    {hqbResult.bodyComp?.phaseAngle != null && (
+                      <div>📐 Phase Angle: <strong>{hqbResult.bodyComp.phaseAngle}</strong></div>
+                    )}
+                    {hqbResult.bodyComp?.icw != null && (
+                      <div>💧 ICW: <strong>{hqbResult.bodyComp.icw}</strong></div>
+                    )}
+                    {hqbResult.bodyComp?.ecw != null && (
+                      <div>💧 ECW: <strong>{hqbResult.bodyComp.ecw}</strong></div>
+                    )}
+                    {hqbResult.bodyComp?.tbw != null && (
+                      <div>💧 TBW: <strong>{hqbResult.bodyComp.tbw}</strong></div>
+                    )}
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <button
                     type="button"
@@ -368,7 +407,7 @@ export default function NewPatient({ onBack, onSubmit }) {
               </>
             ) : (
               <div style={{ fontSize: '12.5px', color: 'var(--amber)', fontWeight: '600' }}>
-                ⚠️ Patient found but no recordings in HQB yet.
+                ⚠️ Patient found but no recordings in HQP yet.
               </div>
             )}
           </div>
@@ -380,7 +419,7 @@ export default function NewPatient({ onBack, onSubmit }) {
         <div className="fc-hdr">
           <div className="fc-title">
             Patient Information
-            {hqbApplied && <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: '600', color: '#0e7a55' }}>✓ Pre-filled from HQB</span>}
+            {hqbApplied && <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: '600', color: '#0e7a55' }}>✓ Pre-filled from HQP</span>}
           </div>
           <div className="fc-badge">Step 1</div>
         </div>

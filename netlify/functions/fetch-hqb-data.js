@@ -47,7 +47,7 @@ const GET_USER_BY_EMAIL = `
   }
 `;
 
-// ── Step 2: fetch patient profile + recordings ───────────────────────────────
+// ── Step 2: fetch patient profile + recordings + supplemental tests ──────────
 const GET_HEART_DATA = `
   query GetLatestRecordings($id: uuid!, $_eq: String!) {
     users_by_pk(id: $id) {
@@ -87,6 +87,41 @@ const GET_HEART_DATA = `
         beta
         hbeta
       }
+    }
+    adrenal_function_urine_test(
+      where: { owner_id: { _eq: $_eq }, deleted_at: { _is_null: true } }
+      order_by: { created_at: desc }
+      limit: 1
+    ) {
+      id
+      title
+      drops
+      created_at
+    }
+    oxidative_stress_test(
+      where: { owner_id: { _eq: $_eq }, deleted_at: { _is_null: true } }
+      order_by: { created_at: desc }
+      limit: 1
+    ) {
+      id
+      title
+      color
+      created_at
+    }
+    whole_body_comp(
+      where: { owner: { _eq: $_eq } }
+      order_by: { created_at: desc }
+      limit: 1
+    ) {
+      id
+      title
+      phase_angle
+      ecw
+      icw
+      tbw
+      resistance
+      reactance
+      created_at
     }
   }
 `;
@@ -313,10 +348,37 @@ export const handler = async (event) => {
       };
     });
 
+    // ── Supplemental test results (latest per patient) ────────────────────────
+    const adrenalRaw  = data.adrenal_function_urine_test?.[0]  || null;
+    const oxidRaw     = data.oxidative_stress_test?.[0]         || null;
+    const bodyCompRaw = data.whole_body_comp?.[0]               || null;
+
+    const adrenalTest = adrenalRaw ? {
+      drops: adrenalRaw.drops,
+      date:  adrenalRaw.created_at,
+      title: adrenalRaw.title,
+    } : null;
+
+    const oxidativeStressTest = oxidRaw ? {
+      color: oxidRaw.color,   // integer score
+      date:  oxidRaw.created_at,
+      title: oxidRaw.title,
+    } : null;
+
+    const bodyComp = bodyCompRaw ? {
+      phaseAngle: bodyCompRaw.phase_angle,
+      ecw:        bodyCompRaw.ecw,
+      icw:        bodyCompRaw.icw,
+      tbw:        bodyCompRaw.tbw,
+      resistance: bodyCompRaw.resistance,
+      reactance:  bodyCompRaw.reactance,
+      date:       bodyCompRaw.created_at,
+    } : null;
+
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ patient, recordings }),
+      body: JSON.stringify({ patient, recordings, adrenalTest, oxidativeStressTest, bodyComp }),
     };
 
   } catch (err) {
