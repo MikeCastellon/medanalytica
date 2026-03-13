@@ -776,7 +776,19 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
 
     // ── Enforce adrenal + Brain Gauge values from form (overrides AI) ─────────
     if (clinicalData?.adrenalTested) {
-      if (clinicalData.adrenalDropCount != null) parsed.adrenalUrineDrops = clinicalData.adrenalDropCount;
+      if (clinicalData.adrenalDropCount != null) {
+        const drops = Number(clinicalData.adrenalDropCount);
+        parsed.adrenalUrineDrops = drops;
+        // Hyperadrenal Pattern — server-side locked interpretation (verbatim clinical text)
+        if (drops <= 5) {
+          parsed.adrenalInterpretation = 'Hyperadrenal Pattern';
+          parsed.adrenalSummary = `Drop count of ${drops} — Hyperadrenal Pattern detected. A very low drop count indicates increased adrenal stress hormone output and heightened sympathetic activation, commonly seen with chronic stress, anxiety, restlessness, and difficulty relaxing.${parsed.adrenalSummary && !parsed.adrenalSummary.includes('Hyperadrenal') ? ' ' + parsed.adrenalSummary : ''}`;
+        } else if (drops >= 15) {
+          parsed.adrenalInterpretation = parsed.adrenalInterpretation || 'Hypoadrenal Pattern';
+        } else {
+          parsed.adrenalInterpretation = parsed.adrenalInterpretation || 'Normal Adrenal Function';
+        }
+      }
       if (clinicalData.thyroidFunctionalIndex != null) parsed.thyroidFunctionalIndex = clinicalData.thyroidFunctionalIndex;
     }
     if (clinicalData?.brainGaugeTested && clinicalData?.brainGauge) {

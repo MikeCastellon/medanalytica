@@ -247,6 +247,15 @@ ADRENAL URINE TEST — set adrenalUrineDrops: null, adrenalInterpretation: null,
   The adrenal urine drop count is a specific physical test — do NOT infer or estimate from HRV markers.
   If adrenalTested is false or not set, ALL adrenal fields MUST be null. No exceptions.
 
+ADRENAL INTERPRETATION PATTERNS (use VERBATIM when applicable):
+- HYPERADRENAL PATTERN (very low drop count, typically ≤ 5):
+  adrenalInterpretation: "Hyperadrenal Pattern"
+  adrenalSummary must include: "A very low drop count indicates increased adrenal stress hormone output and heightened sympathetic activation, commonly seen with chronic stress, anxiety, restlessness, and difficulty relaxing."
+- HYPOADRENAL PATTERN (very high drop count, typically ≥ 15):
+  adrenalInterpretation: "Hypoadrenal Pattern"
+  adrenalSummary: describe adrenal fatigue, reduced cortisol output, low stress hormone reserve.
+- NORMAL RANGE (6–14 drops): adrenalInterpretation: "Normal Adrenal Function" with brief positive note.
+
 THYROID LANGUAGE — NEVER use the phrase "Hashimoto's-type pattern".
   Instead say: "findings are consistent with possible Hypothyroid or Hyperthyroid function — a complete Thyroid Panel is recommended."
 
@@ -879,7 +888,19 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
 
     // ── Enforce adrenal + Brain Gauge values from form (overrides AI) ─────────
     if (clinicalData?.adrenalTested) {
-      if (clinicalData.adrenalDropCount != null) parsed.adrenalUrineDrops = clinicalData.adrenalDropCount;
+      if (clinicalData.adrenalDropCount != null) {
+        const drops = Number(clinicalData.adrenalDropCount);
+        parsed.adrenalUrineDrops = drops;
+        // Hyperadrenal Pattern — server-side locked interpretation (verbatim clinical text)
+        if (drops <= 5) {
+          parsed.adrenalInterpretation = 'Hyperadrenal Pattern';
+          parsed.adrenalSummary = `Drop count of ${drops} — Hyperadrenal Pattern detected. A very low drop count indicates increased adrenal stress hormone output and heightened sympathetic activation, commonly seen with chronic stress, anxiety, restlessness, and difficulty relaxing.${parsed.adrenalSummary && !parsed.adrenalSummary.includes('Hyperadrenal') ? ' ' + parsed.adrenalSummary : ''}`;
+        } else if (drops >= 15) {
+          parsed.adrenalInterpretation = parsed.adrenalInterpretation || 'Hypoadrenal Pattern';
+        } else {
+          parsed.adrenalInterpretation = parsed.adrenalInterpretation || 'Normal Adrenal Function';
+        }
+      }
       if (clinicalData.thyroidFunctionalIndex != null) parsed.thyroidFunctionalIndex = clinicalData.thyroidFunctionalIndex;
     }
     if (clinicalData?.brainGaugeTested && clinicalData?.brainGauge) {
