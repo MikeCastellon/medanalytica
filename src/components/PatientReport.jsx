@@ -373,8 +373,8 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       {(eli != null || ari != null || r.criScore != null || cgQ) && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
           {r.criScore != null && <ScorePill label="CRI-HQP" value={`${correctedCriScore}/12`} sub={cri.label} color={cri.color} />}
-          {eli != null && <ScorePill label="ELI" value={eli} sub={eli >= 50 ? 'High Emotional Load' : 'Low Emotional Load'} color={eli >= 50 ? '#c0392b' : '#0e7a55'} />}
-          {ari != null && <ScorePill label="ARI" value={ari} sub={ari >= 60 ? 'High Regulation' : 'Low Regulation'} color={ari >= 60 ? '#0e7a55' : '#c0392b'} />}
+          {eli != null && <ScorePill label="ELI" value={eli} sub={eli >= 40 ? 'High Emotional Load' : 'Low Emotional Load'} color={eli >= 40 ? '#c0392b' : '#0e7a55'} />}
+          {ari != null && <ScorePill label="ARI" value={ari} sub={ari >= 70 ? 'High Regulation' : 'Low Regulation'} color={ari >= 70 ? '#0e7a55' : '#c0392b'} />}
           {cgQ && <ScorePill label="CRIS GOLD™ Quadrant" value={r.crisgoldQuadrant} sub={cgQ.label} color={cgQ.color} />}
           {/* CV Quadrant removed per doctor's request — only CRIS GOLD™ Quadrant shown */}
           {r.adrenalUrineDrops != null && <ScorePill label="Adrenal (Urine)" value={`${r.adrenalUrineDrops} drops`} sub={r.adrenalInterpretation} color="var(--amber)" />}
@@ -763,15 +763,15 @@ function QuadrantCard({ title, subtitle, quadrant, meta, qDefs, ari, eli, qScore
           {eli != null && (
             <div style={{ flex: 1, background: 'var(--bg3)', borderRadius: '6px', padding: '8px 12px' }}>
               <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '.07em' }}>ELI</div>
-              <div style={{ fontSize: '20px', fontWeight: '700', color: eli >= 50 ? '#c0392b' : '#0e7a55' }}>{eli}</div>
-              <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{eli >= 50 ? 'HIGH' : 'LOW'}</div>
+              <div style={{ fontSize: '20px', fontWeight: '700', color: eli >= 40 ? '#c0392b' : '#0e7a55' }}>{eli}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{eli >= 40 ? 'HIGH' : 'LOW'}</div>
             </div>
           )}
           {ari != null && (
             <div style={{ flex: 1, background: 'var(--bg3)', borderRadius: '6px', padding: '8px 12px' }}>
               <div style={{ fontSize: '10px', color: 'var(--text3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '.07em' }}>ARI</div>
-              <div style={{ fontSize: '20px', fontWeight: '700', color: ari >= 60 ? '#0e7a55' : '#c0392b' }}>{ari}</div>
-              <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{ari >= 60 ? 'HIGH' : 'LOW'}</div>
+              <div style={{ fontSize: '20px', fontWeight: '700', color: ari >= 70 ? '#0e7a55' : '#c0392b' }}>{ari}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text3)' }}>{ari >= 70 ? 'HIGH' : 'LOW'}</div>
             </div>
           )}
         </div>

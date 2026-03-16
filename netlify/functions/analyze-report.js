@@ -90,7 +90,22 @@ CORE OPERATING PRINCIPLES (LOCKED v1.0)
 5. Acute remedies only if tested (questionnaire, muscle test, or arm-length test).
 6. Drainage is ALWAYS the first therapeutic priority in all programs.
 7. If HQP filtration rejections > 20 — flag stimulant interference warning in aiSummary.
-8. ARI is entered directly by the practitioner from the HQP device (0–100 integer).
+8. ARI (Autonomic Regulation Index) — COMPUTED SERVER-SIDE from HQP values:
+   ARI = (SDNN_score × 0.30) + (RMSSD_score × 0.25) + (TP_score × 0.25) + (HF_score × 0.10) + (LF_score × 0.10)
+
+   Normalization (each to 0–100):
+   - SDNN_score  = min(100, SDNN / 70 × 100)
+   - RMSSD_score = min(100, RMSSD / 50 × 100)
+   - TP_score    = min(100, TP / 3500 × 100)
+   - HF_score    = max(0, 100 − |HF − 27| / 27 × 100)
+   - LF_score    = max(0, 100 − |LF − 47| / 47 × 100)
+
+   Guardrails (applied before quadrant routing):
+   - If Total Power < 600 → ARI ≤ 50
+   - If SDNN < 25 AND RMSSD < 20 → ARI ≤ 40
+   - If Total Power < 300 → ARI ≤ 30
+
+   ARI is computed by the server after HRV extraction. Do NOT compute ARI yourself.
 9. ELI (Emotional Load Index) — REVISED FORMULA:
    ELI = (VLF% × 0.5) + (Polyvagal_all3red × 30) + ((1 - (TotalPower / 3500)) × 20) + HQP_StressIndex_Component + Questionnaire_Component
 
@@ -111,13 +126,13 @@ QUADRANT DETERMINISM (LOCKED)
 
 ELI (Emotional Load Index):
   Computed using the 5-input formula above.
-  High ELI = computed ELI ≥ 50
-  Low ELI  = computed ELI < 50
+  High ELI = computed ELI ≥ 40
+  Low ELI  = computed ELI < 40
 
 ARI (Autonomic Regulation Index):
-  Entered directly from HQP device (0–100 integer)
-  High ARI = ARI ≥ 60
-  Low ARI  = ARI ≤ 59
+  Computed server-side from SDNN, RMSSD, Total Power, HF%, LF% using the weighted formula with guardrails.
+  High ARI = ARI ≥ 70
+  Low ARI  = ARI < 70
 
 Quadrant Assignment:
   Q1: High ELI + Low ARI  → "Overloaded & Dysregulated"       (sub: Stress Dominant / Exhausted)
@@ -125,7 +140,8 @@ Quadrant Assignment:
   Q3: Low ELI  + Low ARI  → "Physiological Exhaustion"         (sub: Fatigue Dominant / Depleted)
   Q4: Low ELI  + High ARI → "Optimal / Strong Regulation"      (sub: Balanced / Optimal)
 
-If the practitioner has provided the inputs and ARI, use the formula above to determine the quadrant — this is LOCKED and cannot be overridden by visual interpretation of the document.
+ARI and ELI are both computed server-side. The quadrant is determined from Final ARI + Final ELI — this is LOCKED and cannot be overridden by visual interpretation of the document.
+Never route depleted physiology (low SDNN, low RMSSD, low Total Power) to Q4.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 HRV MARKER REFERENCE RANGES
@@ -724,8 +740,8 @@ ${sbp ? `SBP: ${sbp} mmHg` : ''}${dbp ? ` | DBP: ${dbp} mmHg` : ''}${pp ? ` | Pu
 ${clinicalData?.filtrationRejections != null ? `Filtration Rejections: ${clinicalData.filtrationRejections}${clinicalData.filtrationRejections > 20 ? ' ⚠️ EXCEEDS 20 — FLAG STIMULANT WARNING' : ''}` : ''}
 ${clinicalData?.stressQuestionnaireScore != null ? `ELI Questionnaire Score (10-item, 0–40): ${clinicalData.stressQuestionnaireScore} → contributes ${qToELI(qScore)} pts to ELI` : ''}
 ${qScore != null ? `Stress Index Questionnaire Score: ${qScore} / 40` : ''}
-${ariVal != null ? `ARI (from HQP device): ${ariVal} — ${ariVal >= 60 ? 'HIGH ARI' : 'LOW ARI'}` : ''}
-NOTE: ELI and Quadrant will be computed server-side. Do NOT compute ELI yourself — just populate HRV values accurately.
+${ariVal != null ? `ARI (practitioner override): ${ariVal}` : ''}
+NOTE: ARI, ELI, and Quadrant will be computed server-side from HRV values. Do NOT compute ARI or ELI yourself — just populate HRV values accurately.
 ${clinicalData?.chavita ? `Chavita: ${clinicalData.chavita} | Emvita: ${clinicalData.emvita || 'REQUIRED — MUST PAIR'}` : ''}
 ${clinicalData?.ermMethod ? `ERM Method: ${clinicalData.ermMethod}` : ''}
 ${clinicalData?.acuteRemedies ? `Acute Remedies: ${clinicalData.acuteRemedies}` : ''}
@@ -744,10 +760,9 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
 - Extract ALL HRV markers, scores, and recommendations visible across all screenshots` : ''}
 - SDNN and RMSSD must be interpreted separately — never combined
 - Set filtrationWarning: true if filtrationRejections > 20
-- Do NOT set eli or hrqEli — the server computes ELI from the 5-input formula after extraction
+- Do NOT set eli, hrqEli, ari, or hrqAri — the server computes both ARI and ELI after HRV extraction
 - ${hqbData ? `polyvagalAll3Red is pre-computed: set it to ${hqbPolyAll3Red}` : `Extract polyvagalAll3Red: set to 1 if ALL 3 Polyvagal gauge sections (Parasympathetic Activity, Energy Index, Poly-Vagal) are in the red zone, else 0`}
-- Set ari and hrqAri to the practitioner-entered ARI if provided
-- Set crisgoldQuadrant to the LOCKED value if provided above
+- Do NOT set crisgoldQuadrant — the server computes it from ARI + ELI
 - CASP: only include if explicitly device-measured on the document — NEVER calculate it
 - CRITICAL: Include ALL 6 therapeutic categories in therapeuticSelections — EVERY category MUST have at least 1-3 product recommendations. Format each as "Product — Dose (Brand)". NEVER leave any category as an empty array []. Use the quadrant to guide product selection.
 - Drainage must always be populated first with quadrant-specific protocols
@@ -794,7 +809,6 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
     }
 
     // ── ENFORCE locked values from form data (server-side, AI cannot override) ──
-    if (ariVal != null)    { parsed.ari = ariVal;    parsed.hrqAri = ariVal; }
     if (pp != null)        { parsed.pulsePressure = pp; }
 
     // ── When HQB data present, enforce HRV marker values from device (overrides AI extraction) ──
@@ -846,14 +860,44 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
         if (hqbPolyAll3Red === 0) parsed.polyvagalInterpretation = null;
       }
 
-      // Prefer HQB values for ELI computation (more reliable than AI screenshot extraction)
-      const extractedVLF = hqbData?.hrv?.vlfPct
-        ?? parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value;
-      const extractedTP  = hqbData?.hrv?.totalPower
-        ?? parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
-      const extractedSI  = hqbData?.hrv?.stressIndex
-        ?? parsed.hrvMarkers?.find(m => m.name === 'Stress Index')?.value;
-      const polyAll3Red  = parsed.polyvagalAll3Red ?? 0;
+      // Prefer HQB values for computation (more reliable than AI screenshot extraction)
+      const extractedVLF  = hqbData?.hrv?.vlfPct     ?? parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value;
+      const extractedTP   = hqbData?.hrv?.totalPower  ?? parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
+      const extractedSI   = hqbData?.hrv?.stressIndex ?? parsed.hrvMarkers?.find(m => m.name === 'Stress Index')?.value;
+      const extractedSDNN = hqbData?.hrv?.sdnn        ?? parsed.hrvMarkers?.find(m => m.name === 'SDNN')?.value;
+      const extractedRMSSD= hqbData?.hrv?.rmssd       ?? parsed.hrvMarkers?.find(m => m.name === 'RMSSD')?.value;
+      const extractedHF   = hqbData?.hrv?.hfPct       ?? parsed.hrvMarkers?.find(m => m.name === 'HF%')?.value;
+      const extractedLF   = hqbData?.hrv?.lfPct       ?? parsed.hrvMarkers?.find(m => m.name === 'LF%')?.value;
+      const polyAll3Red   = parsed.polyvagalAll3Red ?? 0;
+
+      // ── COMPUTE ARI (Autonomic Regulation Index) — REVISED v1.0 ──────────
+      // ARI = (SDNN_score×0.30) + (RMSSD_score×0.25) + (TP_score×0.25) + (HF_score×0.10) + (LF_score×0.10)
+      // Guardrails: TP<600→≤50, SDNN<25 AND RMSSD<20→≤40, TP<300→≤30
+      let computedARI = null;
+      if (extractedSDNN != null && extractedRMSSD != null && extractedTP != null) {
+        const sdnnScore  = Math.min(100, (extractedSDNN / 70) * 100);
+        const rmssdScore = Math.min(100, (extractedRMSSD / 50) * 100);
+        const tpScore    = Math.min(100, (extractedTP / 3500) * 100);
+        const hfScore    = extractedHF != null ? Math.max(0, 100 - (Math.abs(extractedHF - 27) / 27) * 100) : 0;
+        const lfScore    = extractedLF != null ? Math.max(0, 100 - (Math.abs(extractedLF - 47) / 47) * 100) : 0;
+
+        let rawARI = (sdnnScore * 0.30) + (rmssdScore * 0.25) + (tpScore * 0.25) + (hfScore * 0.10) + (lfScore * 0.10);
+
+        // Apply guardrails (lowest cap wins)
+        let ariCap = 100;
+        if (extractedTP < 600)                            ariCap = Math.min(ariCap, 50);  // Guardrail A
+        if (extractedSDNN < 25 && extractedRMSSD < 20)   ariCap = Math.min(ariCap, 40);  // Guardrail B
+        if (extractedTP < 300)                            ariCap = Math.min(ariCap, 30);  // Guardrail C
+
+        computedARI = Math.round(Math.max(0, Math.min(100, Math.min(rawARI, ariCap))));
+      }
+
+      // Use computed ARI, fall back to practitioner-entered ARI if HRV values unavailable
+      const finalARI = computedARI ?? (ariVal != null ? ariVal : null);
+      if (finalARI != null) {
+        parsed.ari = finalARI;
+        parsed.hrqAri = finalARI;
+      }
 
       // Compute ELI if we have at least one HRV input or questionnaire
       const hasAnyInput = extractedVLF != null || extractedTP != null || extractedSI != null || qScore != null;
@@ -873,10 +917,10 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
           parsed.stressQuestionnaireScore = qScore;
         }
 
-        // Quadrant: uses computed ELI ≥ 50 as High, ARI ≥ 60 as High
-        if (ariVal != null) {
-          const highELI = computedELI >= 50;
-          const highARI = ariVal >= 60;
+        // Quadrant: REVISED thresholds — ELI ≥ 40 = High, ARI ≥ 70 = High
+        if (finalARI != null) {
+          const highELI = computedELI >= 40;
+          const highARI = finalARI >= 70;
           if (highELI && !highARI)       parsed.crisgoldQuadrant = 'Q1';
           else if (highELI && highARI)   parsed.crisgoldQuadrant = 'Q2';
           else if (!highELI && !highARI) parsed.crisgoldQuadrant = 'Q3';
@@ -884,7 +928,7 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
         }
       }
     }
-    // No more lockedQuadrant fallback — quadrant always computed from ELI formula
+    // ARI computed server-side from HRV values; quadrant from ELI + ARI
 
     // ── Enforce adrenal + Brain Gauge values from form (overrides AI) ─────────
     if (clinicalData?.adrenalTested) {

@@ -14,7 +14,7 @@ export default function NewPatient({ onBack, onSubmit }) {
     // HQP clinical data
     filtrationRejections: '',
     questionnaireScore: '',  // 0–40
-    ari: '',                 // 0–100, from HQP device
+    ari: '',                 // 0–100, optional override (normally computed server-side from HRV)
     // Emotional Regulation (Rubimed)
     chavita: '', emvita: '', ermMethod: '', acuteRemedies: '',
     // Optional add-ons
@@ -333,7 +333,7 @@ export default function NewPatient({ onBack, onSubmit }) {
                       <div>📊 Filtration Rejections: <strong>{hqbRec.filtrationRejections}</strong></div>
                     )}
                     {hqbRec.ari != null && (
-                      <div>💓 Health Index (→ ARI): <strong>{hqbRec.ari}</strong></div>
+                      <div>💓 Health Index: <strong>{hqbRec.ari}</strong> (ARI computed from HRV)</div>
                     )}
                     {hqbRec.hrv?.sdnn != null && (
                       <div>📈 SDNN: <strong>{hqbRec.hrv.sdnn?.toFixed(1)} ms</strong></div>
@@ -515,11 +515,12 @@ export default function NewPatient({ onBack, onSubmit }) {
             )}
           </div>
           <div className="fg">
-            <label className="fl">ARI — Autonomic Regulation Index (0–100, from HQP)</label>
-            <input className="fi" placeholder="e.g. 35" value={form.ari} onChange={num('ari')} />
+            <label className="fl">ARI — Autonomic Regulation Index (optional override, 0–100)</label>
+            <input className="fi" placeholder="Auto-computed from HRV" value={form.ari} onChange={num('ari')} />
             {ariVal != null && (
               <div style={{ marginTop: '4px', fontSize: '11.5px', color: 'var(--text2)' }}>
-                {ariVal >= 60 ? <strong style={{ color: '#0e7a55' }}>HIGH ARI (≥60)</strong> : <strong style={{ color: '#c0392b' }}>LOW ARI (&lt;60)</strong>}
+                {ariVal >= 70 ? <strong style={{ color: '#0e7a55' }}>HIGH ARI (&ge;70)</strong> : <strong style={{ color: '#c0392b' }}>LOW ARI (&lt;70)</strong>}
+                {' '}(override — normally computed from SDNN, RMSSD, TP, HF%, LF%)
               </div>
             )}
           </div>

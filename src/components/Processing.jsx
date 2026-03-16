@@ -356,12 +356,19 @@ export default function Processing({ user, form, files = [], customRules, onDone
 }
 
 function getMockReport(form) {
-  // Demo patient: Uses revised 5-input ELI formula
-  // VLF%=38, TP=1320, Polyvagal=0, SI=85 (<100→0pts), Q=31 (31-40→15pts)
-  // ELI = (38×0.5) + (0×30) + ((1-1320/3500)×20) + 0 + 15 = 19 + 0 + 12.46 + 0 + 15 = 46
+  // Demo patient: Uses revised ARI formula (computed from HRV) + ELI formula
+  // ARI inputs: SDNN=20, RMSSD=16, TP=356, HF%=21, LF%=23
+  //   SDNN_score=28.57, RMSSD_score=32.0, TP_score=10.17, HF_score=77.78, LF_score=48.94
+  //   rawARI = 8.57 + 8.0 + 2.54 + 7.78 + 4.89 = 31.78
+  //   Guardrails: TP<600→cap50, SDNN<25 AND RMSSD<20→cap40 → ariCap=40
+  //   finalARI = min(31.78, 40) = 32
+  // ELI inputs: VLF%=57, TP=356, Polyvagal=0, SI=372 (200-400→10pts), Q=31 (31-40→15pts)
+  //   ELI = (57×0.5) + 0 + ((1-356/3500)×20) + 10 + 15 = 28.5 + 0 + 17.97 + 10 + 15 = 71
+  // Thresholds: High ELI ≥ 40, High ARI ≥ 70
+  // ELI=71 ≥ 40 → High ELI, ARI=32 < 70 → Low ARI → Q1
   const questionnaireScore = 31;
-  const ari = 22;
-  const eli = 46; // Computed from revised formula: VLF%=38, TP=1320, poly=0, SI=85, Q=31
+  const ari = 32;  // Computed from ARI formula with guardrails
+  const eli = 71;  // Computed from ELI formula: VLF=57, TP=356, poly=0, SI=372, Q=31
   return {
     reportType: form.reportType || 'CRIS GOLD HRV',
     sbp: 138, dbp: 86, pulsePressure: 52,
@@ -371,17 +378,17 @@ function getMockReport(form) {
     criScore: 7,
     criCategory: 'Moderate Cardiovascular Risk Pattern',
     criBreakdown: {
-      pulsePressure: { value: 62, score: 2, note: 'High — suggests arterial stiffness' },
-      lfPercent:     { value: 48, score: 1, note: 'Increased vascular sympathetic stabilization effort' },
-      vlfPercent:    { value: 38, score: 1, note: 'Increased vascular/renal-hormonal tension' },
-      stressIndex:   { value: 85, score: 2, note: 'High sympathetic dominance' },
-      totalPower:    { value: 1320, score: 1, note: 'Reduced resilience' },
-      sdnn:          { value: 52, score: 0, note: 'Balanced' },
+      pulsePressure: { value: 52, score: 1, note: 'Mild elevation — monitor arterial stiffness' },
+      lfPercent:     { value: 23, score: 2, note: 'Reduced baroreflex activity' },
+      vlfPercent:    { value: 57, score: 2, note: 'Elevated chronic emotional/neurohormonal tension' },
+      stressIndex:   { value: 372, score: 2, note: 'Extreme sympathetic dominance' },
+      totalPower:    { value: 356, score: 2, note: 'Very low autonomic reserve' },
+      sdnn:          { value: 20, score: 2, note: 'Severely reduced HRV' },
     },
-    // CRIS GOLD™ quadrant (ELI=46 < 50 = Low ELI + ARI=22 < 60 = Low ARI → Q3)
-    crisgoldQuadrant: 'Q3',
-    crisgoldQuadrantLabel: 'Physiological Exhaustion',
-    crisgoldQuadrantDescription: 'Emotional load is not the primary issue, but autonomic regulation is weak. Focus is on building resilience, energy reserves, and recovery capacity.',
+    // CRIS GOLD™ quadrant (ELI=71 ≥ 40 = High ELI + ARI=32 < 70 = Low ARI → Q1)
+    crisgoldQuadrant: 'Q1',
+    crisgoldQuadrantLabel: 'Overloaded & Dysregulated',
+    crisgoldQuadrantDescription: 'Your nervous system is carrying a high emotional and stress load while its ability to regulate and recover is compromised. The primary clinical priority is drainage, calming, and rebuilding foundational energy before advancing any therapies.',
     // CV Quadrant removed — only CRIS GOLD™ Quadrant shown
     // Rubimed (demo)
     chavita: 7, emvita: 27, ermMethod: 'Questionnaire',
@@ -421,18 +428,21 @@ function getMockReport(form) {
       overallCorticalMetric: 48,
     },
     brainGaugeSummary: 'Cognitive fatigue is present with preserved focus and time perception. This reflects an overworked but still responsive brain that needs recovery support rather than stimulation.',
-    // Therapeutic Priority Engine (Q3 default, no red flags in mock)
+    // Therapeutic Priority Engine (Q1 default with red flags — depleted + high stress)
     therapeuticPriorities: {
       priorities: [
         { priority: 1, key: 'drainage',              icon: '🚿', label: 'Drainage (Foundation)',         reason: 'Always first — prepares lymphatic, liver, and kidney clearance before other therapies', isRedFlag: false },
-        { priority: 2, key: 'cardiovascularSupport', icon: '💓', label: 'Cardiovascular Stabilization', reason: 'Cardiovascular Stabilization — Q3 default sequence', isRedFlag: false },
-        { priority: 3, key: 'mitochondrialSupport',  icon: '⚡', label: 'Mitochondrial Energy Support', reason: 'Mitochondrial Energy Support — Q3 default sequence', isRedFlag: false },
-        { priority: 4, key: 'cellMembraneSupport',   icon: '🧬', label: 'Cell Membrane Restoration',   reason: 'Cell Membrane Restoration — Q3 default sequence', isRedFlag: false },
-        { priority: 5, key: 'neurocognitiveSupport', icon: '🧠', label: 'Neurocognitive Support',      reason: 'Neurocognitive Support — Q3 default sequence', isRedFlag: false },
-        { priority: 6, key: 'oxidativeStressSupport', icon: '⚗️', label: 'Oxidative Stress Support',    reason: 'Oxidative Stress Support — Q3 default sequence', isRedFlag: false },
+        { priority: 2, key: 'cardiovascularSupport', icon: '💓', label: 'Cardiovascular Stabilization', reason: 'Priority elevated: Stress Index of 372 indicates extreme sympathetic activation', isRedFlag: true },
+        { priority: 3, key: 'mitochondrialSupport',  icon: '⚡', label: 'Mitochondrial Energy Support', reason: 'Priority elevated: Total Power of 356 indicates severely depleted autonomic reserve', isRedFlag: true },
+        { priority: 4, key: 'neurocognitiveSupport', icon: '🧠', label: 'Neurocognitive Support',      reason: 'Neurocognitive Support — Q1 default sequence', isRedFlag: false },
+        { priority: 5, key: 'cellMembraneSupport',   icon: '🧬', label: 'Cell Membrane Restoration',   reason: 'Cell Membrane Restoration — Q1 default sequence', isRedFlag: false },
+        { priority: 6, key: 'oxidativeStressSupport', icon: '⚗️', label: 'Oxidative Stress Support',    reason: 'Oxidative Stress Support — Q1 default sequence', isRedFlag: false },
       ],
-      redFlags: [],
-      primaryRisk: null,
+      redFlags: [
+        { category: 'cardiovascularSupport', reason: 'Stress Index of 372 indicates extreme sympathetic activation', type: 'sympathetic' },
+        { category: 'mitochondrialSupport', reason: 'Total Power of 356 indicates severely depleted autonomic reserve', type: 'energy' },
+      ],
+      primaryRisk: 'Extreme Sympathetic Activation',
     },
     // Therapeutic selections — 6 categories (CRIS GOLD™ v1.0)
     therapeuticSelections: {
@@ -453,7 +463,7 @@ function getMockReport(form) {
       miniProtocol: { am: 'Crystal Clear', midday: 'Gamma Gamma', pm: 'Peaceful Heart' },
     },
     psychosomaticFindings: 'Chavita 7 (Crown): Chronic stress related to meaning, safety, and integration. Emvita 27: Disorientation and long-standing emotional strain. These findings align with long-term stress, insomnia, and autonomic instability.',
-    aiSummary: 'Patient presents with severely compromised autonomic function: SDNN 20ms (ref 49–70ms) and Total Power 356ms² (ref 1500–3500ms²) indicate significant energy reserve depletion. Stress Index of 372 (ref 10–100) and VLF% of 57% (ref 25–40%) confirm chronic emotional and neurohormonal overload. CRI score of 7 (High Cardiovascular Stress) combined with CRIS GOLD™ Q1 placement (High Emotional Load + Low Autonomic Resilience) indicates an exhausted system requiring foundational support. Adrenal testing shows severe hyper-adrenal stress. Brain Gauge reveals significant cognitive fatigue (score 12) with preserved focus. Priority is drainage, calming, and restoring cellular and mitochondrial function.',
+    aiSummary: 'Patient presents with severely compromised autonomic function: SDNN 20ms (ref 49–70ms) and Total Power 356ms² (ref 1500–3500ms²) indicate significant energy reserve depletion. Stress Index of 372 (ref 10–100) and VLF% of 57% (ref 25–40%) confirm chronic emotional and neurohormonal overload. ARI of 32 (computed: guardrail-capped due to TP<600 and SDNN<25/RMSSD<20) confirms depleted autonomic regulation. ELI of 71 reflects high emotional/stress burden. CRIS GOLD™ Q1 placement (High ELI + Low ARI) indicates an overloaded and dysregulated system. Priority is drainage, calming, and restoring cellular and mitochondrial function.',
     patientFriendlySummary: 'Your results show a body under high stress with very low energy reserves. This explains your sleep issues, digestive discomfort, gallbladder pain, thyroid strain, and racing heart sensations. The plan focuses on calming and supporting your system first — not pushing it. As your nervous system stabilizes, improvements in sleep, digestion, and heart rhythm are expected.',
     overallStatus: 'critical',
     recommendedFollowUp: 'Reassess HRV and adrenal markers in 6–8 weeks following drainage and foundational support protocol. Prioritize sleep quality and nervous system calming before advancing to stimulatory therapies.',

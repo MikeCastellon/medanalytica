@@ -197,13 +197,71 @@ export const eliLabel = (eli) => {
 };
 
 /**
- * Quadrant computation uses computed ELI value (not raw questionnaire score).
- * High ELI = ELI >= 50, High ARI = ARI >= 60
+ * ARI (Autonomic Regulation Index) — REVISED v1.0 (LOCKED)
+ * Computed from 5 HQP inputs: SDNN (30%), RMSSD (25%), Total Power (25%), HF% (10%), LF% (10%)
+ *
+ * Normalization (0–100 subscores):
+ *   SDNN_score  = min(100, SDNN / 70 × 100)
+ *   RMSSD_score = min(100, RMSSD / 50 × 100)
+ *   TP_score    = min(100, TP / 3500 × 100)
+ *   HF_score    = max(0, 100 − |HF − 27| / 27 × 100)
+ *   LF_score    = max(0, 100 − |LF − 47| / 47 × 100)
+ *
+ * Guardrails (applied in sequence, lowest cap wins):
+ *   Guardrail A: TP < 600 → ARI ≤ 50
+ *   Guardrail B: SDNN < 25 AND RMSSD < 20 → ARI ≤ 40
+ *   Guardrail C: TP < 300 → ARI ≤ 30
+ *
+ * @param {object} params
+ * @param {number|null} params.sdnn       - SDNN (ms)
+ * @param {number|null} params.rmssd      - RMSSD (ms)
+ * @param {number|null} params.totalPower - Total Power (ms²)
+ * @param {number|null} params.hfPercent  - HF% (0–100)
+ * @param {number|null} params.lfPercent  - LF% (0–100)
+ * @returns {number|null} Final ARI (0–100, rounded) or null if required inputs missing
+ */
+export const computeARI = ({ sdnn, rmssd, totalPower, hfPercent, lfPercent } = {}) => {
+  // Require the 3 primary anchors
+  if (sdnn == null || rmssd == null || totalPower == null) return null;
+
+  // Normalize each input to 0–100
+  const sdnnScore  = Math.min(100, (sdnn / 70) * 100);
+  const rmssdScore = Math.min(100, (rmssd / 50) * 100);
+  const tpScore    = Math.min(100, (totalPower / 3500) * 100);
+  const hfScore    = hfPercent != null ? Math.max(0, 100 - (Math.abs(hfPercent - 27) / 27) * 100) : 0;
+  const lfScore    = lfPercent != null ? Math.max(0, 100 - (Math.abs(lfPercent - 47) / 47) * 100) : 0;
+
+  // Weighted ARI formula
+  let rawARI = (sdnnScore * 0.30) + (rmssdScore * 0.25) + (tpScore * 0.25) + (hfScore * 0.10) + (lfScore * 0.10);
+
+  // Apply guardrails (sequence: A → B → C, lowest cap wins)
+  let ariCap = 100;
+  if (totalPower < 600) ariCap = Math.min(ariCap, 50);                      // Guardrail A
+  if (sdnn < 25 && rmssd < 20) ariCap = Math.min(ariCap, 40);              // Guardrail B
+  if (totalPower < 300) ariCap = Math.min(ariCap, 30);                      // Guardrail C
+
+  const finalARI = Math.min(rawARI, ariCap);
+  return Math.round(Math.max(0, Math.min(100, finalARI)));
+};
+
+/**
+ * ARI interpretation label
+ */
+export const ariLabel = (ari) => {
+  if (ari == null) return null;
+  if (ari >= 70) return 'High ARI (Strong Reserve)';
+  if (ari >= 40) return 'Moderate ARI (Borderline)';
+  return 'Low ARI (Depleted)';
+};
+
+/**
+ * Quadrant computation — REVISED thresholds (LOCKED):
+ * High ARI = ARI >= 70, High ELI = ELI >= 40
  */
 export const computeQuadrant = (eli, ari) => {
   if (eli == null || ari == null) return null;
-  const highELI = eli >= 50;
-  const highARI = ari >= 60;
+  const highELI = eli >= 40;
+  const highARI = ari >= 70;
   if (highELI && !highARI) return 'Q1';
   if (highELI && highARI)  return 'Q2';
   if (!highELI && !highARI) return 'Q3';
