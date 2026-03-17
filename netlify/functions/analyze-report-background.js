@@ -646,12 +646,12 @@ export const handler = async (event) => {
     }
     const { screenshots = [], reportType, patientInfo, clinicalData, customRules, hqbData } = body;
 
-    // ── When HQB data is present, derive polyvagal status server-side ─────────
-    const hqbPolyAll3Red = hqbData?.hrv
-      ? ((hqbData.hrv.sdnn != null && hqbData.hrv.sdnn < 20) &&
-         (hqbData.hrv.rmssd != null && hqbData.hrv.rmssd < 15) &&
-         (hqbData.hrv.totalPower != null && hqbData.hrv.totalPower < 200) ? 1 : 0)
-      : null;
+    // ── Polyvagal Rule of 3 — CANNOT be derived from HRV values ────────────────
+    // The 3 Polyvagal gauges (Parasympathetic Activity, Energy Index, Poly-Vagal)
+    // are separate HQP device readings, NOT SDNN/RMSSD/TP. The HQP API does not
+    // expose these gauge values, so we let the AI read them from screenshots.
+    // When only API data is available (no screenshots), default to 0.
+    const hqbPolyAll3Red = hqbData?.hrv ? null : null;
 
     // Pre-compute ELI inputs from form data (full ELI computed after AI extraction)
     const qScore = clinicalData?.stressQuestionnaireScore ?? clinicalData?.questionnaireScore;
@@ -695,13 +695,13 @@ ${customRules ? `\nCustom Clinical Rules:\n${customRules}\n` : ''}
 
 EXTRACTION INSTRUCTIONS:
 ${hqbData ? `- HQB structured data is provided above. Use those EXACT values to populate all HRV markers (Heart Rate, SDNN, RMSSD, LF/HF Ratio, Total Power, Stress Index, VLF%, LF%, HF%). Do NOT read from screenshots for these values — the HQB data IS the device output.
-- polyvagalAll3Red has been computed server-side and will be enforced — set it to ${hqbPolyAll3Red} in your response.` : `- ${screenshots.length > 0 ? `You are provided with ${screenshots.length} HQP screenshot(s). READ THE ACTUAL PIXEL VALUES FROM THESE SCREENSHOTS. Do NOT use example values, training data values, or "typical" values. Every HRV number must come from what you SEE in the images.` : 'No screenshots provided — generate report from practitioner-entered clinical data only.'}`}
+- polyvagalAll3Red CANNOT be derived from HRV values. ${screenshots.length > 0 ? `READ the Polyvagal gauge sections from the screenshot(s) — set polyvagalAll3Red to 1 ONLY if ALL 3 Polyvagal gauges (Parasympathetic Activity, Energy Index, Poly-Vagal) are in the red zone.` : `No screenshots provided — set polyvagalAll3Red to 0 (cannot determine without visual Polyvagal gauges).`}` : `- ${screenshots.length > 0 ? `You are provided with ${screenshots.length} HQP screenshot(s). READ THE ACTUAL PIXEL VALUES FROM THESE SCREENSHOTS. Do NOT use example values, training data values, or "typical" values. Every HRV number must come from what you SEE in the images.` : 'No screenshots provided — generate report from practitioner-entered clinical data only.'}`}
 ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, RMSSD, LF/HF Ratio and reference ranges beneath each value, (2) A pie chart showing VLF%, HF%, LF% with percentages labeled on each slice, (3) Gauge bars for Total Power, Stress Index, and Nervous System Balance Index with the exact numeric value shown, (4) Polyvagal section with Parasympathetic Activity, Energy Index, and Poly-Vagal values on gauge bars
 - Extract ALL HRV markers, scores, and recommendations visible across all screenshots` : ''}
 - SDNN and RMSSD must be interpreted separately — never combined
 - Set filtrationWarning: true if filtrationRejections > 20
 - Do NOT set eli, hrqEli, ari, or hrqAri — the server computes both ARI and ELI after HRV extraction
-- ${hqbData ? `polyvagalAll3Red is pre-computed: set it to ${hqbPolyAll3Red}` : `Extract polyvagalAll3Red: set to 1 if ALL 3 Polyvagal gauge sections (Parasympathetic Activity, Energy Index, Poly-Vagal) are in the red zone, else 0`}
+- Extract polyvagalAll3Red: set to 1 ONLY if ALL 3 Polyvagal gauge sections (Parasympathetic Activity, Energy Index, Poly-Vagal) are visually in the red zone on the HQP screenshot, else 0. Do NOT infer Polyvagal status from SDNN, RMSSD, or Total Power — these are unrelated
 - Do NOT set crisgoldQuadrant — the server computes it from ARI + ELI
 - CASP: only include if explicitly device-measured on the document — NEVER calculate it
 - CRITICAL: Include ALL 6 therapeutic categories in therapeuticSelections — EVERY category MUST have at least 1-3 product recommendations. Format each as "Product — Dose (Brand)". NEVER leave any category as an empty array []. Use the quadrant to guide product selection.
@@ -792,12 +792,8 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
     // ELI = (VLF% × 0.5) + (Polyvagal_all3red × 30) + ((1 - TP/3500) × 20)
     //       + HQP_StressIndex_Component + Questionnaire_Component
     {
-      // When HQB data present, override polyvagal and use HQB HRV values directly
-      if (hqbPolyAll3Red !== null) {
-        parsed.polyvagalAll3Red = hqbPolyAll3Red;
-        parsed.polyvagalRuleOf3Met = hqbPolyAll3Red === 1;
-        if (hqbPolyAll3Red === 0) parsed.polyvagalInterpretation = null;
-      }
+      // Polyvagal is determined by the AI from screenshots (not from HRV values).
+      // hqbPolyAll3Red is always null — the AI sets polyvagalAll3Red in its response.
 
       // Prefer HQB values for computation (more reliable than AI screenshot extraction)
       const extractedVLF  = hqbData?.hrv?.vlfPct     ?? parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value;
