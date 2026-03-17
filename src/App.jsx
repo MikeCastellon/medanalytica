@@ -251,6 +251,12 @@ export default function App() {
     setView('patient-report');
   };
 
+  const handleDeletePatient = (patientId) => {
+    setSessionPatients(prev => prev.filter(p => p.id !== patientId));
+    setResult(null);
+    setView('dashboard');
+  };
+
   // Called from PatientProfile when user clicks a specific report
   const handleViewReportFromProfile = ({ patient, report }) => {
     setResult({ patient, report });
@@ -299,6 +305,7 @@ export default function App() {
               user={user}
               onViewReport={handleViewReportFromProfile}
               onBack={() => setView('dashboard')}
+              onDeletePatient={handleDeletePatient}
             />
           : <div style={{ padding: '32px', color: 'var(--text3)' }}>No patient selected.</div>;
       case 'settings':

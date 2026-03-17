@@ -77,7 +77,8 @@ export default function Processing({ user, form, files = [], customRules, onDone
             const { count: reportCount } = await supabase
               .from('reports')
               .select('id', { count: 'exact', head: true })
-              .eq('doctor_id', user.id);
+              .eq('doctor_id', user.id)
+              .is('deleted_at', null);
             if (reportCount != null && reportCount >= 50) {
               throw new Error('REPORT_LIMIT_REACHED');
             }

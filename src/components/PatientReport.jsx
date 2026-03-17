@@ -13,6 +13,15 @@ import { MASTER_PROTOCOL_LIST } from '../lib/protocols';
 import { CHAVITA_DESCRIPTIONS, EMVITA_DESCRIPTIONS } from '../lib/rubimed';
 import Badge from './Badge';
 
+/** Format a numeric value for display — round to sensible precision */
+const fmt = (v) => {
+  if (v == null || typeof v !== 'number') return v;
+  if (Number.isInteger(v)) return v;
+  if (Math.abs(v) >= 100) return Math.round(v);
+  if (Math.abs(v) >= 10) return +v.toFixed(1);
+  return +v.toFixed(2);
+};
+
 // ── HRV Metric Descriptions (info tooltips) ──
 const HRV_INFO = {
   'Rate':   'Heart Rate — average beats per minute. Reflects overall cardiac pacing.',
@@ -258,7 +267,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
     return (
       <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', boxShadow: '0 4px 20px rgba(0,0,0,.15)', fontSize: '12.5px', maxWidth: '280px', zIndex: 9999, position: 'relative' }}>
         <div style={{ fontWeight: '600', color: 'var(--navy)', marginBottom: '4px' }}>{d.fullName}</div>
-        <div style={{ color: STATUS_COLOR[d.status] }}>Value: <strong>{d.value} {d.unit}</strong></div>
+        <div style={{ color: STATUS_COLOR[d.status] }}>Value: <strong>{fmt(d.value)} {d.unit}</strong></div>
         <div style={{ color: 'var(--text2)' }}>Range: {d.low}–{d.high} {d.unit}</div>
         <div style={{ color: 'var(--text2)' }}>{d.pct}% of upper reference</div>
         {info && <div style={{ color: 'var(--text3)', marginTop: '6px', fontSize: '11.5px', lineHeight: '1.5', borderTop: '1px solid var(--border)', paddingTop: '6px' }}>{info}</div>}
@@ -490,7 +499,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
                   <div key={i} className="mr" style={{ display: 'block', padding: '8px 0', borderBottom: i < markers.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <div className="mn" style={{ flex: 1, display: 'flex', alignItems: 'center' }}>{m.name}<InfoTip text={HRV_INFO[m.name.split(' ').slice(-1)[0]]} /></div>
-                      <div className="mv" style={{ color: STATUS_COLOR[m.status], flexShrink: 0 }}>{m.value} <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{m.unit}</span></div>
+                      <div className="mv" style={{ color: STATUS_COLOR[m.status], flexShrink: 0 }}>{fmt(m.value)} <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{m.unit}</span></div>
                     </div>
                     <div className="mb" style={{ marginBottom: '3px' }}><div className="mbi" style={{ width: `${pct}%`, background: STATUS_COLOR[m.status], opacity: .7 }} /></div>
                     <div style={{ fontSize: '10.5px', color: 'var(--text3)' }}>Ref: {m.low}–{m.high} {m.unit}</div>
@@ -609,7 +618,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
               {markers.filter(m => m.status !== 'normal').map((m, i) => (
                 <tr key={i}>
                   <td style={{ fontWeight: '600', color: 'var(--navy)' }}>{m.name}</td>
-                  <td style={{ color: STATUS_COLOR[m.status], fontWeight: '700' }}>{m.value}</td>
+                  <td style={{ color: STATUS_COLOR[m.status], fontWeight: '700' }}>{fmt(m.value)}</td>
                   <td style={{ color: 'var(--text2)', fontFamily: 'monospace', fontSize: '12.5px' }}>{m.low} – {m.high}</td>
                   <td style={{ color: 'var(--text3)' }}>{m.unit}</td>
                   <td><Badge status={m.status} /></td>
@@ -716,7 +725,7 @@ function CRICard({ cri, score, category, breakdown }) {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text1)' }}>
-                      {label}{p.value != null && <span style={{ fontWeight: '400', color: 'var(--text2)', marginLeft: '6px' }}>{p.value}{unit ? ` ${unit}` : ''}</span>}
+                      {label}{p.value != null && <span style={{ fontWeight: '400', color: 'var(--text2)', marginLeft: '6px' }}>{fmt(p.value)}{unit ? ` ${unit}` : ''}</span>}
                     </div>
                     {p.note && <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: '1.4', marginTop: '2px' }}>{p.note}</div>}
                   </div>
@@ -1537,7 +1546,7 @@ function HRVTable({ markers }) {
               {markers.map((m, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : 'var(--bg3)' }}>
                   <td style={{ padding: '9px 14px', fontWeight: '600', color: 'var(--navy)' }}>{m.name}</td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: '700', color: STATUS_COLOR[m.status], fontFamily: 'monospace', fontSize: '13px' }}>{m.value}</td>
+                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: '700', color: STATUS_COLOR[m.status], fontFamily: 'monospace', fontSize: '13px' }}>{fmt(m.value)}</td>
                   <td style={{ padding: '9px 14px', textAlign: 'right', color: 'var(--text3)', fontSize: '11px' }}>{m.unit}</td>
                   <td style={{ padding: '9px 14px', textAlign: 'center', color: 'var(--text3)', fontFamily: 'monospace', fontSize: '11.5px' }}>{m.low}–{m.high}</td>
                   <td style={{ padding: '9px 14px', textAlign: 'center' }}>

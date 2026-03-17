@@ -22,12 +22,14 @@ const C = {
 };
 const serif = "'Libre Baskerville', Georgia, serif";
 
-export default function PatientProfile({ patient, user, onViewReport, onBack }) {
+export default function PatientProfile({ patient, user, onViewReport, onBack, onDeletePatient }) {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [comparison, setComparison] = useState(null);
   const [comparing, setComparing] = useState(false);
   const [compError, setCompError] = useState('');
+  const [confirmModal, setConfirmModal] = useState(null); // { type, id, name }
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadReports();
@@ -45,11 +47,51 @@ export default function PatientProfile({ patient, user, onViewReport, onBack }) 
       .from('reports')
       .select('id, report_type, status, cri_score, hrq_quadrant, cv_quadrant, ai_summary, created_at, collection_date, overall_status, cri_category, raw_extraction')
       .eq('patient_id', patient.id)
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) console.error('Failed to load reports:', error);
     setReports(data || []);
     setLoading(false);
+  };
+
+  const handleDeleteReport = async (reportId) => {
+    setDeleting(true);
+    const { error } = await supabase
+      .from('reports')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', reportId);
+    if (error) {
+      console.error('Failed to delete report:', error);
+      alert('Failed to delete report. Please try again.');
+    } else {
+      setReports(prev => prev.filter(r => r.id !== reportId));
+    }
+    setDeleting(false);
+    setConfirmModal(null);
+  };
+
+  const handleDeletePatient = async () => {
+    setDeleting(true);
+    // Soft-delete all reports for this patient
+    await supabase
+      .from('reports')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('patient_id', patient.id);
+    // Soft-delete the patient
+    const { error } = await supabase
+      .from('patients')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', patient.id);
+    if (error) {
+      console.error('Failed to delete patient:', error);
+      alert('Failed to delete patient. Please try again.');
+    } else {
+      setConfirmModal(null);
+      if (onDeletePatient) onDeletePatient(patient.id);
+      else onBack();
+    }
+    setDeleting(false);
   };
 
   const runComparison = async () => {
@@ -369,6 +411,27 @@ export default function PatientProfile({ patient, user, onViewReport, onBack }) 
                   </div>
                 )}
 
+                {/* Delete report */}
+                <button
+                  title="Delete this report"
+                  onClick={e => {
+                    e.stopPropagation();
+                    setConfirmModal({
+                      type: 'report',
+                      id: report.id,
+                      name: `${report.report_type || 'Report'} from ${new Date(report.collection_date || report.created_at).toLocaleDateString()}`,
+                    });
+                  }}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '6px',
+                    color: C.text3, fontSize: '15px', borderRadius: '6px', transition: 'color .15s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = C.red}
+                  onMouseLeave={e => e.currentTarget.style.color = C.text3}
+                >
+                  🗑
+                </button>
+
                 {/* Arrow */}
                 <span style={{ color: C.text3, fontSize: '16px' }}>→</span>
               </div>
@@ -376,6 +439,78 @@ export default function PatientProfile({ patient, user, onViewReport, onBack }) 
           </div>
         )}
       </div>
+      {/* Delete Patient Button */}
+      <div style={{ marginTop: '32px', textAlign: 'center' }}>
+        <button
+          onClick={() => setConfirmModal({
+            type: 'patient',
+            name: `${patient.first_name} ${patient.last_name}`,
+          })}
+          style={{
+            padding: '10px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+            background: 'none', border: `1px solid ${C.red}`, color: C.red,
+            cursor: 'pointer', transition: 'all .15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = C.red; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = C.red; }}
+        >
+          Delete Patient
+        </button>
+      </div>
+
+      {/* Confirmation Modal */}
+      {confirmModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => !deleting && setConfirmModal(null)}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff', borderRadius: '14px', padding: '28px', maxWidth: '420px', width: '90%',
+              boxShadow: '0 20px 60px rgba(0,0,0,.3)',
+            }}
+          >
+            <div style={{ fontSize: '18px', fontWeight: 700, color: C.navy, marginBottom: '12px' }}>
+              {confirmModal.type === 'patient' ? 'Delete Patient' : 'Delete Report'}
+            </div>
+            <p style={{ fontSize: '14px', color: C.text2, lineHeight: '1.6', margin: '0 0 8px' }}>
+              {confirmModal.type === 'patient'
+                ? `This will permanently delete ${confirmModal.name} and ALL their reports. This cannot be undone.`
+                : `This will permanently delete "${confirmModal.name}". This cannot be undone.`
+              }
+            </p>
+            {confirmModal.type === 'patient' && (
+              <p style={{ fontSize: '12px', color: C.red, fontWeight: 600, margin: '0 0 20px' }}>
+                {reports.length} report{reports.length !== 1 ? 's' : ''} will also be deleted.
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button
+                onClick={() => setConfirmModal(null)}
+                disabled={deleting}
+                style={{
+                  padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                  background: C.bg2, border: `1px solid ${C.border}`, color: C.text2, cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => confirmModal.type === 'patient' ? handleDeletePatient() : handleDeleteReport(confirmModal.id)}
+                disabled={deleting}
+                style={{
+                  padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                  background: C.red, border: 'none', color: '#fff', cursor: deleting ? 'default' : 'pointer',
+                  opacity: deleting ? 0.6 : 1,
+                }}
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

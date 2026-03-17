@@ -63,6 +63,7 @@ export default function TeamDashboard({ user, onView }) {
     const { data: pats, error } = await supabase
       .from('patients')
       .select('id, doctor_id, first_name, last_name, mrn, dob, gender, updated_at, reports(id, report_type, status, cri_score, created_at)')
+      .is('deleted_at', null)
       .order('updated_at', { ascending: false });
 
     if (error) console.error('Team dashboard load error:', error);

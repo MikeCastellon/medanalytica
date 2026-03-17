@@ -33,6 +33,7 @@ export default function Dashboard({ user, onNew, onView, sessionPatients = [] })
         .select(`id, first_name, last_name, dob, gender, mrn, updated_at,
                  reports(id, report_type, status, cri_score, hrq_quadrant, created_at)`)
         .eq('doctor_id', user.id)
+        .is('deleted_at', null)
         .order('updated_at', { ascending: false });
       if (data) {
         setDbPatients(data.map(p => ({
