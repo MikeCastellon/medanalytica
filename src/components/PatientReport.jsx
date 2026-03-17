@@ -634,8 +634,8 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
       <SectionLabel number={9} title="Therapeutic Selections" />
       <TherapeuticCard selections={r.therapeuticSelections || {}} quadrant={r.crisgoldQuadrant} therapeuticPriorities={r.therapeuticPriorities} />
 
-      {/* ── NeuroVIZR (feature-flagged) ── */}
-      {r.neuroVizrPrograms && user?.featureFlags?.neurovizr && (
+      {/* ── NeuroVIZR ── */}
+      {r.neuroVizrPrograms && (
         <>
           <SectionLabel number={10} title="NeuroVIZR Session Recommendations" />
           <NeuroVizrCard programs={r.neuroVizrPrograms} quadrant={r.crisgoldQuadrant} />

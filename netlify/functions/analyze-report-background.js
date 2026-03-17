@@ -257,11 +257,60 @@ HRV MARKERS — Every value in the hrvMarkers array MUST come from one of these 
   CROSS-CHECK: Before returning, verify every hrvMarkers value matches what is visible in the screenshots.
   NEVER use values from your training data or "typical" patient profiles.
 
-BRAIN GAUGE — set brainGauge: null and brainGaugeSummary: null AND neuroVizrPrograms: null UNLESS:
+BRAIN GAUGE — set brainGauge: null and brainGaugeSummary: null UNLESS:
   The practitioner explicitly confirmed Brain Gauge was tested (flag: brainGaugeTested=true).
   Brain Gauge is a SEPARATE device from HQP — it will NEVER appear in HQP screenshots.
   If Brain Gauge IS tested, extract the EXACT scores from the provided Brain Gauge screenshots.
   Do NOT generate Brain Gauge scores under any circumstances if not tested.
+
+NEUROVIZR SESSION MAPPING — ALWAYS generate neuroVizrPrograms (does NOT require Brain Gauge).
+  Use the CRIS GOLD quadrant + HQP patterns + Brain Gauge deficits (if available) to select sessions.
+  Clinical rule: when possible, begin with Brain Gym preparation sequence before heavier sessions.
+
+  SYMPTOM/GOAL MAPPING:
+  - Pain/inflammation → Peaceful Heart, Big Peace or Gentle Movers (daily or near-daily)
+  - Neuroinflammation/brain fog → Gamma Gamma, Crystal Clear (4-6x/week)
+  - Memory/recall → Crystal Clear, Laser Focus (daily)
+  - Working memory/concentration → Laser Focus, Focused Attention (4-6x/week)
+  - Stress + cognitive fatigue → Calm Down, Still Point (as needed / evening)
+  - TBI/post-concussion → Brain Gym sequence first, then Gamma Gamma or Focused Attention
+  - Mood + inflammatory stress → Peaceful Heart, Heart Space or Big Peace (3-5x/week)
+
+  HQP PATTERN MAPPING:
+  - High VLF% → Peaceful Heart, Big Peace (reduce stored load)
+  - Low Total Power → Brain Gym progression first (rebuild capacity)
+  - Low HF% → Peaceful Heart, Calm Down, Still Point (parasympathetic support)
+  - High Stress Index → Calm Down, Big Peace, Peaceful Heart (down-regulate overload)
+  - Low LF% with low drive → Crystal Clear, Centered, Brain Gym (gentle activation)
+  - Cognitive strain pattern → Crystal Clear, Laser Focus, Focused Attention
+
+  BRAIN GAUGE DEFICIT MAPPING (only when brainGaugeTested=true):
+  - Speed deficit → Crystal Clear, Laser Focus (Brain Gym → Crystal Clear)
+  - Accuracy deficit → Focused Attention, Crystal Clear (Brain Gym → Focused Attention)
+  - TOJ/Timing deficit → Coordination series, Focused Attention (Coordination 1-3 first)
+  - Plasticity deficit → Brain Gym full sequence, Gamma Gamma (complete Brain Gym first)
+  - Fatigue deficit → Still Point, Calm Down, Endurance series (calm/rebuild before high-demand)
+  - Focus deficit → Laser Focus, Focused Attention (Crystal Clear → Laser Focus)
+
+  QUADRANT SESSION STRATEGY:
+  - Q1 (High ELI + Low ARI): Calm first → Peaceful Heart / Big Peace → Brain Gym → Crystal Clear
+  - Q2 (High ELI + High ARI): Discharge overload → Calm Down / Peaceful Heart → Focused Attention or Crystal Clear
+  - Q3 (Low ELI + Low ARI): Build reserve → Brain Gym → Crystal Clear → Endurance series
+  - Q4 (Low ELI + High ARI): Optimize performance → Centered / Laser Focus → Task-oriented focus
+
+  MINI PROTOCOLS (use when clear clinical pattern exists):
+  - Pain + memory: AM Crystal Clear or Laser Focus | Midday Gamma Gamma | PM Peaceful Heart
+  - Neuroinflammation + fatigue: AM Brain Gym step | Midday Gamma Gamma | PM Still Point
+  - TBI support: Brain Gym progression first, then Focused Attention or Gamma Gamma
+  - High stress/overload: Peaceful Heart, Calm Down, Big Peace, then Brain Gym or Crystal Clear
+
+  OUTPUT RULES:
+  - brainGymFoundation: ALWAYS start with ['Coordination 1', 'Flexibility 1', 'Strength 1', 'Endurance 1']
+  - sessionFlow: Ordered sequence based on quadrant strategy above
+  - quadrantPrograms: Pick 3-5 specific sessions matching HQP pattern + quadrant + Brain Gauge (if tested)
+  - clinicalIntention: One sentence describing the therapeutic goal
+  - frequency: Recommended frequency (e.g. "4-6x/week", "Daily or near-daily")
+  - miniProtocol: AM/midday/PM session suggestions based on the patterns above
 
 ADRENAL URINE TEST — set adrenalUrineDrops: null, adrenalInterpretation: null, and adrenalSummary: null UNLESS:
   The practitioner explicitly confirmed the Adrenal Urine Test was performed (flag: adrenalTested=true).
@@ -886,7 +935,7 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
     if (!clinicalData?.brainGaugeTested) {
       parsed.brainGauge        = null;
       parsed.brainGaugeSummary = null;
-      parsed.neuroVizrPrograms = null;
+      // neuroVizrPrograms is NOT nulled here — it works with quadrant + HQP alone
     }
     if (!clinicalData?.adrenalTested) {
       parsed.adrenalUrineDrops     = null;
