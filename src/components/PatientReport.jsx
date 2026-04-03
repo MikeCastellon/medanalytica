@@ -12,6 +12,7 @@ import {
 import { MASTER_PROTOCOL_LIST } from '../lib/protocols';
 import { CHAVITA_DESCRIPTIONS, EMVITA_DESCRIPTIONS } from '../lib/rubimed';
 import Badge from './Badge';
+import DrainageDigestionSection from './DrainageDigestionSection';
 
 /** Format a numeric value for display — round to sensible precision */
 const fmt = (v) => {
@@ -630,14 +631,18 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
         </div>
       )}
 
-      {/* ── §9 Therapeutic Selections ── */}
-      <SectionLabel number={9} title="Therapeutic Selections" />
+      {/* ── §9 Drainage, Digestion & Resilience Support ── */}
+      <SectionLabel number={9} title="Drainage, Digestion & Resilience Support" />
+      <DrainageDigestionSection quadrant={r.crisgoldQuadrant} />
+
+      {/* ── §10 Therapeutic Selections ── */}
+      <SectionLabel number={10} title="Therapeutic Selections" />
       <TherapeuticCard selections={r.therapeuticSelections || {}} quadrant={r.crisgoldQuadrant} therapeuticPriorities={r.therapeuticPriorities} />
 
       {/* ── NeuroVIZR ── */}
       {r.neuroVizrPrograms && (
         <>
-          <SectionLabel number={10} title="NeuroVIZR Session Recommendations" />
+          <SectionLabel number={11} title="NeuroVIZR Session Recommendations" />
           <NeuroVizrCard programs={r.neuroVizrPrograms} quadrant={r.crisgoldQuadrant} />
         </>
       )}
@@ -1041,7 +1046,8 @@ function TherapeuticCard({ selections, quadrant, therapeuticPriorities }) {
   ];
 
   // Use priority engine ordering if available, else fallback
-  const priorities  = therapeuticPriorities?.priorities || fallbackCategories;
+  // Filter out drainage — it now has its own dedicated Section 9
+  const priorities  = (therapeuticPriorities?.priorities || fallbackCategories).filter(p => p.key !== 'drainage');
   const redFlags    = therapeuticPriorities?.redFlags || [];
   const primaryRisk = therapeuticPriorities?.primaryRisk || null;
 
