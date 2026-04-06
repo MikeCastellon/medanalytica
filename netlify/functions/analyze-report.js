@@ -157,6 +157,8 @@ HRV MARKER REFERENCE RANGES
 - HF%:          30–50%        (<25% = low parasympathetic tone)
 - LF%:          40–55%        (<40% = reduced baroreflex activity / low sympathetic modulation; used as baroreflex indicator)
 
+CRITICAL: VLF%, LF%, HF% must be returned as WHOLE NUMBER PERCENTAGES (e.g. 85, 14, 1), NOT as decimals (0.85, 0.14, 0.01). The pie chart on HQP shows "85%" — return 85, not 0.85.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CARDIOVASCULAR STRESS INDEX (CRI-HQP)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

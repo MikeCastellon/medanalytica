@@ -225,14 +225,25 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
   // Patient summary tab removed — clinician view only
   if (!report) return null;
   const r = report;
-  const markers = r.hrvMarkers?.length ? r.hrvMarkers : (r.markers || []);
+  const markersRaw = r.hrvMarkers?.length ? r.hrvMarkers : (r.markers || []);
+  // Client-side normalization: if VLF%/LF%/HF% are decimals (0.14) instead of % (14), fix them
+  const markers = markersRaw.map(m => {
+    if (['VLF%', 'LF%', 'HF%'].includes(m.name) && m.value != null && m.value > 0 && m.value < 1) {
+      const fixed = Math.round(m.value * 100);
+      const status = fixed < m.low ? 'low' : fixed > m.high ? 'high' : 'normal';
+      return { ...m, value: fixed, status };
+    }
+    return m;
+  });
   const patName = `${patient.first_name} ${patient.last_name}`;
   // Recompute CRI from raw VALUES using deterministic scoring (not AI scores which can be wrong)
   // This ensures the total AND individual scores are always correct, even for old reports
+  // normPct: fix decimals (0.14 → 14) for percentage values stored before server-side normalization
+  const normPct = (v) => (v != null && v > 0 && v < 1) ? Math.round(v * 100) : v;
   const criRecomputed = r.criBreakdown ? computeCRI({
     pulsePressure: r.criBreakdown.pulsePressure?.value ?? r.pulsePressure,
-    lfPercent:     r.criBreakdown.lfPercent?.value,
-    vlfPercent:    r.criBreakdown.vlfPercent?.value,
+    lfPercent:     normPct(r.criBreakdown.lfPercent?.value),
+    vlfPercent:    normPct(r.criBreakdown.vlfPercent?.value),
     stressIndex:   r.criBreakdown.stressIndex?.value,
     totalPower:    r.criBreakdown.totalPower?.value,
     sdnn:          r.criBreakdown.sdnn?.value,
@@ -732,7 +743,7 @@ function CRICard({ cri, score, category, breakdown }) {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text1)' }}>
-                      {label}{p.value != null && <span style={{ fontWeight: '400', color: 'var(--text2)', marginLeft: '6px' }}>{fmt(p.value)}{unit ? ` ${unit}` : ''}</span>}
+                      {label}{p.value != null && <span style={{ fontWeight: '400', color: 'var(--text2)', marginLeft: '6px' }}>{fmt(p.value, unit)}{unit ? ` ${unit}` : ''}</span>}
                     </div>
                     {p.note && <div style={{ fontSize: '11px', color: 'var(--text3)', lineHeight: '1.4', marginTop: '2px' }}>{p.note}</div>}
                   </div>
