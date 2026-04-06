@@ -245,53 +245,52 @@ BRAIN GAUGE — set brainGauge: null and brainGaugeSummary: null UNLESS:
   Do NOT generate Brain Gauge scores under any circumstances if not tested.
 
 NEUROVIZR SESSION MAPPING — ALWAYS generate neuroVizrPrograms (does NOT require Brain Gauge).
-  Use the CRIS GOLD quadrant + HQP patterns + Brain Gauge deficits (if available) to select sessions.
+  Use the CRIS GOLD quadrant + Brain Gauge deficits (if available) + special conditions to select sessions.
   Clinical rule: when possible, begin with Brain Gym preparation sequence before heavier sessions.
 
-  SYMPTOM/GOAL MAPPING:
-  - Pain/inflammation → Peaceful Heart, Big Peace or Gentle Movers (daily or near-daily)
-  - Neuroinflammation/brain fog → Gamma Gamma, Crystal Clear (4-6x/week)
-  - Memory/recall → Crystal Clear, Laser Focus (daily)
-  - Working memory/concentration → Laser Focus, Focused Attention (4-6x/week)
-  - Stress + cognitive fatigue → Calm Down, Still Point (as needed / evening)
-  - TBI/post-concussion → Brain Gym sequence first, then Gamma Gamma or Focused Attention
-  - Mood + inflammatory stress → Peaceful Heart, Heart Space or Big Peace (3-5x/week)
+  SESSION LIMITS (MANDATORY — do not exceed):
+  - MAX 2 Core sessions
+  - MAX 1 Optional session
+  - MAX 1 Advanced session
+  - If duplicates across categories → show only once
+  - Do NOT use "Speed Exercise" — it does not exist. Use "Pattern Exercise" if clinically needed.
 
-  HQP PATTERN MAPPING:
-  - High VLF% → Peaceful Heart, Big Peace (reduce stored load)
-  - Low Total Power → Brain Gym progression first (rebuild capacity)
-  - Low HF% → Peaceful Heart, Calm Down, Still Point (parasympathetic support)
-  - High Stress Index → Calm Down, Big Peace, Peaceful Heart (down-regulate overload)
-  - Low LF% with low drive → Crystal Clear, Centered, Brain Gym (gentle activation)
-  - Cognitive strain pattern → Crystal Clear, Laser Focus, Focused Attention
+  SELECTION ORDER:
+  1. Quadrant (always)
+  2. Brain Gauge (if data exists)
+  3. Condition (only if clinically needed, do not exceed limits)
+
+  BRAIN GYM RULE:
+  - If Quadrant = Q1 or Q3: show Brain Gym Foundation first (Coordination 1, Flexibility 1, Strength 1, Endurance 1)
+
+  QUADRANT SESSION MAP (LOCKED — use these exact sessions):
+  - Q1: Core: Calm Down, Peaceful Heart | Optional: Now Just Relax | Advanced: Alpha 10Hz
+  - Q2: Core: Emotional Flow, Shifting Into Task | Optional: Calm Down | Advanced: Gamma Gamma
+  - Q3: Core: Gentle Movers, Alpha 8-12Hz | Optional: Beta 12-15Hz | Advanced: Focused Attention
+  - Q4: Core: Laser Focus, Target Focus | Optional: Task Mode | Advanced: Gamma 30-40Hz
 
   BRAIN GAUGE DEFICIT MAPPING (only when brainGaugeTested=true):
-  - Speed deficit → Crystal Clear, Laser Focus (Brain Gym → Crystal Clear)
-  - Accuracy deficit → Focused Attention, Crystal Clear (Brain Gym → Focused Attention)
-  - TOJ/Timing deficit → Coordination series, Focused Attention (Coordination 1-3 first)
-  - Plasticity deficit → Brain Gym full sequence, Gamma Gamma (complete Brain Gym first)
-  - Fatigue deficit → Still Point, Calm Down, Endurance series (calm/rebuild before high-demand)
-  - Focus deficit → Laser Focus, Focused Attention (Crystal Clear → Laser Focus)
+  - Speed → Laser Focus
+  - Accuracy → Still Point
+  - TOJ → Coordination 1
+  - Fatigue → Gentle Movers
+  - Plasticity → Shifting Into Task
+  - Focus → Laser Focus
 
-  QUADRANT SESSION STRATEGY:
-  - Q1 (High ELI + Low ARI): Calm first → Peaceful Heart / Big Peace → Brain Gym → Crystal Clear
-  - Q2 (High ELI + High ARI): Discharge overload → Calm Down / Peaceful Heart → Focused Attention or Crystal Clear
-  - Q3 (Low ELI + Low ARI): Build reserve → Brain Gym → Crystal Clear → Endurance series
-  - Q4 (Low ELI + High ARI): Optimize performance → Centered / Laser Focus → Task-oriented focus
-
-  MINI PROTOCOLS (use when clear clinical pattern exists):
-  - Pain + memory: AM Crystal Clear or Laser Focus | Midday Gamma Gamma | PM Peaceful Heart
-  - Neuroinflammation + fatigue: AM Brain Gym step | Midday Gamma Gamma | PM Still Point
-  - TBI support: Brain Gym progression first, then Focused Attention or Gamma Gamma
-  - High stress/overload: Peaceful Heart, Calm Down, Big Peace, then Brain Gym or Crystal Clear
+  SPECIAL CONDITIONS (add only if clinically needed, do not exceed session limits):
+  - Anxiety / High Stress: Core: Calm Down, Peaceful Heart | Optional: Now Just Relax | Advanced: Alpha 10Hz
+  - Brain Fog / Cognitive Slowness: Core: Crystal Clear, Laser Focus | Optional: Beta 15Hz | Advanced: Focused Attention
+  - TBI / Concussion: Core: Coordination 1, Coordination 2 | Optional: Pattern Exercise | Advanced: Gamma Processor
+  - Sleep Issues: Core: Now Just Relax, Peaceful Heart | Optional: Delta 1-4Hz | Advanced: Theta 4Hz
+  - Burnout / Exhaustion: Core: Gentle Movers, Unwind | Optional: Kick Back | Advanced: Recover from Burnout
 
   OUTPUT RULES:
-  - brainGymFoundation: ALWAYS start with ['Coordination 1', 'Flexibility 1', 'Strength 1', 'Endurance 1']
-  - sessionFlow: Ordered sequence based on quadrant strategy above
-  - quadrantPrograms: Pick 3-5 specific sessions matching HQP pattern + quadrant + Brain Gauge (if tested)
+  - brainGymFoundation: ALWAYS ['Coordination 1', 'Flexibility 1', 'Strength 1', 'Endurance 1'] — show first for Q1/Q3
+  - quadrantPrograms: Use ONLY the locked quadrant sessions above (max 2 core + 1 optional + 1 advanced)
+  - sessionFlow: Ordered sequence: Brain Gym (if Q1/Q3) → Core → Optional → Advanced
   - clinicalIntention: One sentence describing the therapeutic goal
   - frequency: Recommended frequency (e.g. "4-6x/week", "Daily or near-daily")
-  - miniProtocol: AM/midday/PM session suggestions based on the patterns above
+  - miniProtocol: AM/midday/PM session suggestions (optional, only if pattern detected)
 
 ADRENAL URINE TEST — set adrenalUrineDrops: null, adrenalInterpretation: null, and adrenalSummary: null UNLESS:
   The practitioner explicitly confirmed the Adrenal Urine Test was performed (flag: adrenalTested=true).
@@ -845,6 +844,15 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
     // ── ENFORCE locked values from form data (server-side, AI cannot override) ──
     if (pp != null)        { parsed.pulsePressure = pp; }
 
+    // ── Normalize AI-extracted HRV %: if AI returned decimal (0.14) instead of % (14), fix it ──
+    if (Array.isArray(parsed.hrvMarkers)) {
+      for (const m of parsed.hrvMarkers) {
+        if (['VLF%', 'LF%', 'HF%'].includes(m.name) && m.value != null && m.value > 0 && m.value < 1) {
+          m.value = Math.round(m.value * 100);
+        }
+      }
+    }
+
     // ── When HQB data present, enforce HRV marker values from device (overrides AI extraction) ──
     if (hqbData?.hrv) {
       const h = hqbData.hrv;
@@ -864,6 +872,10 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
         const statusOf = (v, lo, hi) => v < lo ? 'low' : v > hi ? 'high' : 'normal';
         if (!Array.isArray(parsed.hrvMarkers)) parsed.hrvMarkers = [];
         for (const mo of markerOverrides) {
+          // Normalize: if % value looks like a decimal (e.g. 0.14 instead of 14), multiply by 100
+          if (['VLF%', 'LF%', 'HF%'].includes(mo.name) && mo.value != null && mo.value > 0 && mo.value < 1) {
+            mo.value = Math.round(mo.value * 100);
+          }
           const idx = parsed.hrvMarkers.findIndex(m => m.name === mo.name);
           const status = statusOf(mo.value, mo.low, mo.high);
           if (idx >= 0) {
@@ -891,13 +903,15 @@ ${!hqbData ? `- The HQP screenshots show: (1) Card boxes with Heart Rate, SDNN, 
       // hqbPolyAll3Red is always null — the AI sets polyvagalAll3Red in its response.
 
       // Prefer HQB values for computation (more reliable than AI screenshot extraction)
-      const extractedVLF  = hqbData?.hrv?.vlfPct     ?? parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value;
+      // Normalize % values: if AI returned decimal (0.14) instead of percentage (14), multiply by 100
+      const normPct = (v) => (v != null && v > 0 && v < 1) ? Math.round(v * 100) : v;
+      const extractedVLF  = normPct(hqbData?.hrv?.vlfPct     ?? parsed.hrvMarkers?.find(m => m.name === 'VLF%')?.value);
       const extractedTP   = hqbData?.hrv?.totalPower  ?? parsed.hrvMarkers?.find(m => m.name === 'Total Power')?.value;
       const extractedSI   = hqbData?.hrv?.stressIndex ?? parsed.hrvMarkers?.find(m => m.name === 'Stress Index')?.value;
       const extractedSDNN = hqbData?.hrv?.sdnn        ?? parsed.hrvMarkers?.find(m => m.name === 'SDNN')?.value;
       const extractedRMSSD= hqbData?.hrv?.rmssd       ?? parsed.hrvMarkers?.find(m => m.name === 'RMSSD')?.value;
-      const extractedHF   = hqbData?.hrv?.hfPct       ?? parsed.hrvMarkers?.find(m => m.name === 'HF%')?.value;
-      const extractedLF   = hqbData?.hrv?.lfPct       ?? parsed.hrvMarkers?.find(m => m.name === 'LF%')?.value;
+      const extractedHF   = normPct(hqbData?.hrv?.hfPct       ?? parsed.hrvMarkers?.find(m => m.name === 'HF%')?.value);
+      const extractedLF   = normPct(hqbData?.hrv?.lfPct       ?? parsed.hrvMarkers?.find(m => m.name === 'LF%')?.value);
       const polyAll3Red   = parsed.polyvagalAll3Red ?? 0;
 
       // ── COMPUTE ARI (Autonomic Regulation Index) — REVISED v1.0 ──────────

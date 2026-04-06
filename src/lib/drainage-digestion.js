@@ -10,23 +10,23 @@
 
 export const QUADRANT_LOGIC_TEXT = {
   Q1: {
-    interpretation: 'High emotional load + weak Autonomic Nervous System regulation',
-    goal: 'Stabilize, unload gently, support digestion, protect resilience',
+    interpretation: 'High Emotional Load + low Autonomic Nervous System capacity',
+    goal: 'Start gentle (Mundipur, EnzalasePro, TheralacPro). Stabilize before advancing.',
     warning: 'Starting too aggressively may cause die-off, bloating, or intolerance. Stabilize before advancing.',
   },
   Q2: {
-    interpretation: 'High emotional load + strong resilience',
-    goal: 'Unload dysbiosis without destabilizing regulation',
+    interpretation: 'High Emotional Load + high Autonomic Nervous System capacity',
+    goal: 'Can go deeper (add TruFloraPro, Detox support). Unload dysbiosis without destabilizing regulation.',
     warning: null,
   },
   Q3: {
-    interpretation: 'Low emotional load + weak Autonomic Nervous System regulation',
-    goal: 'Rebuild capacity, then expand microbiome',
+    interpretation: 'Low Emotional Load + low Autonomic Nervous System capacity',
+    goal: 'Rebuild (enzymes + TheralacPro + TruBifidoPro + fiber). Build capacity, then expand microbiome.',
     warning: null,
   },
   Q4: {
-    interpretation: 'Low emotional load + strong resilience',
-    goal: 'Maintain balance, prevent drift',
+    interpretation: 'Low Emotional Load + high Autonomic Nervous System capacity',
+    goal: 'Optimize and maintain balance.',
     warning: null,
   },
 };
@@ -325,18 +325,18 @@ export const RESILIENCE_PRODUCTS = [
 
 /* ── Core Principle (Digestion) ── */
 
-export const DIGESTION_CORE_PRINCIPLE = 'Break food \u2192 deliver microbes \u2192 restore colon \u2192 stabilize system';
+export const DIGESTION_CORE_PRINCIPLE = 'Break down food \u2192 deliver microbes \u2192 restore colon \u2192 stabilize system';
 
-export const DIGESTION_CLINICAL_TRUTH = 'You cannot fix the microbiome if organisms do not arrive alive. You cannot fix the host if food is not broken down.';
+export const DIGESTION_CLINICAL_TRUTH = 'You cannot restore the microbiome if beneficial organisms do not arrive alive. You cannot restore the body if food is not properly broken down.';
 
 /* ── Section Explanations ── */
 
 export const SECTION_EXPLANATION = {
-  main: 'This section focuses on supporting the body\'s elimination pathways, improving digestion and assimilation, and protecting the system during recovery. Drainage is not the same as detoxification. Drainage helps open and support exit pathways such as liver, kidneys, lymphatics, and gut.',
-  nutrition: 'Nutrition sets the terrain before intervention. It aligns with the principle that drainage is not detoxification \u2014 it prepares the body\'s natural exit pathways.',
-  drainage: 'Drainage helps open and support exit pathways such as liver, kidneys, lymphatics, and gut. It is always the first therapeutic priority.',
-  digestion: 'Digestion support is sequenced to reduce fermentation, deliver microbes safely, then rebuild deeper. The protocol must match the Autonomic Nervous System state.',
-  resilience: 'Resilience support stabilizes the nervous system, minerals, and recovery capacity during treatment.',
+  main: 'This section focuses on supporting the body\'s elimination pathways, improving digestion and assimilation, and protecting the system during recovery.',
+  nutrition: 'A Paleo-based diet (gluten-free and dairy-free) is recommended to reduce inflammation, stabilize blood sugar, and support gut and Autonomic Nervous System function.',
+  drainage: 'Drainage helps open and support exit pathways such as the liver, kidneys, lymphatic system, and gut. It improves circulation, reduces congestion, and prepares the body for deeper interventions. If drainage pathways are not open, toxins and metabolic waste can recirculate and slow progress.',
+  digestion: 'Digestion support focuses on improving how food is broken down, restoring gut balance, and strengthening overall digestive function. Delivering healthy microbes (probiotics) to the gut optimizes digestion, strengthens the immune system, and reduces chronic inflammation. You cannot restore the microbiome if beneficial organisms do not arrive alive. You cannot restore the body if food is not properly broken down.',
+  resilience: 'Resilience support helps stabilize the Autonomic Nervous System, support mineral balance, and improve recovery capacity during treatment. If the Autonomic Nervous System is unstable, progress will be limited. Stability allows the body to heal, adapt, and recover more effectively.',
 };
 
 /* ── Helper Functions ── */

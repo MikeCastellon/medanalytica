@@ -15,11 +15,28 @@ export const NEUROVIZR_SESSIONS = {
   'Calm Down':          { icon: '😌', category: 'Calm',       desc: 'Down-regulates overload and improves reset capacity' },
   'Still Point':        { icon: '🧘', category: 'Calm',       desc: 'Deep stillness for stress recovery and reset' },
   'Heart Space':        { icon: '❤️', category: 'Calm',       desc: 'Settles emotional load that amplifies pain' },
+  'Now Just Relax':     { icon: '🛋️', category: 'Calm',       desc: 'Deep relaxation for stress recovery' },
+  'Unwind':             { icon: '🌀', category: 'Calm',       desc: 'Releases tension and supports wind-down' },
+  'Kick Back':          { icon: '🪑', category: 'Calm',       desc: 'Easy relaxation for recovery support' },
+  'Recover from Burnout':{ icon: '🔋', category: 'Calm',       desc: 'Restorative session for exhaustion and burnout' },
   'Gamma Gamma':        { icon: '⚡', category: 'Focus',      desc: 'Supports clearer processing and neural organization' },
   'Crystal Clear':      { icon: '💎', category: 'Focus',      desc: 'Improves clarity, encoding, and sustained attention' },
   'Laser Focus':        { icon: '🎯', category: 'Focus',      desc: 'Increases attentional stability for memory and focus' },
   'Focused Attention':  { icon: '🔬', category: 'Focus',      desc: 'Builds attentional precision and discrimination' },
+  'Target Focus':       { icon: '🎯', category: 'Focus',      desc: 'Targeted focus training for performance' },
+  'Task Mode':          { icon: '📋', category: 'Focus',      desc: 'Task-oriented focus and productivity support' },
+  'Shifting Into Task': { icon: '🔄', category: 'Focus',      desc: 'Brain network transition support for task engagement' },
+  'Emotional Flow':     { icon: '🌊', category: 'Focus',      desc: 'Supports emotional processing and flow state' },
   'Centered':           { icon: '⚖️', category: 'Performance', desc: 'Balanced activation for optimized performance' },
+  'Gamma Processor':    { icon: '⚙️', category: 'Performance', desc: 'Advanced gamma processing for neural integration' },
+  'Pattern Exercise':   { icon: '🧩', category: 'Performance', desc: 'Pattern recognition and neural coordination' },
+  'Alpha 10Hz':         { icon: '🔊', category: 'Performance', desc: 'Alpha brainwave entrainment at 10Hz' },
+  'Alpha 8-12Hz':       { icon: '🔊', category: 'Performance', desc: 'Alpha range brainwave entrainment' },
+  'Beta 12-15Hz':       { icon: '🔊', category: 'Performance', desc: 'Low beta brainwave entrainment' },
+  'Beta 15Hz':          { icon: '🔊', category: 'Performance', desc: 'Beta brainwave entrainment at 15Hz' },
+  'Gamma 30-40Hz':      { icon: '🔊', category: 'Performance', desc: 'Gamma range brainwave entrainment' },
+  'Delta 1-4Hz':        { icon: '🔊', category: 'Performance', desc: 'Delta brainwave entrainment for deep rest' },
+  'Theta 4Hz':          { icon: '🔊', category: 'Performance', desc: 'Theta brainwave entrainment for deep relaxation' },
   'Coordination 1':     { icon: '🏋️', category: 'Brain Gym',  desc: 'Foundation: neural coordination training Level 1' },
   'Coordination 2':     { icon: '🏋️', category: 'Brain Gym',  desc: 'Foundation: neural coordination training Level 2' },
   'Coordination 3':     { icon: '🏋️', category: 'Brain Gym',  desc: 'Foundation: neural coordination training Level 3' },
@@ -55,22 +72,42 @@ export const HQP_SESSION_MAP = [
   { hqpPattern: 'Cognitive strain',         priority: 'Focus + clarity',                    sessions: ['Crystal Clear', 'Laser Focus', 'Focused Attention'] },
 ];
 
-// ── Brain Gauge Deficit → Session Mapping ────────────
+// ── Brain Gauge Deficit → Session Mapping (LOCKED) ───
 export const BRAIN_GAUGE_SESSION_MAP = {
-  speed:     { suggests: 'Slow processing / sluggish network response',   sessions: ['Crystal Clear', 'Laser Focus'],     startWith: 'Brain Gym → Crystal Clear' },
-  accuracy:  { suggests: 'Poor discrimination / unstable processing',     sessions: ['Focused Attention', 'Crystal Clear'], startWith: 'Brain Gym → Focused Attention' },
-  toj:       { suggests: 'Temporal processing weakness',                  sessions: ['Coordination series', 'Focused Attention'], startWith: 'Coordination 1–3 first' },
-  plasticity:{ suggests: 'Reduced adaptability',                          sessions: ['Brain Gym full sequence', 'Gamma Gamma'], startWith: 'Complete Brain Gym first' },
-  fatigue:   { suggests: 'Low cortical stamina',                          sessions: ['Still Point', 'Calm Down', 'Endurance series'], startWith: 'Calm / rebuild before high-demand' },
-  focus:     { suggests: 'Attentional inconsistency',                     sessions: ['Laser Focus', 'Focused Attention'],  startWith: 'Crystal Clear → Laser Focus' },
+  speed:     { suggests: 'Slow processing / sluggish network response',   sessions: ['Laser Focus'],          startWith: 'Laser Focus' },
+  accuracy:  { suggests: 'Poor discrimination / unstable processing',     sessions: ['Still Point'],           startWith: 'Still Point' },
+  toj:       { suggests: 'Temporal processing weakness',                  sessions: ['Coordination 1'],        startWith: 'Coordination 1' },
+  fatigue:   { suggests: 'Low cortical stamina',                          sessions: ['Gentle Movers'],         startWith: 'Gentle Movers' },
+  plasticity:{ suggests: 'Reduced adaptability',                          sessions: ['Shifting Into Task'],    startWith: 'Shifting Into Task' },
+  focus:     { suggests: 'Attentional inconsistency',                     sessions: ['Laser Focus'],           startWith: 'Laser Focus' },
 };
 
-// ── CRIS GOLD Quadrant → Session Strategy ────────────
+// ── CRIS GOLD Quadrant → Session Strategy (LOCKED) ───
+// Output rule: MAX 2 Core + 1 Optional + 1 Advanced per patient
+// Order: Quadrant → Brain Gauge (if exists) → Condition (only if needed)
 export const QUADRANT_SESSION_MAP = {
-  Q1: { theme: 'High ELI + Low ARI',  priority: 'Calm first, stabilize, then rebuild',           flow: ['Peaceful Heart / Big Peace', 'Brain Gym', 'Crystal Clear'] },
-  Q2: { theme: 'High ELI + High ARI', priority: 'Discharge overload while preserving capacity',  flow: ['Calm Down / Peaceful Heart', 'Focused Attention or Crystal Clear'] },
-  Q3: { theme: 'Low ELI + Low ARI',   priority: 'Build reserve and adaptability',                flow: ['Brain Gym', 'Crystal Clear', 'Endurance series'] },
-  Q4: { theme: 'Low ELI + High ARI',  priority: 'Optimize performance / resilience',             flow: ['Centered / Laser Focus', 'Task-oriented focus sessions'] },
+  Q1: { theme: 'High ELI + low Autonomic Nervous System capacity', priority: 'Calm first, stabilize, then rebuild',
+        core: ['Calm Down', 'Peaceful Heart'], optional: ['Now Just Relax'], advanced: ['Alpha 10Hz'],
+        flow: ['Calm Down', 'Peaceful Heart', 'Now Just Relax', 'Alpha 10Hz'] },
+  Q2: { theme: 'High ELI + high Autonomic Nervous System capacity', priority: 'Discharge overload while preserving capacity',
+        core: ['Emotional Flow', 'Shifting Into Task'], optional: ['Calm Down'], advanced: ['Gamma Gamma'],
+        flow: ['Emotional Flow', 'Shifting Into Task', 'Calm Down', 'Gamma Gamma'] },
+  Q3: { theme: 'Low ELI + low Autonomic Nervous System capacity', priority: 'Build reserve and adaptability',
+        core: ['Gentle Movers', 'Alpha 8-12Hz'], optional: ['Beta 12-15Hz'], advanced: ['Focused Attention'],
+        flow: ['Gentle Movers', 'Alpha 8-12Hz', 'Beta 12-15Hz', 'Focused Attention'] },
+  Q4: { theme: 'Low ELI + high Autonomic Nervous System capacity', priority: 'Optimize performance / resilience',
+        core: ['Laser Focus', 'Target Focus'], optional: ['Task Mode'], advanced: ['Gamma 30-40Hz'],
+        flow: ['Laser Focus', 'Target Focus', 'Task Mode', 'Gamma 30-40Hz'] },
+};
+
+// ── Special Conditions (add to report only if clinically needed) ──
+// Do not exceed total session limits: 2 Core + 1 Optional + 1 Advanced
+export const CONDITION_SESSION_MAP = {
+  'Anxiety / High Stress': { core: ['Calm Down', 'Peaceful Heart'], optional: ['Now Just Relax'], advanced: ['Alpha 10Hz'] },
+  'Brain Fog / Cognitive Slowness': { core: ['Crystal Clear', 'Laser Focus'], optional: ['Beta 15Hz'], advanced: ['Focused Attention'] },
+  'TBI / Concussion': { core: ['Coordination 1', 'Coordination 2'], optional: ['Pattern Exercise'], advanced: ['Gamma Processor'] },
+  'Sleep Issues': { core: ['Now Just Relax', 'Peaceful Heart'], optional: ['Delta 1-4Hz'], advanced: ['Theta 4Hz'] },
+  'Burnout / Exhaustion': { core: ['Gentle Movers', 'Unwind'], optional: ['Kick Back'], advanced: ['Recover from Burnout'] },
 };
 
 // ── Mini Protocols ───────────────────────────────────

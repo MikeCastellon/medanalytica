@@ -15,8 +15,10 @@ import Badge from './Badge';
 import DrainageDigestionSection from './DrainageDigestionSection';
 
 /** Format a numeric value for display — round to sensible precision */
-const fmt = (v) => {
+const fmt = (v, unit) => {
   if (v == null || typeof v !== 'number') return v;
+  // HRV percentages (VLF%, LF%, HF%) and core metrics (SDNN, RMSSD, TP, SI): always whole numbers
+  if (unit === '%' || unit === 'ms' || unit === 'ms²') return Math.round(v);
   if (Number.isInteger(v)) return v;
   if (Math.abs(v) >= 100) return Math.round(v);
   if (Math.abs(v) >= 10) return +v.toFixed(1);
@@ -500,7 +502,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
                   <div key={i} className="mr" style={{ display: 'block', padding: '8px 0', borderBottom: i < markers.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <div className="mn" style={{ flex: 1, display: 'flex', alignItems: 'center' }}>{m.name}<InfoTip text={HRV_INFO[m.name.split(' ').slice(-1)[0]]} /></div>
-                      <div className="mv" style={{ color: STATUS_COLOR[m.status], flexShrink: 0 }}>{fmt(m.value)} <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{m.unit}</span></div>
+                      <div className="mv" style={{ color: STATUS_COLOR[m.status], flexShrink: 0 }}>{fmt(m.value, m.unit)} <span style={{ fontSize: '10px', color: 'var(--text3)' }}>{m.unit}</span></div>
                     </div>
                     <div className="mb" style={{ marginBottom: '3px' }}><div className="mbi" style={{ width: `${pct}%`, background: STATUS_COLOR[m.status], opacity: .7 }} /></div>
                     <div style={{ fontSize: '10.5px', color: 'var(--text3)' }}>Ref: {m.low}–{m.high} {m.unit}</div>
@@ -619,7 +621,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
               {markers.filter(m => m.status !== 'normal').map((m, i) => (
                 <tr key={i}>
                   <td style={{ fontWeight: '600', color: 'var(--navy)' }}>{m.name}</td>
-                  <td style={{ color: STATUS_COLOR[m.status], fontWeight: '700' }}>{fmt(m.value)}</td>
+                  <td style={{ color: STATUS_COLOR[m.status], fontWeight: '700' }}>{fmt(m.value, m.unit)}</td>
                   <td style={{ color: 'var(--text2)', fontFamily: 'monospace', fontSize: '12.5px' }}>{m.low} – {m.high}</td>
                   <td style={{ color: 'var(--text3)' }}>{m.unit}</td>
                   <td><Badge status={m.status} /></td>
@@ -816,7 +818,17 @@ function QuadrantCard({ title, subtitle, quadrant, meta, qDefs, ari, eli, qScore
 }
 
 /* ── Brain Gauge Card ───────────────────────────────────── */
+const BRAIN_GAUGE_EXPLANATIONS = {
+  speed:      { definition: 'Measures how quickly the brain responds to a stimulus.', bullets: ['Slower processing speed', 'Reduced neural efficiency', 'Fatigue or low brain energy'] },
+  accuracy:   { definition: 'Measures how well the brain distinguishes between different sensory inputs.', bullets: ['Increased neural "noise"', 'Reduced cognitive precision', 'Imbalance in brain signaling'] },
+  toj:        { definition: 'Measures the brain\'s ability to detect timing and sequence.', bullets: ['Poor timing and sequencing', 'Difficulty processing order of events', 'Reduced integration between brain regions'] },
+  fatigue:    { definition: 'Measures how brain performance changes over time.', bullets: ['Neural exhaustion', 'Reduced endurance', 'Decreased energy production'] },
+  plasticity: { definition: 'Measures the brain\'s ability to adapt and learn.', bullets: ['Reduced adaptability', 'Difficulty forming new connections', 'Slower recovery and learning'] },
+  focus:      { definition: 'Measures the ability to sustain attention.', bullets: ['Reduced attention span', 'Increased distractibility', 'Difficulty staying on task'] },
+};
+
 function BrainGaugeCard({ brainGauge, summary }) {
+  const [openExplain, setOpenExplain] = useState({});
   return (
     <div className="cc" style={{ marginBottom: '16px' }}>
       <div className="ct">🧠 Brain Gauge — Cortical Performance</div>
@@ -827,6 +839,8 @@ function BrainGaugeCard({ brainGauge, summary }) {
           if (val == null) return null;
           const pct = Math.min((val / 100) * 100, 100);
           const status = val < low ? 'low' : 'normal';
+          const explain = BRAIN_GAUGE_EXPLANATIONS[key];
+          const isOpen = openExplain[key];
           return (
             <div key={key}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
@@ -836,6 +850,24 @@ function BrainGaugeCard({ brainGauge, summary }) {
               <div className="mb">
                 <div className="mbi" style={{ width: `${pct}%`, background: STATUS_COLOR[status], opacity: .75 }} />
               </div>
+              {status === 'low' && explain && (
+                <>
+                  <button
+                    onClick={() => setOpenExplain(prev => ({ ...prev, [key]: !prev[key] }))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '10.5px', color: 'var(--blue)', padding: '2px 0', marginTop: '2px', fontWeight: '600' }}
+                  >
+                    {isOpen ? '▾' : '▸'} What this means
+                  </button>
+                  {isOpen && (
+                    <div style={{ fontSize: '11.5px', color: 'var(--text2)', lineHeight: '1.6', padding: '6px 10px', marginTop: '2px', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                      <div style={{ marginBottom: '4px' }}>{explain.definition}</div>
+                      <ul style={{ margin: '0 0 0 14px', padding: 0 }}>
+                        {explain.bullets.map((b, i) => <li key={i}>{b}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           );
         })}
@@ -1341,9 +1373,18 @@ function NeuroVizrCard({ programs, quadrant }) {
     'Peaceful Heart': { icon: '💚', cat: 'Calm' }, 'Big Peace': { icon: '🕊️', cat: 'Calm' },
     'Gentle Movers': { icon: '🌊', cat: 'Calm' }, 'Calm Down': { icon: '😌', cat: 'Calm' },
     'Still Point': { icon: '🧘', cat: 'Calm' }, 'Heart Space': { icon: '❤️', cat: 'Calm' },
+    'Now Just Relax': { icon: '🛋️', cat: 'Calm' }, 'Unwind': { icon: '🌀', cat: 'Calm' },
+    'Kick Back': { icon: '🪑', cat: 'Calm' }, 'Recover from Burnout': { icon: '🔋', cat: 'Calm' },
     'Gamma Gamma': { icon: '⚡', cat: 'Focus' }, 'Crystal Clear': { icon: '💎', cat: 'Focus' },
     'Laser Focus': { icon: '🎯', cat: 'Focus' }, 'Focused Attention': { icon: '🔬', cat: 'Focus' },
-    'Centered': { icon: '⚖️', cat: 'Performance' },
+    'Target Focus': { icon: '🎯', cat: 'Focus' }, 'Task Mode': { icon: '📋', cat: 'Focus' },
+    'Shifting Into Task': { icon: '🔄', cat: 'Focus' }, 'Emotional Flow': { icon: '🌊', cat: 'Focus' },
+    'Centered': { icon: '⚖️', cat: 'Performance' }, 'Gamma Processor': { icon: '⚙️', cat: 'Performance' },
+    'Pattern Exercise': { icon: '🧩', cat: 'Performance' },
+    'Alpha 10Hz': { icon: '🔊', cat: 'Performance' }, 'Alpha 8-12Hz': { icon: '🔊', cat: 'Performance' },
+    'Beta 12-15Hz': { icon: '🔊', cat: 'Performance' }, 'Beta 15Hz': { icon: '🔊', cat: 'Performance' },
+    'Gamma 30-40Hz': { icon: '🔊', cat: 'Performance' }, 'Delta 1-4Hz': { icon: '🔊', cat: 'Performance' },
+    'Theta 4Hz': { icon: '🔊', cat: 'Performance' },
   };
   const getSessionStyle = (name) => {
     const meta = sessionMeta[name];
@@ -1552,7 +1593,7 @@ function HRVTable({ markers }) {
               {markers.map((m, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : 'var(--bg3)' }}>
                   <td style={{ padding: '9px 14px', fontWeight: '600', color: 'var(--navy)' }}>{m.name}</td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: '700', color: STATUS_COLOR[m.status], fontFamily: 'monospace', fontSize: '13px' }}>{fmt(m.value)}</td>
+                  <td style={{ padding: '9px 14px', textAlign: 'right', fontWeight: '700', color: STATUS_COLOR[m.status], fontFamily: 'monospace', fontSize: '13px' }}>{fmt(m.value, m.unit)}</td>
                   <td style={{ padding: '9px 14px', textAlign: 'right', color: 'var(--text3)', fontSize: '11px' }}>{m.unit}</td>
                   <td style={{ padding: '9px 14px', textAlign: 'center', color: 'var(--text3)', fontFamily: 'monospace', fontSize: '11.5px' }}>{m.low}–{m.high}</td>
                   <td style={{ padding: '9px 14px', textAlign: 'center' }}>
