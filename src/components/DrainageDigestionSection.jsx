@@ -8,7 +8,6 @@ import {
   DIGESTION_PRODUCTS,
   RESILIENCE_PRODUCTS,
   DIGESTION_CORE_PRINCIPLE,
-  DIGESTION_CLINICAL_TRUTH,
   SECTION_EXPLANATION,
   getProductsForSection,
   validateDigestionSelections,
@@ -205,14 +204,11 @@ function SubSection({ title, subtitle, products, included, onToggleInclude, show
 
 /* ── NutritionPanel ── */
 
-function NutritionPanel({ expanded, onToggle, includeInReport, onToggleInclude, showExplanation, onToggleExplanation }) {
+function NutritionPanel({ includeInReport, onToggleInclude, showExplanation, onToggleExplanation }) {
   const n = NUTRITION_FOUNDATION;
   return (
     <div style={{ marginBottom: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0', borderBottom: '2px solid var(--border)', flexWrap: 'wrap' }}>
-        <button onClick={onToggle} style={{ ...btnSmall, border: 'none', fontSize: '13px', color: 'var(--navy)', fontWeight: '700' }}>
-          {expanded ? '▾' : '▸'}
-        </button>
         <div style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--navy)', flex: 1 }}>
           Nutrition (Foundation)
         </div>
@@ -229,36 +225,34 @@ function NutritionPanel({ expanded, onToggle, includeInReport, onToggleInclude, 
         </div>
       </div>
 
-      {expanded && (
-        <div style={{ padding: '12px 16px', marginTop: '4px', background: 'var(--bg3)', borderRadius: '8px', fontSize: '12.5px', lineHeight: '1.7' }}>
-          {showExplanation && (
-            <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', color: '#1e3a5f' }}>
-              {n.explanation}
-            </div>
-          )}
-          <div style={{ marginBottom: '8px' }}>
-            <strong style={{ color: 'var(--navy)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Goals</strong>
-            <ul style={{ margin: '4px 0 0 16px', padding: 0, color: 'var(--text2)' }}>
-              {n.goals.map((g, i) => <li key={i}>{g}</li>)}
-            </ul>
+      <div style={{ padding: '12px 16px', marginTop: '4px', background: 'var(--bg3)', borderRadius: '8px', fontSize: '12.5px', lineHeight: '1.7' }}>
+        {showExplanation && (
+          <div style={{ marginBottom: '12px', padding: '8px 12px', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', color: '#1e3a5f' }}>
+            {n.explanation}
           </div>
-          <div>
-            <strong style={{ color: 'var(--navy)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Core Foods</strong>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: '4px', color: 'var(--text2)' }}>
-              <div><strong>Protein:</strong> {n.foods.protein}</div>
-              <div><strong>Vegetables:</strong> {n.foods.vegetables}</div>
-              <div><strong>Fats:</strong> {n.foods.fats}</div>
-              <div><strong>Fruits:</strong> {n.foods.fruits}</div>
-            </div>
-          </div>
-          {showExplanation && n.patientExplanation && (
-            <div style={{ marginTop: '10px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
-              <strong style={{ color: '#0e7a55', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Patient Explanation</strong>
-              <div style={{ color: '#166534', marginTop: '2px' }}>{n.patientExplanation}</div>
-            </div>
-          )}
+        )}
+        <div style={{ marginBottom: '8px' }}>
+          <strong style={{ color: 'var(--navy)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Goals</strong>
+          <ul style={{ margin: '4px 0 0 16px', padding: 0, color: 'var(--text2)' }}>
+            {n.goals.map((g, i) => <li key={i}>{g}</li>)}
+          </ul>
         </div>
-      )}
+        <div>
+          <strong style={{ color: 'var(--navy)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Core Foods</strong>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: '4px', color: 'var(--text2)' }}>
+            <div><strong>Protein:</strong> {n.foods.protein}</div>
+            <div><strong>Vegetables:</strong> {n.foods.vegetables}</div>
+            <div><strong>Fats:</strong> {n.foods.fats}</div>
+            <div><strong>Fruits:</strong> {n.foods.fruits}</div>
+          </div>
+        </div>
+        {showExplanation && n.patientExplanation && (
+          <div style={{ marginTop: '10px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+            <strong style={{ color: '#0e7a55', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Patient Explanation</strong>
+            <div style={{ color: '#166534', marginTop: '2px' }}>{n.patientExplanation}</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -323,12 +317,16 @@ export default function DrainageDigestionSection({ quadrant }) {
   const [quadrantExplanation, setQuadrantExplanation] = useState(false);
 
   // Nutrition state
-  const [nutritionExpanded, setNutritionExpanded] = useState(false);
   const [nutritionInclude, setNutritionInclude] = useState(true);
   const [nutritionExplanation, setNutritionExplanation] = useState(false);
 
-  // Sub-section expanded state
-  const [subExpanded, setSubExpanded] = useState({ drainage: true, digestion: true, resilience: true });
+  // Sub-section expanded state — primary category expanded by default based on quadrant
+  const primarySection = (quadrant === 'Q3' || quadrant === 'Q4') ? 'resilience' : 'drainage';
+  const [subExpanded, setSubExpanded] = useState({
+    drainage: primarySection === 'drainage',
+    digestion: false,
+    resilience: primarySection === 'resilience',
+  });
   const toggleSubExpanded = useCallback((key) => setSubExpanded(prev => ({ ...prev, [key]: !prev[key] })), []);
 
   // Sub-section include/explanation state
@@ -384,6 +382,9 @@ export default function DrainageDigestionSection({ quadrant }) {
   const filteredDigestion = filterRemoved(digestionProducts);
   const resilienceProducts = filterRemoved(getProductsForSection('resilience', q));
 
+  // Active product counter
+  const activeCount = Object.entries(productStates).filter(([, s]) => s?.included !== false).length;
+
   return (
     <div className="cc" style={{ marginBottom: '16px' }}>
       {/* Section Header */}
@@ -410,6 +411,18 @@ export default function DrainageDigestionSection({ quadrant }) {
         </div>
       )}
 
+      {/* Active product counter */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
+        <span style={pillStyle(activeCount > 5 ? '#fef3c7' : 'var(--bg3)', activeCount > 5 ? '#92400e' : 'var(--text2)', activeCount > 5 ? '#f59e0b' : 'var(--border)')}>
+          Active Protocol {activeCount}/5
+        </span>
+        {activeCount > 5 && (
+          <span style={{ fontSize: '11.5px', color: '#b45309', fontWeight: '600' }}>
+            Too many products selected — reduce for patient compliance
+          </span>
+        )}
+      </div>
+
       {/* Quadrant Logic Bar — always visible */}
       <div style={{ padding: '10px 14px', marginBottom: '12px', borderRadius: '8px', background: qDef.bg, border: `1px solid ${qDef.color}30` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -424,6 +437,11 @@ export default function DrainageDigestionSection({ quadrant }) {
         <div style={{ fontSize: '12px', color: 'var(--navy)', fontWeight: '600', marginTop: '2px' }}>
           Goal: {qLogic.goal}
         </div>
+        {qLogic.clinicalStrategy && (
+          <ul style={{ marginTop: '6px', paddingLeft: '16px', fontSize: '12px', color: 'var(--text2)' }}>
+            {qLogic.clinicalStrategy.map((s, i) => <li key={i}>{s}</li>)}
+          </ul>
+        )}
         {qLogic.warning && (
           <div style={{ fontSize: '11.5px', color: '#c0392b', marginTop: '6px', padding: '4px 8px', background: '#fef2f2', borderRadius: '4px' }}>
             ⚠ {qLogic.warning}
@@ -444,8 +462,6 @@ export default function DrainageDigestionSection({ quadrant }) {
 
       {/* 1. Nutrition */}
       <NutritionPanel
-        expanded={nutritionExpanded}
-        onToggle={() => setNutritionExpanded(!nutritionExpanded)}
         includeInReport={nutritionInclude}
         onToggleInclude={() => setNutritionInclude(!nutritionInclude)}
         showExplanation={nutritionExplanation}
@@ -502,13 +518,6 @@ export default function DrainageDigestionSection({ quadrant }) {
       >
         {/* Validation */}
         <ValidationBanner errors={validation.errors} warnings={validation.warnings} />
-
-        {/* Clinical truth (collapsed by default) */}
-        {subExplanations.digestion && (
-          <div style={{ fontSize: '11.5px', color: 'var(--text2)', fontStyle: 'italic', padding: '6px 10px', margin: '4px 0 8px', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
-            {DIGESTION_CLINICAL_TRUTH}
-          </div>
-        )}
 
         <CustomRemedyInput onAdd={(text) => addCustomRemedy('digestion', text)} />
         {customRemedies.digestion.map(cr => (

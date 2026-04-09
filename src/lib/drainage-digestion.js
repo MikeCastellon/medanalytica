@@ -21,7 +21,8 @@ export const QUADRANT_LOGIC_TEXT = {
   },
   Q3: {
     interpretation: 'Low Emotional Load + low Autonomic Nervous System capacity',
-    goal: 'Rebuild (enzymes + TheralacPro + TruBifidoPro + fiber). Build capacity, then expand microbiome.',
+    goal: 'Rebuild digestive capacity, improve nutrient absorption, and support microbiome restoration to increase energy, resilience, and recovery.',
+    clinicalStrategy: ['Improve digestion (enzyme support)', 'Introduce beneficial bacteria (probiotics)', 'Support microbiome growth (fiber)', 'Gradually build system capacity'],
     warning: null,
   },
   Q4: {
@@ -75,6 +76,7 @@ export const DRAINAGE_PRODUCTS = [
     indications: ['High VLF%', 'Sluggish detox pathways', 'Elevated liver markers'],
     whyItMatters: 'Improves elimination before deeper detox work.',
     patientExplanation: 'Supports your liver and helps your body clear waste more efficiently.',
+    kitNote: 'Available as Bioresource Pekana Detox Kit — all 3 remedies taken together in one glass of water. Can also be ordered individually.',
   },
   {
     id: 'renelix',
@@ -87,6 +89,7 @@ export const DRAINAGE_PRODUCTS = [
     indications: ['Poor kidney clearance', 'Fluid retention', 'High toxin burden'],
     whyItMatters: 'Kidneys are a primary elimination route \u2014 must be open before deeper interventions.',
     patientExplanation: 'Supports your kidneys in filtering and removing waste from your body.',
+    kitNote: 'Available as Bioresource Pekana Detox Kit — all 3 remedies taken together in one glass of water. Can also be ordered individually.',
   },
   {
     id: 'itires',
@@ -99,6 +102,7 @@ export const DRAINAGE_PRODUCTS = [
     indications: ['Lymphatic congestion', 'Swelling', 'Sluggish tissue drainage'],
     whyItMatters: 'Lymphatic system must be moving to clear cellular debris and toxins.',
     patientExplanation: 'Helps your lymphatic system move waste out of your tissues more effectively.',
+    kitNote: 'Available as Bioresource Pekana Detox Kit — all 3 remedies taken together in one glass of water. Can also be ordered individually.',
   },
   {
     id: 'detox-kit',

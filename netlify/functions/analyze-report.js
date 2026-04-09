@@ -268,16 +268,31 @@ NEUROVIZR SESSION MAPPING — ALWAYS generate neuroVizrPrograms (does NOT requir
   QUADRANT SESSION MAP (LOCKED — use these exact sessions):
   - Q1: Core: Calm Down, Peaceful Heart | Optional: Now Just Relax | Advanced: Alpha 10Hz
   - Q2: Core: Emotional Flow, Shifting Into Task | Optional: Calm Down | Advanced: Gamma Gamma
-  - Q3: Core: Gentle Movers, Alpha 8-12Hz | Optional: Beta 12-15Hz | Advanced: Focused Attention
+  - Q3: Core: Gentle Movers, Crystal Clear | Optional: Beta 12-15Hz | Advanced: Focused Attention
   - Q4: Core: Laser Focus, Target Focus | Optional: Task Mode | Advanced: Gamma 30-40Hz
 
-  BRAIN GAUGE DEFICIT MAPPING (only when brainGaugeTested=true):
-  - Speed → Laser Focus
-  - Accuracy → Still Point
-  - TOJ → Coordination 1
-  - Fatigue → Gentle Movers
-  - Plasticity → Shifting Into Task
-  - Focus → Laser Focus
+  BRAIN GAUGE DOMAIN MAPPING (if Brain Gauge data present):
+  - Speed deficit → Core: Crystal Clear | Support: Laser Focus | Advanced: Beta 15Hz
+  - Accuracy deficit → Core: Still Point | Support: Focused Attention | Advanced: Alpha 10Hz
+  - TOJ deficit → Core: Coordination 1 | Support: Pattern Exercise | Advanced: Theta 6Hz
+  - Time Perception deficit → Core: Coordination 1 | Support: Flexibility 1 | Advanced: Theta 4Hz
+  - Plasticity deficit → Core: Shifting Into Task | Support: Creative Pop | Advanced: Gamma Processor
+  - Fatigue deficit → Core: Gentle Movers | Support: Unwind | Advanced: Recover from Burnout
+  - Focus deficit → Core: Laser Focus | Support: Focused Attention | Advanced: Beta 12-15Hz
+
+  PRIORITY RULES:
+  - Use lowest 2 Brain Gauge domains only
+  - Tie-break order: Fatigue > Speed > Focus > Accuracy > TOJ > Time Perception > Plasticity
+  - If multiple domains map to same session, show once only
+  - Overall score: severity modifier only, do not assign sessions from it
+
+  FINAL OUTPUT (NeuroVIZR session list must follow this order):
+  1. Brain Gym Foundation (mandatory first — Level 1: Coordination 1, Flexibility 1, Strength 1, Endurance 1)
+  2. Quadrant Core sessions (Q1: Calm Down + Peaceful Heart | Q2: Emotional Flow + Shifting Into Task | Q3: Gentle Movers + Crystal Clear | Q4: Laser Focus + Target Focus)
+  3. Brain Gauge precision layer (top 1-2 adjusted sessions only)
+  4. Special conditions (only if clinically relevant)
+
+  SESSION LIMITS: MAX 2 Core + 1 Support + 1 Advanced total. Frequency: 3-5x/week, 10-20 minutes per session.
 
   SPECIAL CONDITIONS (add only if clinically needed, do not exceed session limits):
   - Anxiety / High Stress: Core: Calm Down, Peaceful Heart | Optional: Now Just Relax | Advanced: Alpha 10Hz

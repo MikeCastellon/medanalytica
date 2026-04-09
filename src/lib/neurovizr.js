@@ -27,6 +27,7 @@ export const NEUROVIZR_SESSIONS = {
   'Task Mode':          { icon: '📋', category: 'Focus',      desc: 'Task-oriented focus and productivity support' },
   'Shifting Into Task': { icon: '🔄', category: 'Focus',      desc: 'Brain network transition support for task engagement' },
   'Emotional Flow':     { icon: '🌊', category: 'Focus',      desc: 'Supports emotional processing and flow state' },
+  'Creative Pop':       { icon: '✨', category: 'Focus',      desc: 'Supports creative thinking and neural flexibility' },
   'Centered':           { icon: '⚖️', category: 'Performance', desc: 'Balanced activation for optimized performance' },
   'Gamma Processor':    { icon: '⚙️', category: 'Performance', desc: 'Advanced gamma processing for neural integration' },
   'Pattern Exercise':   { icon: '🧩', category: 'Performance', desc: 'Pattern recognition and neural coordination' },
@@ -74,13 +75,63 @@ export const HQP_SESSION_MAP = [
 
 // ── Brain Gauge Deficit → Session Mapping (LOCKED) ───
 export const BRAIN_GAUGE_SESSION_MAP = {
-  speed:     { suggests: 'Slow processing / sluggish network response',   sessions: ['Laser Focus'],          startWith: 'Laser Focus' },
-  accuracy:  { suggests: 'Poor discrimination / unstable processing',     sessions: ['Still Point'],           startWith: 'Still Point' },
-  toj:       { suggests: 'Temporal processing weakness',                  sessions: ['Coordination 1'],        startWith: 'Coordination 1' },
-  fatigue:   { suggests: 'Low cortical stamina',                          sessions: ['Gentle Movers'],         startWith: 'Gentle Movers' },
-  plasticity:{ suggests: 'Reduced adaptability',                          sessions: ['Shifting Into Task'],    startWith: 'Shifting Into Task' },
-  focus:     { suggests: 'Attentional inconsistency',                     sessions: ['Laser Focus'],           startWith: 'Laser Focus' },
+  speed: {
+    suggests: 'Reduced processing speed / sluggish neural response',
+    core: 'Crystal Clear',
+    support: 'Laser Focus',
+    advanced: 'Beta 15Hz',
+    reason: 'Supports processing speed, cognitive clarity, and faster brain response',
+  },
+  accuracy: {
+    suggests: 'Reduced sensory discrimination / cortical precision',
+    core: 'Still Point',
+    support: 'Focused Attention',
+    advanced: 'Alpha 10Hz',
+    reason: 'Supports cortical stability, precision, and calmer signal processing',
+  },
+  toj: {
+    suggests: 'Reduced timing / sequencing / executive timing control',
+    core: 'Coordination 1',
+    support: 'Pattern Exercise',
+    advanced: 'Theta 6Hz',
+    reason: 'Supports timing, sequencing, and integration',
+  },
+  timePerception: {
+    suggests: 'Impaired cortical-cerebellar timing / duration processing',
+    core: 'Coordination 1',
+    support: 'Flexibility 1',
+    advanced: 'Theta 4Hz',
+    reason: 'Supports timing, coordination, and cerebellar-related processing',
+  },
+  plasticity: {
+    suggests: 'Reduced adaptability / reduced neuroplasticity',
+    core: 'Shifting Into Task',
+    support: 'Creative Pop',
+    advanced: 'Gamma Processor',
+    reason: 'Supports adaptability, integration, and neuroplastic change',
+  },
+  fatigue: {
+    suggests: 'Reduced brain endurance / low brain energy',
+    core: 'Gentle Movers',
+    support: 'Unwind',
+    advanced: 'Recover from Burnout',
+    reason: 'Supports recovery, reduces overload, and improves endurance',
+  },
+  focus: {
+    suggests: 'Reduced sustained attention',
+    core: 'Laser Focus',
+    support: 'Focused Attention',
+    advanced: 'Beta 12-15Hz',
+    reason: 'Supports attention, sustained concentration, and task engagement',
+  },
 };
+
+// ── Brain Gauge Priority Rules ────────────────────────────────
+// 1. Use the lowest 2 Brain Gauge domains first
+// 2. Tie-breaking priority: Fatigue > Speed > Focus > Accuracy > TOJ > Time Perception > Plasticity
+// 3. If multiple domains map to same session, show that session ONCE only
+// 4. Overall score: use only as severity modifier, not to assign sessions directly
+// 5. Final output limit: 2 Core + 1 Support + 1 Advanced max
 
 // ── CRIS GOLD Quadrant → Session Strategy (LOCKED) ───
 // Output rule: MAX 2 Core + 1 Optional + 1 Advanced per patient
@@ -93,8 +144,8 @@ export const QUADRANT_SESSION_MAP = {
         core: ['Emotional Flow', 'Shifting Into Task'], optional: ['Calm Down'], advanced: ['Gamma Gamma'],
         flow: ['Emotional Flow', 'Shifting Into Task', 'Calm Down', 'Gamma Gamma'] },
   Q3: { theme: 'Low ELI + low Autonomic Nervous System capacity', priority: 'Build reserve and adaptability',
-        core: ['Gentle Movers', 'Alpha 8-12Hz'], optional: ['Beta 12-15Hz'], advanced: ['Focused Attention'],
-        flow: ['Gentle Movers', 'Alpha 8-12Hz', 'Beta 12-15Hz', 'Focused Attention'] },
+        core: ['Gentle Movers', 'Crystal Clear'], optional: ['Beta 12-15Hz'], advanced: ['Focused Attention'],
+        flow: ['Gentle Movers', 'Crystal Clear', 'Beta 12-15Hz', 'Focused Attention'] },
   Q4: { theme: 'Low ELI + high Autonomic Nervous System capacity', priority: 'Optimize performance / resilience',
         core: ['Laser Focus', 'Target Focus'], optional: ['Task Mode'], advanced: ['Gamma 30-40Hz'],
         flow: ['Laser Focus', 'Target Focus', 'Task Mode', 'Gamma 30-40Hz'] },

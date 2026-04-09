@@ -128,8 +128,8 @@ const CV_PROTOCOL_OBJECTIVES = {
   'Mild Autonomic/Vascular Strain':       ['Reduce arterial stiffness progression', 'Improve baroreflex sensitivity', 'Lifestyle modifications + periodic monitoring'],
   'Moderate Cardiovascular Risk Pattern': ['Reduce Pulse Pressure', 'Support endothelial NO signaling', 'Lower cardiac workload', 'Close monitoring recommended'],
   'High Cardiovascular Stress':           ['Reduce Pulse Pressure', 'Support endothelial NO signaling', 'Lower cardiac workload', 'Close monitoring recommended'],
-  'High Cardiovascular Stress Pattern':   ['Urgent cardiovascular evaluation', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair', 'Referral to cardiologist'],
-  'Critical Cardiovascular Risk':         ['Urgent cardiovascular evaluation', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair', 'Referral to cardiologist'],
+  'High Cardiovascular Stress Pattern':   ['Further evaluation by a cardiovascular specialist may be helpful to better understand and support heart and vascular function', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair', 'Referral to cardiologist'],
+  'Critical Cardiovascular Risk':         ['Further evaluation by a cardiovascular specialist may be helpful to better understand and support heart and vascular function', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair', 'Referral to cardiologist'],
 };
 
 // ── Therapeutic Category Rationale ───────────────────────────────────────────
@@ -168,7 +168,7 @@ const HRV_PATTERNS = [
     color: '#b45309',
     bg: '#fef3e2',
     icon: '🔶',
-    description: 'Stress drive dominating, recovery not keeping up. Autonomic balance tilted toward sympathetic.',
+    description: 'Stress drive dominating, recovery not keeping up. Autonomic Nervous System balance tilted toward sympathetic.',
     symptoms: ['Anxiety, tension, and insomnia', 'Blood pressure dysregulation', 'Muscle tightness and jaw clenching', 'Adrenaline-dominant pattern'],
     test: (markers) => {
       const lf = markers.find(m => /LF%/i.test(m.name));
@@ -469,7 +469,7 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
         <div className="rg">
           <QuadrantCard
             title="CRIS GOLD™ Quadrant"
-            subtitle="Emotional Load Index (ELI) vs Autonomic Regulation Index (ARI)"
+            subtitle="Emotional Load Index (ELI) vs Autonomic Nervous System Regulation Index (ARI)"
             quadrant={r.crisgoldQuadrant}
             meta={cgQ}
             qDefs={CRISGOLD_QUADRANTS}
@@ -719,7 +719,7 @@ function CRICard({ cri, score, category, breakdown }) {
           </div>
           <div style={{ fontSize: '13px', color: 'var(--text2)', lineHeight: '1.7' }}>
             CRI-HQP of <strong>{score}</strong> — <strong style={{ color: cri.color }}>{category || cri.label}</strong>.
-            {score >= 9 && ' Urgent cardiovascular evaluation recommended.'}
+            {score >= 9 && ' Further evaluation by a cardiovascular specialist may be helpful to better understand and support heart and vascular function.'}
             {score >= 6 && score < 9 && ' Cardiovascular intervention and close monitoring recommended.'}
             {score >= 3 && score < 6 && ' Lifestyle modifications and periodic monitoring advised.'}
             {score < 3 && ' Continue healthy habits and routine monitoring.'}
@@ -830,12 +830,38 @@ function QuadrantCard({ title, subtitle, quadrant, meta, qDefs, ari, eli, qScore
 
 /* ── Brain Gauge Card ───────────────────────────────────── */
 const BRAIN_GAUGE_EXPLANATIONS = {
-  speed:      { definition: 'Measures how quickly the brain responds to a stimulus.', bullets: ['Slower processing speed', 'Reduced neural efficiency', 'Fatigue or low brain energy'] },
-  accuracy:   { definition: 'Measures how well the brain distinguishes between different sensory inputs.', bullets: ['Increased neural "noise"', 'Reduced cognitive precision', 'Imbalance in brain signaling'] },
-  toj:        { definition: 'Measures the brain\'s ability to detect timing and sequence.', bullets: ['Poor timing and sequencing', 'Difficulty processing order of events', 'Reduced integration between brain regions'] },
-  fatigue:    { definition: 'Measures how brain performance changes over time.', bullets: ['Neural exhaustion', 'Reduced endurance', 'Decreased energy production'] },
-  plasticity: { definition: 'Measures the brain\'s ability to adapt and learn.', bullets: ['Reduced adaptability', 'Difficulty forming new connections', 'Slower recovery and learning'] },
-  focus:      { definition: 'Measures the ability to sustain attention.', bullets: ['Reduced attention span', 'Increased distractibility', 'Difficulty staying on task'] },
+  speed: {
+    label: 'Speed (Reaction Time)',
+    clinical: 'Slower speed reflects reduced communication efficiency in the brain (white matter / frontal-parietal pathways). Impacts processing speed, reaction time, and overall brain performance.',
+  },
+  accuracy: {
+    label: 'Accuracy (Amplitude Discrimination)',
+    clinical: 'Low accuracy suggests imbalance between excitatory and calming brain activity (often low GABA / high glutamate). Affects learning, memory, coordination, and cognitive clarity.',
+  },
+  timeOrderJudgment: {
+    label: 'TOJ (Temporal Order Judgment)',
+    clinical: 'Impaired TOJ reflects dysfunction in frontal-striatal pathways and executive processing. Affects focus, organization, decision-making, and behavior control.',
+  },
+  timePerception: {
+    label: 'Time Perception',
+    clinical: 'Linked to cortical–cerebellar function and coordination. Impacts balance, timing, coordination, and motor control.',
+  },
+  plasticity: {
+    label: 'Plasticity',
+    clinical: 'Low plasticity indicates reduced neuroadaptation and poor integration of new information. Critical for recovery, learning, and long-term brain improvement.',
+  },
+  fatigue: {
+    label: 'Fatigue',
+    clinical: 'Reflects reduced brain energy (mitochondrial function) and endurance. Linked to brain fog, poor focus, and reduced stamina.',
+  },
+  focus: {
+    label: 'Focus',
+    clinical: 'Often tied to frontal lobe function and executive control. Impacts productivity, attention, and cognitive performance.',
+  },
+  overallCorticalMetric: {
+    label: 'Overall',
+    clinical: 'Represents overall brain efficiency and functional status. Used to track progress and guide intervention.',
+  },
 };
 
 function BrainGaugeCard({ brainGauge, summary }) {
@@ -861,7 +887,7 @@ function BrainGaugeCard({ brainGauge, summary }) {
               <div className="mb">
                 <div className="mbi" style={{ width: `${pct}%`, background: STATUS_COLOR[status], opacity: .75 }} />
               </div>
-              {status === 'low' && explain && (
+              {val != null && explain && (
                 <>
                   <button
                     onClick={() => setOpenExplain(prev => ({ ...prev, [key]: !prev[key] }))}
@@ -871,10 +897,7 @@ function BrainGaugeCard({ brainGauge, summary }) {
                   </button>
                   {isOpen && (
                     <div style={{ fontSize: '11.5px', color: 'var(--text2)', lineHeight: '1.6', padding: '6px 10px', marginTop: '2px', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
-                      <div style={{ marginBottom: '4px' }}>{explain.definition}</div>
-                      <ul style={{ margin: '0 0 0 14px', padding: 0 }}>
-                        {explain.bullets.map((b, i) => <li key={i}>{b}</li>)}
-                      </ul>
+                      {explain.clinical}
                     </div>
                   )}
                 </>
@@ -1656,7 +1679,7 @@ function CVPatternPanel({ report: r, markers, criLabel, criScore }) {
   const flags = [
     { key: 'highPP',  label: 'High Pulse Pressure',    color: '#c0392b', active: r?.pulsePressure >= 60 },
     { key: 'stiff',   label: 'Arterial Stiffness',      color: '#7b1111', active: r?.pulsePressure >= 70 },
-    { key: 'autoLoad',label: 'Elevated Autonomic Load', color: '#b45309', active: stressMarker?.status === 'high' },
+    { key: 'autoLoad',label: 'Elevated Autonomic Nervous System Load', color: '#b45309', active: stressMarker?.status === 'high' },
     { key: 'baro',    label: 'Baroreflex Dysfunction',  color: '#b45309', active: lfMarker?.status === 'high' },
     { key: 'endo',    label: 'Endothelial Concern',     color: '#c0392b', active: criScore >= 6 },
   ].filter(f => f.active);
