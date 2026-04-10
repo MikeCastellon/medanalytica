@@ -239,7 +239,7 @@ function NutritionPanel({ includeInReport, onToggleInclude, showExplanation, onT
         </div>
         <div>
           <strong style={{ color: 'var(--navy)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '.05em' }}>Core Foods</strong>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: '4px', color: 'var(--text2)' }}>
+          <div className="nutrition-food-list" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: '4px', color: 'var(--text2)' }}>
             <div><strong>Protein:</strong> {n.foods.protein}</div>
             <div><strong>Vegetables:</strong> {n.foods.vegetables}</div>
             <div><strong>Fats:</strong> {n.foods.fats}</div>
@@ -343,6 +343,9 @@ export default function DrainageDigestionSection({ quadrant }) {
       [productId]: { ...prev[productId], [field]: value },
     }));
   }, []);
+
+  // Restore panel
+  const [showRestore, setShowRestore] = useState(false);
 
   // Custom remedies per sub-section
   const [customRemedies, setCustomRemedies] = useState({ drainage: [], digestion: [], resilience: [] });
@@ -571,6 +574,55 @@ export default function DrainageDigestionSection({ quadrant }) {
           ))}
         </SubSection>
       )}
+
+      {/* ── Restore Removed Products ── */}
+      {(() => {
+        const allProducts = [
+          ...DRAINAGE_PRODUCTS.map(p => ({ ...p, sectionLabel: 'Drainage' })),
+          ...DIGESTION_PRODUCTS.map(p => ({ ...p, sectionLabel: 'Digestion' })),
+          ...RESILIENCE_PRODUCTS.map(p => ({ ...p, sectionLabel: 'Resilience' })),
+        ];
+        const removed = allProducts.filter(p => productStates[p.id]?.removed === true);
+        if (removed.length === 0) return null;
+        return (
+          <div
+            className="no-print"
+            style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '10px 14px', marginTop: '12px' }}
+          >
+            {/* Disclosure toggle */}
+            <button
+              onClick={() => setShowRestore(v => !v)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600', color: '#92400e' }}
+            >
+              <span style={{ fontSize: '11px' }}>{showRestore ? '▾' : '▸'}</span>
+              Restore removed products ({removed.length})
+            </button>
+
+            {/* Expanded list */}
+            {showRestore && (
+              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {removed.map(p => (
+                  <div
+                    key={p.id}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 8px', background: '#fefce8', borderRadius: '6px', border: '1px solid #fde68a' }}
+                  >
+                    <span style={{ flex: 1, fontSize: '12px', fontWeight: '600', color: '#78350f' }}>{p.name}</span>
+                    <span style={{ fontSize: '10.5px', color: '#b45309', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '10px', padding: '1px 7px' }}>
+                      {p.sectionLabel}
+                    </span>
+                    <button
+                      onClick={() => handleProductChange(p.id, 'removed', false)}
+                      style={{ background: '#dcfce7', color: '#166534', border: '1px solid #86efac', borderRadius: '6px', padding: '3px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}
+                    >
+                      Restore
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

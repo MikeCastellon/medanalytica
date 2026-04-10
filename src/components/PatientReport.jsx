@@ -91,7 +91,7 @@ const ACUTE_REMEDY_INFO = {
 };
 
 // ── PSE: Standard Dosage (verbatim from Rubimed Practitioner Guide) ─────────
-const PSE_DOSAGE = '2× daily — 12 drops directly on tongue (adults). Children: 2× daily — 6 drops. Small children: 1 drop per year of age. Acute remedies / Geovita: 2× 12 drops, or 5 drops several times per day for acute symptoms. No known side effects. Does not replace medical or psychotherapeutic care.';
+const PSE_DOSAGE = '2× daily — 12 drops directly on tongue (adults). Children: 2× daily — 6 drops. Small children: 1 drop per year of age. Acute remedies / Neurovita: 2× 12 drops, or 5 drops several times per day for acute symptoms. No known side effects. Does not replace medical or psychotherapeutic care.';
 
 // ── Quadrant Clinical Focus (from CRIS GOLD™ Protocol Matrix docs) ───────────
 const QUADRANT_CLINICAL_FOCUS = {
@@ -128,8 +128,8 @@ const CV_PROTOCOL_OBJECTIVES = {
   'Mild Autonomic/Vascular Strain':       ['Reduce arterial stiffness progression', 'Improve baroreflex sensitivity', 'Lifestyle modifications + periodic monitoring'],
   'Moderate Cardiovascular Risk Pattern': ['Reduce Pulse Pressure', 'Support endothelial NO signaling', 'Lower cardiac workload', 'Close monitoring recommended'],
   'High Cardiovascular Stress':           ['Reduce Pulse Pressure', 'Support endothelial NO signaling', 'Lower cardiac workload', 'Close monitoring recommended'],
-  'High Cardiovascular Stress Pattern':   ['Further evaluation by a cardiovascular specialist may be helpful to better understand and support heart and vascular function', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair', 'Referral to cardiologist'],
-  'Critical Cardiovascular Risk':         ['Further evaluation by a cardiovascular specialist may be helpful to better understand and support heart and vascular function', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair', 'Referral to cardiologist'],
+  'High Cardiovascular Stress Pattern':   ['Further evaluation by a cardiovascular specialist may be helpful to better understand and support heart and vascular function', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair'],
+  'Critical Cardiovascular Risk':         ['Further evaluation by a cardiovascular specialist may be helpful to better understand and support heart and vascular function', 'Aggressive Pulse Pressure reduction', 'Endothelial and microcirculatory repair'],
 };
 
 // ── Therapeutic Category Rationale ───────────────────────────────────────────
