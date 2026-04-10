@@ -13,6 +13,7 @@ import { MASTER_PROTOCOL_LIST } from '../lib/protocols';
 import { CHAVITA_DESCRIPTIONS, EMVITA_DESCRIPTIONS } from '../lib/rubimed';
 import Badge from './Badge';
 import DrainageDigestionSection from './DrainageDigestionSection';
+import FinalSummaryCard from './FinalSummaryCard';
 
 /** Format a numeric value for display — round to sensible precision */
 const fmt = (v, unit) => {
@@ -659,6 +660,10 @@ export default function PatientReport({ patient, report, saveError, onBack, doct
           <NeuroVizrCard programs={r.neuroVizrPrograms} quadrant={r.crisgoldQuadrant} />
         </>
       )}
+
+      {/* ── §12 Final Summary — Patient Action Plan ── */}
+      <SectionLabel number={12} title="Patient Action Plan" />
+      <FinalSummaryCard report={r} />
 
       {/* ── Follow-up ── */}
       {r.recommendedFollowUp && (
